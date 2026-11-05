@@ -3,6 +3,11 @@
 This is a working function-interception prototype, **not a port of Geode**.
 It adds no Geode mod browser and cannot load `.geode` files.
 
+The [Geode Hook SDK subset](geode-sdk/README.md) now compiles upstream Hook.cpp,
+runs the public Hook API against the real getter and tests a native Cocos
+object method. Its opt-in `?sdkmenu=1` path attempts a native menu label and
+still needs a full browser boot and visual check. Full Geode remains unported.
+
 There is now a [compiled TulipHook experiment](tulip-wasm/README.md) with a
 separately compiled C++ plugin. It passes the real-game getter and hook-chain
 tests in Node. Open `experiments/tulip-wasm/` to run its browser check. This

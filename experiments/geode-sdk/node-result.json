@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "module": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
+  "upstreamGeodeHookCppCompiled": true,
+  "geodeHookPublicApi": true,
+  "sdkSubsetModLoaded": true,
+  "original": 480,
+  "modified": 600,
+  "directCall": true,
+  "indirectCall": true,
+  "toggleAndRestore": true,
+  "nativeReturnPreserved": true,
+  "nativeCocosSetPosition": true,
+  "menuCompletionFixture": true,
+  "fullGeodeLoader": false,
+  "existingGeodePackagesSupported": false,
+  "fullGameBootTested": false,
+  "menuLabelTested": false
+}

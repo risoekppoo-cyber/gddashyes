@@ -1,0 +1,32 @@
+#pragma once
+
+// Because C++ doesn't like using
+// namespaces that don't exist
+namespace geode {
+    namespace addresser {}
+    namespace cast {}
+    namespace cocos {}
+    namespace utils {}
+    namespace helper {}
+    namespace op {}
+    namespace stream {}
+    namespace view {}
+    namespace async {}
+}
+
+namespace cocos2d::extension {}
+
+namespace geode::prelude {
+    using namespace ::geode;
+    using namespace ::geode::addresser;
+    using namespace ::geode::cast;
+    using namespace ::geode::cocos;
+    using namespace ::geode::helper;
+    using namespace ::geode::utils;
+    using namespace ::geode::op;
+    using namespace ::geode::stream;
+    using namespace ::geode::view;
+    using namespace ::geode::async;
+    using namespace ::cocos2d;
+    using namespace ::cocos2d::extension;
+}

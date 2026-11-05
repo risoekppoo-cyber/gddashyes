@@ -1,0 +1,14 @@
+--- upstream/Hook.hpp
++++ wasm/Hook.hpp
+@@ -1,7 +1,10 @@
+ #pragma once
+ 
+ #include "../DefaultInclude.hpp"
+-#include "../utils/general.hpp"
++#include <span>
++#include <cstdint>
++#include <vector>
++namespace geode { using ByteSpan = std::span<uint8_t const>; using ByteVector = std::vector<uint8_t>; }
+ #include <matjson.hpp>
+ #include "Tulip.hpp"
+ #include <cinttypes>

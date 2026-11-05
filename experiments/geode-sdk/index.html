@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Westminster Dash · Geode Hook SDK test</title>
+<style>
+  :root{color-scheme:dark;font-family:system-ui,sans-serif;background:#081323;color:#eaf2ff}
+  body{max-width:760px;margin:40px auto;padding:0 22px;line-height:1.6}
+  h1{font-size:clamp(25px,5vw,36px);line-height:1.2} p{color:#bfcee0}
+  button,a{color:#91e6cb}button{font:inherit;font-weight:700;background:#153e39;border:1px solid #458a78;border-radius:9px;padding:12px 20px;cursor:pointer}
+  button:disabled{opacity:.5;cursor:wait}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0e2035;border:1px solid #243c56;border-radius:12px;padding:20px}
+  #status{min-height:2em}small{color:#96abc3}
+</style>
+<h1>A source-ported Geode Hook SDK mod</h1>
+<p>This test compiles Geode’s upstream <code>Hook.cpp</code> and public Hook API with a small WebAssembly backend. A separate C++ mod uses <code>Hook::create</code>, <code>enable</code> and <code>toggle</code> against the real game module.</p>
+<p><strong>This is a limited SDK port. The complete Geode loader, Mod ownership, $modify classes and existing .geode packages are not supported.</strong></p>
+<p><a href="../../index.html?sdkmenu=1&amp;quality=low">Open the full-game menu-label experiment in Edge</a>. It attempts to create a native Cocos label after menu initialization; that path still needs a browser boot and visual check.</p>
+<button id="run">Run SDK bridge test</button>
+<p id="status" role="status">Downloads approximately 29 MB. Use Edge for comparison with your earlier test.</p>
+<pre id="output">Expected: original 480 → modded 600 → restored 480.
+Also checks the native Cocos position method and menu-return detection.</pre>
+<button id="copy" hidden>Copy result</button>
+<p><a href="../check.html">Earlier bridge test</a> · <a href="../../index.html">Open Westminster Dash</a> · <a href="https://github.com/risoekppoo-cyber/gddashyes/tree/main/experiments/geode-sdk">Source and build instructions</a></p>
+<small>The test runs locally in your browser. Results are not sent anywhere.</small>
+<script src="../hook-prototype.js"></script>
+<script type="module">
+const run = document.querySelector('#run'), status = document.querySelector('#status');
+const output = document.querySelector('#output'), copy = document.querySelector('#copy');
+run.addEventListener('click', async () => {
+  run.disabled = true; copy.hidden = true;
+  try {
+    const {verifySdk} = await import('./verify.mjs');
+    status.textContent = 'Downloading the game module and compiled C++ plugin…';
+    const [gameResponse, modResponse] = await Promise.all([
+      fetch('https://raw.githubusercontent.com/Ale7208/geometry-dash-wasm/main/payload/wasm-523d9362955eba27a8ce64ec.gz'),
+      fetch('./dist/menu-mod.wasm')
+    ]);
+    if (!gameResponse.ok || !modResponse.ok) throw Error('Download failed');
+    const unpacked = new Response(gameResponse.body.pipeThrough(new DecompressionStream('gzip')));
+    const result = await verifySdk(await unpacked.arrayBuffer(), globalThis.GDHookPrototype,
+      new Uint8Array(await modResponse.arrayBuffer()), message => {status.textContent = message;});
+    result.browser = navigator.userAgent;
+    output.textContent = JSON.stringify(result, null, 2);
+    status.textContent = 'PASS · the Geode Hook SDK subset and native object-method bridge passed. The full menu-label test is separate.';
+  } catch (error) {
+    output.textContent = JSON.stringify({status:'FAIL',error:error.stack || String(error),browser:navigator.userAgent}, null, 2);
+    status.textContent = 'Test stopped. Copy the result so we can identify the failure.';
+  } finally { run.disabled = false; copy.hidden = false; }
+});
+copy.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(output.textContent); copy.textContent = 'Copied'; }
+  catch { status.textContent = 'Select and copy the result text below.'; }
+});
+</script>
+</html>

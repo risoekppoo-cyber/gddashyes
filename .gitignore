@@ -3,5 +3,7 @@
 __pycache__/
 *.wasm
 !experiments/tulip-wasm/dist/*.wasm
+!experiments/geode-sdk/dist/*.wasm
+experiments/geode-sdk/build/
 *.dis
 node_modules/
