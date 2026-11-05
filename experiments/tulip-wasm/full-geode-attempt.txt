@@ -1,0 +1,37 @@
+Unmodified Geode 6.0.0-alpha.1, Emscripten 6.0.5, CMake 3.31.6
+
+full-geode-configure.log
+emcmake: <build>/python-tools/cmake/data/bin/cmake -S <build>/source/geode-6.0.0-alpha.1 -B <build>/full-geode -DGEODE_DISABLE_CLI_CALLS=ON -DGEODE_DISABLE_PRECOMPILED_HEADERS=ON -DGEODE_DONT_BUILD_TEST_MODS=ON -DGEODE_DONT_USE_CCACHE=ON -DCMAKE_TOOLCHAIN_FILE=<build>/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_CROSSCOMPILING_EMULATOR=<build>/emsdk/node/24.19.0_64bit/bin/node in directory <workspace>
+-- Version: 6.0.0, tag: alpha.1 (type: Alpha, number: 1)
+-- Using <build>/bindings for bindings repo
+-- Not looking for ccache because GEODE_DONT_USE_CCACHE was ON
+Not using a caching compiler (ccache/sccache). It is recommended to install one to improve build times.
+We recommend sccache, check its README for installation instructions, normally you can just use your usual package manager (e.g. 'scoop install sccache').
+-- Pre-compiled headers - OFF
+CMake Error at cmake/PlatformDetect.cmake:17 (message):
+  Unable to detect platform, please set GEODE_TARGET_PLATFORM in the root
+  CMake file.
+Call Stack (most recent call first):
+  cmake/Platform.cmake:1 (include)
+  CMakeLists.txt:196 (include)
+
+
+-- Configuring incomplete, errors occurred!
+
+full-geode-explicit-web.log
+emcmake: <build>/python-tools/cmake/data/bin/cmake -S <build>/source/geode-6.0.0-alpha.1 -B <build>/full-geode-explicit-web -DGEODE_TARGET_PLATFORM=Web -DGEODE_DISABLE_CLI_CALLS=ON -DGEODE_DONT_USE_CCACHE=ON -DCMAKE_TOOLCHAIN_FILE=<build>/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_CROSSCOMPILING_EMULATOR=<build>/emsdk/node/24.19.0_64bit/bin/node in directory <workspace>
+-- Version: 6.0.0, tag: alpha.1 (type: Alpha, number: 1)
+-- Using <build>/bindings for bindings repo
+-- Not looking for ccache because GEODE_DONT_USE_CCACHE was ON
+Not using a caching compiler (ccache/sccache). It is recommended to install one to improve build times.
+We recommend sccache, check its README for installation instructions, normally you can just use your usual package manager (e.g. 'scoop install sccache').
+Because of this, PCH will be enabled.
+-- Pre-compiled headers - ON
+CMake Error at cmake/Platform.cmake:190 (message):
+  Unknown platform Web
+Call Stack (most recent call first):
+  CMakeLists.txt:196 (include)
+
+
+-- Configuring incomplete, errors occurred!
+

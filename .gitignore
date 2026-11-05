@@ -2,5 +2,6 @@
 .preview/
 __pycache__/
 *.wasm
+!experiments/tulip-wasm/dist/*.wasm
 *.dis
 node_modules/

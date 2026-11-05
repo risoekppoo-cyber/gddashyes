@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Westminster Dash · compiled C++ hook test</title>
+<style>
+  :root{color-scheme:dark;font-family:system-ui,sans-serif;background:#081323;color:#eaf2ff}
+  body{max-width:760px;margin:40px auto;padding:0 22px;line-height:1.6}
+  h1{font-size:clamp(25px,5vw,36px);line-height:1.2} p{color:#bfcee0}
+  button,a{color:#91e6cb}button{font:inherit;font-weight:700;background:#153e39;border:1px solid #458a78;border-radius:9px;padding:12px 20px;cursor:pointer}
+  button:disabled{opacity:.5;cursor:wait}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0e2035;border:1px solid #243c56;border-radius:12px;padding:20px}
+  #status{min-height:2em}small{color:#96abc3}
+</style>
+<h1>A compiled C++ mod hooked into the real game module</h1>
+<p>This experiment compiles upstream <a href="https://github.com/geode-sdk/TulipHook/tree/62ef839ee205d6943361c0902d08224acab32660">TulipHook</a>, used by Geode, to WebAssembly. It dynamically loads a separate C++ test plugin and tests a real Geometry Dash getter.</p>
+<p><strong>This is a hook-engine experiment. The full Geode loader and existing .geode packages are not supported, and the full game is not booted by this test.</strong></p>
+<button id="run">Run C++ mod test</button>
+<p id="status" role="status">Downloads approximately 29 MB. Use Edge for comparison with your earlier test.</p>
+<pre id="output">Expected: original 480 → modded 600 → restored 480.
+Two-hook ordering: 1080 → 1200.</pre>
+<button id="copy" hidden>Copy result</button>
+<p><a href="../check.html">Earlier bridge test</a> · <a href="../../index.html">Open Westminster Dash</a> · <a href="https://github.com/risoekppoo-cyber/gddashyes/tree/main/experiments/tulip-wasm">Source and build instructions</a></p>
+<small>The test runs locally in your browser. Results are not sent anywhere.</small>
+<script src="../hook-prototype.js"></script>
+<script type="module">
+const run = document.querySelector('#run'), status = document.querySelector('#status');
+const output = document.querySelector('#output'), copy = document.querySelector('#copy');
+run.addEventListener('click', async () => {
+  run.disabled = true; copy.hidden = true;
+  try {
+    const {verifyTulip} = await import('./verify.mjs');
+    status.textContent = 'Downloading the game module and compiled C++ plugin…';
+    const [gameResponse, modResponse] = await Promise.all([
+      fetch('https://raw.githubusercontent.com/Ale7208/geometry-dash-wasm/main/payload/wasm-523d9362955eba27a8ce64ec.gz'),
+      fetch('./dist/test-mod.wasm')
+    ]);
+    if (!gameResponse.ok || !modResponse.ok) throw Error('Download failed');
+    const unpacked = new Response(gameResponse.body.pipeThrough(new DecompressionStream('gzip')));
+    const result = await verifyTulip(await unpacked.arrayBuffer(), globalThis.GDHookPrototype,
+      new Uint8Array(await modResponse.arrayBuffer()), message => {status.textContent = message;});
+    result.browser = navigator.userAgent;
+    output.textContent = JSON.stringify(result, null, 2);
+    status.textContent = 'PASS · compiled TulipHook and the C++ test plugin passed. Full Geode remains unported.';
+  } catch (error) {
+    output.textContent = JSON.stringify({status:'FAIL',error:error.stack || String(error),browser:navigator.userAgent}, null, 2);
+    status.textContent = 'Test stopped. Copy the result so we can identify the failure.';
+  } finally { run.disabled = false; copy.hidden = false; }
+});
+copy.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(output.textContent); copy.textContent = 'Copied'; }
+  catch { status.textContent = 'Select and copy the result text below.'; }
+});
+</script>
+</html>

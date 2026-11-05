@@ -3,6 +3,11 @@
 This is a working function-interception prototype, **not a port of Geode**.
 It adds no Geode mod browser and cannot load `.geode` files.
 
+There is now a [compiled TulipHook experiment](tulip-wasm/README.md) with a
+separately compiled C++ plugin. It passes the real-game getter and hook-chain
+tests in Node. Open `experiments/tulip-wasm/` to run its browser check. This
+ports part of Geode's hook dependency, not the full Geode loader or SDK.
+
 ## What passed
 
 The Node verification runs the actual pinned game module, with graphics and
