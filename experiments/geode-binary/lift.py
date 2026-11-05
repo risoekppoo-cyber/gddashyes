@@ -14,8 +14,9 @@ REGS = ['RAX','RCX','RDX','RBX','RSP','RBP','RSI','RDI','R8','R9','R10','R11','R
 class LiftError(Exception): pass
 
 class Lifter:
-    def __init__(self, pe, limit):
+    def __init__(self, pe, limit, allow_indirect=False, yield_unknown=False):
         self.pe, self.limit = pe, limit
+        self.allow_indirect, self.yield_unknown = allow_indirect, yield_unknown
         self.base = pe.OPTIONAL_HEADER.ImageBase
         self.ctx = pypcode.Context('x86:LE:64:default')
         self.reg_roots = [(self.ctx.registers[n].offset, i*8, 8) for i,n in enumerate(REGS)]
@@ -54,6 +55,8 @@ class Lifter:
         self.opcodes[code] += 1
         x = [self.expr(v) for v in a] if code not in ['IMARK','LOAD','STORE','BRANCH','CBRANCH','CALL','RETURN'] else []
         if code == 'IMARK': return ''
+        if code in ['CALLIND','BRANCHIND'] and self.allow_indirect:
+            return f'raw_write(cpu+192u,{self.expr(a[0])},8u); goto next_instruction;'
         if code == 'COPY': e=x[0]
         elif code == 'LOAD':
             if '*[ram]' not in str(op): raise LiftError('Non-ram LOAD')
@@ -125,7 +128,7 @@ class Lifter:
             for op in ops:
                 if op.opcode.name in ['BRANCH','CBRANCH','CALL'] and op.inputs[0].space.name=='ram':
                     queue.append(op.inputs[0].offset)
-                if op.opcode.name in ['BRANCH','RETURN'] and (op.opcode.name=='RETURN' or op.inputs[0].space.name=='ram'): terminal=True
+                if op.opcode.name in ['BRANCH','RETURN','BRANCHIND'] and (op.opcode.name in ['RETURN','BRANCHIND'] or op.inputs[0].space.name=='ram'): terminal=True
             if not terminal: queue.append(va+instruction.length)
     def source(self):
         cases=[]
@@ -139,7 +142,8 @@ class Lifter:
                 lines += [f'pc_{va:x}_op_{i}: ; '+line]
             lines += [f'pc_{va:x}_op_{len(ops)}: ; goto next_instruction; }}']
             cases.append('\n'.join(lines))
-        return PRELUDE+'\n'.join(cases)+'''\n default: lift_fault(1u,pc,pc); __builtin_trap();
+        default='return 0x80000000u|step;' if self.yield_unknown else 'lift_fault(1u,pc,pc); __builtin_trap();'
+        return PRELUDE+'\n'.join(cases)+'\n default: '+default+'''
       }
       next_instruction: ;
     }

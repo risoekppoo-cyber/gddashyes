@@ -26,6 +26,8 @@ The game link also enables the existing Geode SDK subset experiment. After the n
 
 ## Actual startup blocker
 
+**Follow-up:** [The new indirect-call fixture](indirect/README.md) passes 64 independent x64 reference cases, including a native caller → actual Geode dispatch thunk/getter → caller → native callback sequence. It adds opt-in `CALLIND` and `BRANCHIND` translation and a router for explicitly translated addresses. The original conservative startup probe below remains blocked; full DLL startup, target discovery and Windows services have not been implemented.
+
 `dist/startup-probe/blocked.json` records a bounded traversal of the DLL's real entrypoint. It reaches 84 translated/discovered instructions, then stops at:
 
 ```

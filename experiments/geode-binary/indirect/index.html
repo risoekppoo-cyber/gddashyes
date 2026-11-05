@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Geode indirect binary translation test</title>
+<style>body{margin:24px auto;padding:0 18px;max-width:850px;background:#0a1829;color:#e4f9ed;font:16px system-ui}a{color:#b6f457}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#11283c;padding:18px;border-radius:12px}button{padding:10px}</style>
+<h1>Geode indirect binary translation test</h1>
+<p>A native Windows test DLL calls through the official Geode dispatch thunk, enters Geode's address getter, then calls back into the test DLL. Two separately translated WebAssembly modules share the guest CPU and memory.</p>
+<p>All 16 general registers, five arithmetic flags and 256 stack bytes are checked against original machine instructions executed by Unicorn. This test does not initialize the full Geode loader or load existing mods.</p>
+<p><a href="../">Previous binary test</a> · <a href="README.md">Source and limitations</a></p>
+<pre id="report">Running 64 native-reference comparisons…</pre><button id="copy">Copy report</button>
+<script type="module">
+import {verifyIndirect} from './verify.mjs';
+let report;
+try {
+ const data=await Promise.all(['fixture.wasm','geode.wasm','reference.json'].map(async name=>{
+  const response=await fetch(new URL(name,import.meta.url));if(!response.ok)throw Error(name+' HTTP '+response.status);
+  return name.endsWith('.wasm')?response.arrayBuffer():response.json();}));
+ report=await verifyIndirect(...data);report.browser=navigator.userAgent;
+}catch(error){report={status:'FAIL',error:error.stack||String(error)};}
+document.querySelector('#report').textContent=JSON.stringify(report,null,2);
+document.querySelector('#copy').onclick=()=>navigator.clipboard.writeText(JSON.stringify(report,null,2));
+</script></html>
