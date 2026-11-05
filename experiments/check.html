@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Westminster Dash · Bridge check</title>
+<style>
+  :root { color-scheme:dark; font-family:system-ui,sans-serif; background:#091321; color:#edf4ff }
+  body { max-width:760px; margin:48px auto; padding:0 22px 40px; line-height:1.6 }
+  h1 { font-size:clamp(26px,5vw,38px); line-height:1.2; margin-bottom:12px }
+  .brand { color:#b9f45e; font-size:13px; font-weight:750; letter-spacing:.12em; text-transform:uppercase }
+  .muted { color:#a3b6cc } .card { padding:22px; border:1px solid #26394e; border-radius:18px; background:#101f31; margin:22px 0 }
+  button { border:0; border-radius:10px; background:#b9f45e; color:#102006; padding:13px 20px; font:700 16px system-ui; cursor:pointer }
+  button:disabled { opacity:.55; cursor:wait } a { color:#c2eaff } pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:13px }
+  #status { font-weight:650; margin-top:18px } .pass { color:#b9f45e } .fail { color:#ffab9c }
+  ul { padding-left:20px } .features { display:flex; gap:10px; flex-wrap:wrap } .features span { background:#1c3148; padding:4px 10px; border-radius:7px; font-size:13px }
+</style>
+<body>
+<div class="brand">Westminster Dash · Experimental</div>
+<h1>Game function bridge check</h1>
+<p class="muted">Run the same execution checks used during development in this browser. Graphics and audio stay off.</p>
+<div class="features" id="features"></div>
+<section class="card">
+  <button id="run">Run bridge check</button>
+  <div id="status" role="status" aria-live="polite">Ready</div>
+  <p class="muted">Downloads about 29 MB, then compiles the real game module. Keep this tab open while it runs.</p>
+  <ul>
+    <li>Verify the original game function returns 480.</li>
+    <li>Intercept direct and table calls and change the result to 600.</li>
+    <li>Check disabling, restoration and native return state.</li>
+    <li>Call the game by its original Windows address and drain a queued call.</li>
+  </ul>
+</section>
+<section class="card" id="reportCard" hidden>
+  <h2>Report</h2>
+  <pre id="report"></pre>
+  <button id="copy">Copy report</button>
+</section>
+<p><strong>This does not load Geode or verify complete gameplay.</strong> A pass verifies the function bridge in this browser.</p>
+<p><a href="../?hooktest=1">Open the menu experiment</a> · <a href="../">Open Westminster Dash</a></p>
+<script src="hook-prototype.js"></script>
+<script src="verify-runtime.js"></script>
+<script>
+  'use strict';
+  const run = document.getElementById('run'), status = document.getElementById('status');
+  const features = {webassembly:typeof WebAssembly !== 'undefined', jspi:typeof WebAssembly.Suspending === 'function',
+    webgl2:!!document.createElement('canvas').getContext('webgl2'), gzip:typeof DecompressionStream === 'function'};
+  for (const [key, value] of Object.entries(features)) {
+    const badge = document.createElement('span'); badge.textContent = key + ': ' + (value ? 'available' : 'unavailable');
+    document.getElementById('features').appendChild(badge);
+  }
+  let report;
+  run.addEventListener('click', async () => {
+    run.disabled = true; status.className = ''; status.textContent = 'Downloading the pinned module…';
+    try {
+      if (!features.webassembly || !features.gzip) throw Error('This browser needs WebAssembly and gzip stream support');
+      const url = 'https://raw.githubusercontent.com/Ale7208/geometry-dash-wasm/main/payload/wasm-523d9362955eba27a8ce64ec.gz';
+      const response = await fetch(url);
+      if (!response.ok) throw Error('Module download returned HTTP ' + response.status);
+      const bytes = await new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+      const result = await verifyWestminsterHooks(bytes, GDHookPrototype, message => { status.textContent = message + '…'; });
+      report = {...result, features, browser:navigator.userAgent};
+      status.textContent = 'PASS — function bridge checks completed'; status.className = 'pass';
+    } catch (error) {
+      report = {status:'FAIL', error:error.message, features, browser:navigator.userAgent, geodeLoaded:false};
+      status.textContent = 'Check stopped: ' + error.message; status.className = 'fail';
+    } finally {
+      document.getElementById('report').textContent = JSON.stringify(report, null, 2);
+      document.getElementById('reportCard').hidden = false; run.disabled = false;
+    }
+  });
+  document.getElementById('copy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(JSON.stringify(report, null, 2)); document.getElementById('copy').textContent = 'Copied'; }
+    catch { document.getElementById('copy').textContent = 'Select and copy the report above'; }
+  });
+</script>
+</body>
+</html>

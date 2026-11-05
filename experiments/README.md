@@ -13,10 +13,21 @@ changes it to 600. Direct calls and function-table calls both reach the hook.
 The return address and stack advancement remain correct. Disabling the hook
 and restoring the original both restore 480. A modified input module is rejected.
 
+A separate compiled WASM bridge can also invoke the game by native guest
+address (`0x717680`), rather than by a WASM function index. It exposes the
+existing translated dispatch helpers, shares the game memory, and drains
+pending translated calls before returning. A controlled queued-call test
+executes the actual getter twice and checks both native returns and stack
+advancement. This does not implement arbitrary C++ object marshalling.
+
 These are execution results from the real game code, not a replacement getter.
 They do not establish that the complete game boots or that Geode loads.
 
 ## Try the menu experiment
+
+First open `experiments/check.html` and click **Run bridge check** to run the
+shared Node/browser execution check without graphics. It displays browser
+features and a copyable result report. A pass is not a full-game boot test.
 
 Serve the repository over HTTP, then open `/?hooktest=1` using a browser with
 WebAssembly JSPI and WebGL 2. The normal URL retains the existing loader path.
@@ -95,6 +106,14 @@ RIP +192. The getter advances RSP by 8 and loads RIP from the guest return stack
 
 Geode's iOS patchless mode provides a design reference for preparing hooks,
 but its ARM/Mach-O patcher is not directly reusable for this x86-64/WASM build.
+
+## Checkpoint
+
+The hook and native-address/queued-call checks pass in Node 24.22.1. The
+connected tool set currently exposes no control connection to the user's
+local Edge browser. The browser check page is ready for that verification.
+Real Geode loading remains incomplete: the current work is a translated-game
+bridge, not a Geode-compatible C++ ABI, platform loader, or `.geode` loader.
 
 ## Primary references
 

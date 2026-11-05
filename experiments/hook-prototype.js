@@ -74,6 +74,9 @@
     }
     const directProbeIndex = importCount + definedCount + TARGETS.length;
     extraExports.push(join([name('westminster_probe_direct'), new Uint8Array([0]), u32(directProbeIndex)]));
+    // Existing translated runtime helpers: preserve guest x86-64 calling state.
+    extraExports.push(join([name('westminster_dispatch'), new Uint8Array([0]), u32(24579)]));
+    extraExports.push(join([name('westminster_drain_pending'), new Uint8Array([0]), u32(24585)]));
     const directProbe = join([new Uint8Array([0, 0x20, 0, 0x10]), u32(TARGETS[1].function), new Uint8Array([0x0b])]);
     const replacements = new Map([
       [3, join([u32(definedCount + TARGETS.length + 1), ...types.map(u32), ...TARGETS.map(() => u32(0)), u32(0)])],
@@ -108,7 +111,25 @@
     }
     return handles;
   }
-  const api = {PIN, TARGETS, patch, install, bridgeBytes};
+  function nativeBridge(instance) {
+    // (i32 CPU, i64 guest address) -> dispatch -> drain pending translated calls.
+    // This bridge takes an already prepared guest CPU/stack; it does not marshal
+    // C++ objects or make Windows DLLs compatible with WASM.
+    const types = new Uint8Array([2,0x60,2,0x7f,0x7e,0,0x60,1,0x7f,0]);
+    const imports = join([u32(3), name('guest'), name('dispatch'), new Uint8Array([0,0]),
+      name('guest'),name('drain'),new Uint8Array([0,1]),name('guest'),name('memory'),new Uint8Array([2,0,1])]);
+    const body = join([new Uint8Array([0,0x20,0,0x20,1,0x10,0,0x02,0x40,0x03,0x40,0x41]),
+      u32(346225608),new Uint8Array([0x29,3,0,0x50,0x0d,1,0x20,0,0x10,1,0x0c,0,0x0b,0x0b,0x0b])]);
+    const bytes = join([new Uint8Array([0,97,115,109,1,0,0,0]),section(1,types),section(2,imports),
+      section(3,new Uint8Array([1,0])),section(7,join([u32(1),name('call'),new Uint8Array([0,2])])),
+      section(10,join([u32(1),u32(body.length),body]))]);
+    const e = instance.exports;
+    const bridge = new WebAssembly.Instance(new WebAssembly.Module(bytes), {guest:{
+      dispatch:e.westminster_dispatch,drain:e.westminster_drain_pending,memory:e.memory}});
+    const invoke = typeof WebAssembly.promising === 'function' ? WebAssembly.promising(bridge.exports.call) : bridge.exports.call;
+    return (cpu, address) => invoke(cpu, BigInt(address));
+  }
+  const api = {PIN, TARGETS, patch, install, bridgeBytes, nativeBridge};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.GDHookPrototype = api;
   if (typeof document === 'undefined' || new URLSearchParams(location.search).get('hooktest') !== '1') return;
