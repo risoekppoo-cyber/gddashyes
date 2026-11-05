@@ -1,0 +1,23 @@
+{
+  "status": "DLL_STARTUP_REACHED_WINDOWS_IMPORT",
+  "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
+  "entry": "0x2a52528",
+  "originalX64InstructionsExecuted": 21,
+  "uniqueInstructionsReached": 21,
+  "firstRuntimeDependency": {
+    "reason": "WINDOWS_IMPORT_REQUIRED",
+    "importName": "KERNEL32.dll!GetSystemTimeAsFileTime",
+    "address": "0x700007c0"
+  },
+  "reachedInstructionsSupportedBeforeBlock": 21,
+  "firstTranslationBlocker": null,
+  "wasmStartupExecuted": true,
+  "windowsImportsExecuted": false,
+  "tlsCallbacksExecuted": false,
+  "fullGeodeLoader": false,
+  "existingGeodePackagesSupported": false,
+  "wasmStartupInstructions": 21,
+  "allGeneralRegistersMatch": true,
+  "entireNativeStackMatches": true,
+  "dllInitializationCompleted": false
+}
