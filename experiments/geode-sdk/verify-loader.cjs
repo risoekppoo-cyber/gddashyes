@@ -16,6 +16,8 @@ resolve(base+'index.html?sdkmenu=1&quality=low',[
   base+'experiments/hook-prototype.js',base+'experiments/geode-sdk/menu-runtime.js']);
 resolve(base+'?hooktest=1',[base+'experiments/hook-prototype.js']);
 resolve(base+'index.html',[]);
+resolve(base+'index.html?sdkmenu=1&binarygeode=1&rev=binary1',[
+  base+'experiments/hook-prototype.js?rev=binary1',base+'experiments/geode-sdk/menu-runtime.js?rev=binary1']);
 // A clone served from another path must also load its own scripts.
 resolve('http://localhost:8000/clone/?sdkmenu=1',[
   'http://localhost:8000/clone/experiments/hook-prototype.js',

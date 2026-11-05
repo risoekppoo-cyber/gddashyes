@@ -35,6 +35,15 @@
       const prepared=await prototype.patch(bytes);
       const out=await WebAssembly.instantiate(prepared.bytes,imports),e=out.instance.exports;
       gameExports=e;
+      let binary;
+      if(new URLSearchParams(location.search).get('binarygeode')==='1') {
+        const binaryBase=new URL('../geode-binary/',base);
+        const [verifier,wasmResponse,manifestResponse]=await Promise.all([
+          import(new URL('verify.mjs',binaryBase).href),fetch(new URL('dist/lifted.wasm',binaryBase)),
+          fetch(new URL('dist/manifest.json',binaryBase))]);
+        if(!wasmResponse.ok||!manifestResponse.ok)throw Error('Geode binary canary download failed');
+        binary={verifier,bytes:await wasmResponse.arrayBuffer(),manifest:await manifestResponse.json()};
+      }
       const runtime=await createEngine(),completion=new MenuCompletion(e.memory);
       let guestApi;
       const labels=new Set();
@@ -48,9 +57,13 @@
           if(menu===undefined||labels.has(menu.toString()))return;
           labels.add(menu.toString());
           // Run after the original menu call has left the hook stack.
-          queueMicrotask(()=>{
+          queueMicrotask(async()=>{
             try {
               guestApi ||= new GuestApi(e);
+              if(binary) {
+                report.binary=await binary.verifier.verifyGameMemory(binary.bytes,binary.manifest,e,guestApi);
+                text='Geode DLL canary active';
+              }
               const result=guestApi.addLabel(menu,text);
               report.status='NATIVE_LABEL_ATTACHED';report.menuLabelTested=true;
               report.menuNativeInitCompleted=true;report.label=result;

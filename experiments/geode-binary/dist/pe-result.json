@@ -1,0 +1,19 @@
+{
+  "status": "PE_IMAGE_MAPPING_PASS",
+  "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
+  "imageBytes": 17035264,
+  "rebasedTo": "0x2000000",
+  "relocationsApplied": 56939,
+  "namedExports": 2516,
+  "normalImports": 656,
+  "delayImports": 1353,
+  "unresolvedImports": 2009,
+  "tlsCallbacksRelocated": true,
+  "unwindEntries": 32807,
+  "iatBindingFixture": true,
+  "translatedExportsExecutedAfterRebasing": true,
+  "windowsServicesImplemented": false,
+  "initializationExecuted": false,
+  "fullGeodeLoader": false,
+  "existingGeodePackagesSupported": false
+}

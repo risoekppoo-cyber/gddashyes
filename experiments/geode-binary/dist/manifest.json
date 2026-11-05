@@ -1,0 +1,273 @@
+{
+  "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
+  "version": "6.0.0-alpha.1",
+  "imageBase": "0x180000000",
+  "roots": {
+    "getAddress": {
+      "va": "0x1803cbe10",
+      "rva": "0x3cbe10"
+    },
+    "isEnabled": {
+      "va": "0x1803cb6d0",
+      "rva": "0x3cb6d0"
+    },
+    "getAutoEnable": {
+      "va": "0x1803cbdf0",
+      "rva": "0x3cbdf0"
+    },
+    "setAutoEnable": {
+      "va": "0x1803cbe00",
+      "rva": "0x3cbe00"
+    },
+    "getPriority": {
+      "va": "0x1803cc340",
+      "rva": "0x3cc340"
+    }
+  },
+  "instructions": [
+    {
+      "rva": "0x2da900",
+      "length": 4,
+      "assembly": "0x1802da900/4: MOVZX EAX,byte ptr [RCX + 0x10]",
+      "pcode": [
+        "IMARK ram[1802da900:4]",
+        "unique[4780:8] = RCX + 0x10",
+        "unique[11e80:1] = *[ram]unique[4780:8]",
+        "EAX = zext(unique[11e80:1])",
+        "RAX = zext(EAX)"
+      ]
+    },
+    {
+      "rva": "0x2da904",
+      "length": 1,
+      "assembly": "0x1802da904/1: RET ",
+      "pcode": [
+        "IMARK ram[1802da904:1]",
+        "RIP = *[ram]RSP",
+        "RSP = RSP + 0x8",
+        "return RIP"
+      ]
+    },
+    {
+      "rva": "0x2da910",
+      "length": 4,
+      "assembly": "0x1802da910/4: MOVZX EAX,byte ptr [RCX + 0x11]",
+      "pcode": [
+        "IMARK ram[1802da910:4]",
+        "unique[4780:8] = RCX + 0x11",
+        "unique[11e80:1] = *[ram]unique[4780:8]",
+        "EAX = zext(unique[11e80:1])",
+        "RAX = zext(EAX)"
+      ]
+    },
+    {
+      "rva": "0x2da914",
+      "length": 1,
+      "assembly": "0x1802da914/1: RET ",
+      "pcode": [
+        "IMARK ram[1802da914:1]",
+        "RIP = *[ram]RSP",
+        "RSP = RSP + 0x8",
+        "return RIP"
+      ]
+    },
+    {
+      "rva": "0x2da920",
+      "length": 3,
+      "assembly": "0x1802da920/3: MOV byte ptr [RCX + 0x11],DL",
+      "pcode": [
+        "IMARK ram[1802da920:3]",
+        "unique[4780:8] = RCX + 0x11",
+        "unique[6a00:1] = DL",
+        "*[ram]unique[4780:8] = unique[6a00:1]"
+      ]
+    },
+    {
+      "rva": "0x2da923",
+      "length": 1,
+      "assembly": "0x1802da923/1: RET ",
+      "pcode": [
+        "IMARK ram[1802da923:1]",
+        "RIP = *[ram]RSP",
+        "RSP = RSP + 0x8",
+        "return RIP"
+      ]
+    },
+    {
+      "rva": "0x3cb6d0",
+      "length": 3,
+      "assembly": "0x1803cb6d0/3: MOV RCX,qword ptr [RCX]",
+      "pcode": [
+        "IMARK ram[1803cb6d0:3]",
+        "unique[12000:8] = *[ram]RCX",
+        "RCX = unique[12000:8]"
+      ]
+    },
+    {
+      "rva": "0x3cb6d3",
+      "length": 5,
+      "assembly": "0x1803cb6d3/5: JMP 0x1802da900",
+      "pcode": [
+        "IMARK ram[1803cb6d3:5]",
+        "goto ram[1802da900:8]"
+      ]
+    },
+    {
+      "rva": "0x3cbdf0",
+      "length": 3,
+      "assembly": "0x1803cbdf0/3: MOV RCX,qword ptr [RCX]",
+      "pcode": [
+        "IMARK ram[1803cbdf0:3]",
+        "unique[12000:8] = *[ram]RCX",
+        "RCX = unique[12000:8]"
+      ]
+    },
+    {
+      "rva": "0x3cbdf3",
+      "length": 5,
+      "assembly": "0x1803cbdf3/5: JMP 0x1802da910",
+      "pcode": [
+        "IMARK ram[1803cbdf3:5]",
+        "goto ram[1802da910:8]"
+      ]
+    },
+    {
+      "rva": "0x3cbe00",
+      "length": 3,
+      "assembly": "0x1803cbe00/3: MOV RCX,qword ptr [RCX]",
+      "pcode": [
+        "IMARK ram[1803cbe00:3]",
+        "unique[12000:8] = *[ram]RCX",
+        "RCX = unique[12000:8]"
+      ]
+    },
+    {
+      "rva": "0x3cbe03",
+      "length": 5,
+      "assembly": "0x1803cbe03/5: JMP 0x1802da920",
+      "pcode": [
+        "IMARK ram[1803cbe03:5]",
+        "goto ram[1802da920:8]"
+      ]
+    },
+    {
+      "rva": "0x3cbe10",
+      "length": 3,
+      "assembly": "0x1803cbe10/3: MOV RCX,qword ptr [RCX]",
+      "pcode": [
+        "IMARK ram[1803cbe10:3]",
+        "unique[12000:8] = *[ram]RCX",
+        "RCX = unique[12000:8]"
+      ]
+    },
+    {
+      "rva": "0x3cbe13",
+      "length": 5,
+      "assembly": "0x1803cbe13/5: JMP 0x1803cbe20",
+      "pcode": [
+        "IMARK ram[1803cbe13:5]",
+        "goto ram[1803cbe20:8]"
+      ]
+    },
+    {
+      "rva": "0x3cbe20",
+      "length": 4,
+      "assembly": "0x1803cbe20/4: MOV RAX,qword ptr [RCX + 0x20]",
+      "pcode": [
+        "IMARK ram[1803cbe20:4]",
+        "unique[4780:8] = RCX + 0x20",
+        "unique[12000:8] = *[ram]unique[4780:8]",
+        "RAX = unique[12000:8]"
+      ]
+    },
+    {
+      "rva": "0x3cbe24",
+      "length": 1,
+      "assembly": "0x1803cbe24/1: RET ",
+      "pcode": [
+        "IMARK ram[1803cbe24:1]",
+        "RIP = *[ram]RSP",
+        "RSP = RSP + 0x8",
+        "return RIP"
+      ]
+    },
+    {
+      "rva": "0x3cc340",
+      "length": 3,
+      "assembly": "0x1803cc340/3: MOV RCX,qword ptr [RCX]",
+      "pcode": [
+        "IMARK ram[1803cc340:3]",
+        "unique[12000:8] = *[ram]RCX",
+        "RCX = unique[12000:8]"
+      ]
+    },
+    {
+      "rva": "0x3cc343",
+      "length": 5,
+      "assembly": "0x1803cc343/5: JMP 0x1803cc350",
+      "pcode": [
+        "IMARK ram[1803cc343:5]",
+        "goto ram[1803cc350:8]"
+      ]
+    },
+    {
+      "rva": "0x3cc350",
+      "length": 6,
+      "assembly": "0x1803cc350/6: MOV EAX,dword ptr [RCX + 0xb0]",
+      "pcode": [
+        "IMARK ram[1803cc350:6]",
+        "unique[4880:8] = RCX + 0xb0",
+        "unique[11f80:4] = *[ram]unique[4880:8]",
+        "EAX = unique[11f80:4]",
+        "RAX = zext(EAX)"
+      ]
+    },
+    {
+      "rva": "0x3cc356",
+      "length": 1,
+      "assembly": "0x1803cc356/1: RET ",
+      "pcode": [
+        "IMARK ram[1803cc356:1]",
+        "RIP = *[ram]RSP",
+        "RSP = RSP + 0x8",
+        "return RIP"
+      ]
+    }
+  ],
+  "opcodes": {
+    "IMARK": 20,
+    "LOAD": 14,
+    "COPY": 8,
+    "BRANCH": 5,
+    "INT_ADD": 10,
+    "INT_ZEXT": 5,
+    "RETURN": 5,
+    "STORE": 1
+  },
+  "cpuRegisters": {
+    "RAX": 0,
+    "RCX": 8,
+    "RDX": 16,
+    "RBX": 24,
+    "RSP": 32,
+    "RBP": 40,
+    "RSI": 48,
+    "RDI": 56,
+    "R8": 64,
+    "R9": 72,
+    "R10": 80,
+    "R11": 88,
+    "R12": 96,
+    "R13": 104,
+    "R14": 112,
+    "R15": 120,
+    "RIP": 192
+  },
+  "limitations": [
+    "No DLL initialization",
+    "No Windows imports",
+    "No exceptions or TLS",
+    "Only the listed instruction closure was translated"
+  ],
+  "generatedCsha256": "4ca00d8b1dd414d68cad71891ee283d7a26331801f838063e1d0d84c7b706563"
+}

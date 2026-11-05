@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "officialDllInstructionsExecutedAsWasm": true,
+  "functions": [
+    "getAddress",
+    "isEnabled",
+    "getAutoEnable",
+    "setAutoEnable",
+    "getPriority"
+  ],
+  "instructionCount": 20,
+  "independentX64Reference": "Original DLL bytes executed by Unicorn 2.1.4",
+  "referenceCases": 200,
+  "codeBaseRebasingTested": true,
+  "fullPeRelocationTested": false,
+  "unknownPcRejected": true,
+  "stepBudgetEnforced": true,
+  "unmappedHighDataPointerRejected": true,
+  "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
+  "fullGeodeLoader": false,
+  "existingGeodePackagesSupported": false,
+  "fullGameBootTested": false,
+  "wasmSha256": "925f2c1bab6be4d885b4a7bc46ecd82f180429f154aa90439c72ac9b4b6dc343",
+  "gameMemory": {
+    "status": "BINARY_GEODE_CANARY_PASS",
+    "officialDllFunctionsInGameMemory": true,
+    "syntheticHookFixture": true,
+    "returnedAddressCalledInGame": true,
+    "originalGameReturn": 480,
+    "nativeReturnPreserved": true,
+    "fullGeodeLoader": false,
+    "existingGeodePackagesSupported": false
+  },
+  "capturedGameLog": "[rt] stack low 0x154b828f target=0x717680\n"
+}

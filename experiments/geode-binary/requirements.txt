@@ -1,0 +1,3 @@
+pefile==2024.8.26
+pypcode==3.3.3
+unicorn==2.1.4

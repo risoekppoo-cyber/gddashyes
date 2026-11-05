@@ -341,7 +341,9 @@ document.addEventListener("click",function(){try{if(window.parent!==window)windo
   if (sdk) paths.push('experiments/geode-sdk/menu-runtime.js');
   // Game assets use the CDN <base>; experiment code belongs to this page.
   document.write(paths.map(function (path) {
-    return '<script src="' + new URL(path, window.location.href).href + '"><\/script>';
+    var url = new URL(path, window.location.href);
+    if (params.has('rev')) url.searchParams.set('rev', params.get('rev'));
+    return '<script src="' + url.href + '"><\/script>';
   }).join(''));
 })();
 </script><script id="westminster-experiment-check">

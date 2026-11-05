@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Geode Windows binary translation test</title>
+<style>body{margin:24px auto;padding:0 18px;max-width:850px;background:#0a1829;color:#e4f9ed;font:16px system-ui}a{color:#b6f457}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#11283c;padding:18px;border-radius:12px}button{padding:10px}</style>
+<h1>Geode Windows binary translation test</h1>
+<p>Five functions translated from the official Windows Geode.dll into WebAssembly. Checked against the original machine instructions in an independent x64 emulator.</p>
+<p><strong>This is a binary compatibility experiment. Full Geode and downloaded .geode mods remain unsupported.</strong></p>
+<p><a href="../../index.html?sdkmenu=1&amp;binarygeode=1&amp;quality=low&amp;rev=binary1">Open the game with the DLL canary</a> · <a href="README.md">Source and limitations</a></p>
+<pre id="report">Running independent reference comparisons…</pre><button id="copy">Copy report</button>
+<script type="module">
+import {verifyVectors} from './verify.mjs';
+let report;
+try {
+ const [wasm,manifest,reference]=await Promise.all(['lifted.wasm','manifest.json','reference.json'].map(async file=>{
+   const r=await fetch(new URL('dist/'+file,import.meta.url));if(!r.ok)throw Error(file+' HTTP '+r.status);
+   return file.endsWith('.wasm')?r.arrayBuffer():r.json();}));
+ report=await verifyVectors(wasm,manifest,reference);report.browser=navigator.userAgent;
+}catch(e){report={status:'FAIL',error:e.stack||String(e)};}
+document.querySelector('#report').textContent=JSON.stringify(report,null,2);
+document.querySelector('#copy').onclick=()=>navigator.clipboard.writeText(JSON.stringify(report,null,2));
+</script></html>
