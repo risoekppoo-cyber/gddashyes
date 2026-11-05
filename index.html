@@ -284,9 +284,12 @@ document.addEventListener("click",function(){try{if(window.parent!==window)windo
           loaded += n; report('wasm', loaded, m.wasm.size);
           if (loaded >= m.wasm.size) finish();
         });
-        var out = await WebAssembly.instantiateStreaming(new Response(stream, {
+        var wasmResponse = new Response(stream, {
           headers: {'Content-Type': 'application/wasm'}
-        }), imports);
+        });
+        var out = window.GDHookPrototype && GDHookPrototype.enabled
+          ? await GDHookPrototype.instantiate(wasmResponse, imports)
+          : await WebAssembly.instantiateStreaming(wasmResponse, imports);
         finish();
         return out;
       } catch (e) { finish(); throw e; }
@@ -328,7 +331,7 @@ document.addEventListener("click",function(){try{if(window.parent!==window)windo
   };
 })();
 
-</script><script>var consoleEl = document.getElementById('console');
+</script><script src="experiments/hook-prototype.js"></script><script>var consoleEl = document.getElementById('console');
 try { Error.stackTraceLimit = 400; } catch (e) {}
 var gdQuality = new URLSearchParams(location.search).get('quality') || 'balanced';
 var gdLowMemory = gdQuality === 'low';

@@ -1,0 +1,6 @@
+.openai/
+.preview/
+__pycache__/
+*.wasm
+*.dis
+node_modules/
