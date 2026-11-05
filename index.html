@@ -56,7 +56,7 @@ XMLHttpRequest.prototype.send=function(){var xhr=this,base=this.__gdProxyWorkerB
 </script>
 <script>
 window.__framed=window.self!==window.top;
-window.addEventListener("message",function(e){if(e.data==="gd-focus"){window.focus();var c=document.getElementById("canvas");if(c)try{c.focus({preventScroll:true});}catch(t){}}if(e.data==="gd-fullscreen"){var c2=document.getElementById("canvas");try{if(document.fullscreenElement)document.exitFullscreen();else if(c2){var r=c2.requestFullscreen||c2.webkitRequestFullscreen;if(r)r.call(c2);}}catch(t){}}});
+window.addEventListener("message",function(e){if(e.data==="gd-focus"){window.focus();var c=document.getElementById("canvas");if(c)try{c.focus({preventScroll:true});}catch(t){}}if(e.data==="gd-fullscreen"){var c2=new URLSearchParams(location.search).get("sdkmenu")==="1"?document.documentElement:document.getElementById("canvas");try{if(document.fullscreenElement)document.exitFullscreen();else if(c2){var r=c2.requestFullscreen||c2.webkitRequestFullscreen;if(r)r.call(c2);}}catch(t){}}});
 document.addEventListener("click",function(){try{if(window.parent!==window)window.parent.postMessage("gd-click","*");}catch(t){}});
 </script>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="color-scheme" content="dark"><meta name="theme-color" content="#000000"><link rel="icon" href="ref/favicon.ico"><title>Westminster Dash</title><style>html{background:#000 url("ref/fondo_gd.jpg") center/cover no-repeat fixed;}body{background:#000 url("ref/fondo_gd.jpg") center/cover no-repeat fixed;margin:0;height:100%;color:#ddd;font-family:monospace;overflow:hidden;}#bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;}body.playing #bg::before{animation:none;filter:none;}#bg::before{content:"";position:absolute;top:-4%;left:0;width:200%;height:108%;background:url("ref/fondo_gd.jpg") repeat-x;background-size:50% 100%;filter:blur(12px);animation:bgdrift 90s linear infinite;}@keyframes bgdrift{from{transform:translateX(0);}to{transform:translateX(-50%);}}@media (prefers-reduced-motion:reduce){#bg::before{animation:none;}}#app{display:flex;flex-direction:column;height:100vh;}#logoDock{flex:0 0 auto;display:flex;justify-content:center;padding:6px 0 2px;opacity:0;transition:opacity .45s linear;}#logoDock.in{opacity:1;}#logoDock img{max-height:64px;max-width:40vw;width:auto;height:auto;}#stage{flex:1 1 auto;min-height:0;display:flex;justify-content:center;align-items:center;transform:none;transition:none;}#stage.in{transform:translateY(0);}canvas{width:min(100vw,calc(100vh*16/9));height:min(100vh,calc(100vw*9/16));background:#000;image-rendering:auto;outline:none;display:block;user-select:none;}#midbar{flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;padding:8px 0 6px;font-size:12px;color:#aaa;opacity:0;transform:translateY(120%);transition:transform .55s cubic-bezier(.2,.85,.25,1),opacity .45s;}#midbar.in{opacity:1;transform:translateY(0);}#bars{display:flex;flex-direction:column;gap:5px;transition:transform .5s cubic-bezier(.2,.85,.25,1),opacity .45s;}#bars.fall{transform:translateY(30px);opacity:0;pointer-events:none;}.abrow{display:flex;align-items:center;gap:7px;}.ablabel{width:100px;text-align:right;color:#888;font-size:10px;letter-spacing:.5px;white-space:nowrap;}.abtrack{position:relative;width:220px;height:8px;background:#111;border:1px solid #333;border-radius:4px;overflow:hidden;}.abfill{width:0%;height:100%;background:#ccc;border-radius:3px;transition:width .15s;}.abpct{width:118px;text-align:left;color:#999;font-size:11px;white-space:nowrap;}#bootbars{display:none;align-items:center;gap:7px;}#bootbars.on{display:flex;animation:bootdrop .5s cubic-bezier(.2,.85,.25,1);}@keyframes bootdrop{from{transform:translateY(-16px);opacity:0;}to{transform:translateY(0);opacity:1;}}#bootbars.done{transform:translateY(36px);opacity:0;transition:transform .5s cubic-bezier(.2,.85,.25,1),opacity .45s;pointer-events:none;}#fps{display:flex;align-items:center;gap:5px;color:#999;will-change:transform;}#fps svg{display:block;flex:0 0 auto;}#console{flex:0 0 auto;height:18vh;min-height:90px;max-height:200px;margin:0 8px 8px;padding:6px 8px;overflow-y:auto;font-size:12px;line-height:1.35;color:#999;background:#0a0a0a;border:1px solid #2a2a2a;white-space:pre-wrap;word-break:break-word;user-select:text;cursor:text;transform:translateY(135%);transition:transform .55s cubic-bezier(.2,.85,.25,1);}#console.in{transform:translateY(0);}#start{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:space-between;background:transparent;transition:opacity .5s;}#start.hide{opacity:0;pointer-events:none;}#logoFly{margin-top:14vh;transition:transform .45s cubic-bezier(.2,.9,.25,1);}#logoFly img{max-height:200px;max-width:70vw;width:auto;height:auto;}#logoFly.up{transform:translateY(-13vh) scale(.32);}#loadFly{margin-bottom:30vh;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:transform 1.15s cubic-bezier(.45,0,.6,1),opacity 1.15s linear;}#loadFly img{max-height:150px;max-width:40vw;width:auto;height:auto;display:block;transition:transform .15s;}#loadFly img:hover{transform:scale(1.08);}#loadFly.down{transform:translateY(32vh) scale(.8);opacity:0;}#fsBtn,#clearBtn,#saveBtn{font:12px/1 monospace;color:#ccc;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:4px;padding:4px 8px;cursor:pointer;transition:color .2s;}#fsBtn:hover,#clearBtn:hover,#saveBtn:hover{color:#fff;}#credit{color:#888;font-size:11px;white-space:nowrap;}#canvas:fullscreen{max-width:none;max-height:none;width:100%;height:100%;}#canvas:-webkit-full-screen{max-width:none;max-height:none;width:100%;height:100%;}#errOverlay{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:50;max-width:min(92vw,720px);display:none;background:#1a0000;border:1px solid #a33;color:#ffd7d7;font-size:12px;padding:8px 12px;border-radius:6px;white-space:pre-wrap;}#errOverlay.on{display:block;}canvas{touch-action:none;}#bg,#logoDock,#midbar,#console,#start{display:none!important}#stage{transform:none!important;transition:none!important}#gdLoad{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#000;color:#ddd;font:600 22px/1 system-ui,sans-serif;transition:opacity .7s}#gdLoad.off{opacity:0;pointer-events:none}#gdLoad i{box-sizing:border-box;width:48px;height:48px;border:4px solid #333;border-top-color:#fff;border-radius:50%;animation:gdspin .9s linear infinite}@keyframes gdspin{to{transform:rotate(360deg)}}#gdLoadPct{counter-reset:p var(--p);font:400 16px Arial,Helvetica,sans-serif;color:#fff;text-align:center}#gdLoadPct::after{content:counter(p) "%"}</style><script>window.WestminsterTitle = (() => {
@@ -268,6 +268,7 @@ document.addEventListener("click",function(){try{if(window.parent!==window)windo
     } finally { release(); }
   }
   async function wasm(imports, success) {
+    if (window.WestminsterExperimentLoadFailed) throw new Error('SDK experiment scripts did not load');
     var m = await manifest();
     var result = await retry(async function (attempt) {
       await acquire();
@@ -331,7 +332,31 @@ document.addEventListener("click",function(){try{if(window.parent!==window)windo
   };
 })();
 
-</script><script src="experiments/hook-prototype.js"></script><script src="experiments/geode-sdk/menu-runtime.js"></script><script>var consoleEl = document.getElementById('console');
+</script><script id="westminster-experiment-loader">
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var sdk = params.get('sdkmenu') === '1';
+  if (!sdk && params.get('hooktest') !== '1') return;
+  var paths = ['experiments/hook-prototype.js'];
+  if (sdk) paths.push('experiments/geode-sdk/menu-runtime.js');
+  // Game assets use the CDN <base>; experiment code belongs to this page.
+  document.write(paths.map(function (path) {
+    return '<script src="' + new URL(path, window.location.href).href + '"><\/script>';
+  }).join(''));
+})();
+</script><script id="westminster-experiment-check">
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('sdkmenu') !== '1' && params.get('hooktest') !== '1') return;
+  if (window.GDHookPrototype && window.GDHookPrototype.enabled && typeof window.GDHookPrototype.instantiate === 'function' && (params.get('sdkmenu') !== '1' || window.WestminsterSdkReport)) return;
+  var error = document.createElement('output');
+  error.setAttribute('data-west-ui', 'experiment-error');
+  error.style.cssText = 'position:fixed;top:10px;right:10px;z-index:2147483647;background:#520;color:white;padding:16px;font:16px system-ui;max-width:420px';
+  error.textContent = 'SDK experiment scripts did not load. Reload this test page; the normal game cannot verify SDK support.';
+  document.body.appendChild(error);
+  window.WestminsterExperimentLoadFailed = true;
+})();
+</script><script>var consoleEl = document.getElementById('console');
 try { Error.stackTraceLimit = 400; } catch (e) {}
 var gdQuality = new URLSearchParams(location.search).get('quality') || 'balanced';
 var gdLowMemory = gdQuality === 'low';

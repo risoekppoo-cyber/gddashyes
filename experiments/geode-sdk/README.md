@@ -20,6 +20,11 @@ parent is the menu. The report keeps visual confirmation and full-game boot
 separate. A passing SDK bridge test does not mean the label was rendered.
 The normal game URL does not enable this experiment.
 
+Experiment scripts are resolved against the page's own URL, independently of
+the CDN `<base>` used for upstream game assets. A missing experiment script
+produces a visible startup error. `node experiments/geode-sdk/verify-loader.cjs`
+checks the CDN-base regression, alternate hosting paths and the normal URL.
+
 ## Real upstream code vs platform port
 
 The side module compiles **unmodified Geode `loader/src/loader/Hook.cpp`** from

@@ -11,6 +11,7 @@
   let gameExports;
   root.WestminsterSdkReport=report;
   const panel=document.createElement('details');
+  panel.open=true;
   panel.dataset.westUi='sdk-menu';
   panel.style.cssText='position:fixed;right:10px;top:10px;z-index:100002;max-width:min(420px,90vw);background:#0a1829ef;color:#d7ffe5;border:1px solid #487b65;border-radius:9px;padding:8px 12px;font:12px system-ui';
   const summary=document.createElement('summary');summary.textContent='Geode SDK subset: preparing…';
