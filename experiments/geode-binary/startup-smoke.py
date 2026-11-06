@@ -5,12 +5,12 @@ Unicorn executes original relocated x64 bytes; the reached instructions are
 then checked against the current binary translator. No API success is faked.
 PE TLS callbacks and a bounded loader model precede the entrypoint.
 """
-import sys,json,hashlib,struct,time,uuid
+import sys,json,hashlib,struct,time,uuid,os
 from pathlib import Path
 import pefile,pypcode,unicorn
 from unicorn import x86_const as x
 from lift import PIN,Lifter,LiftError
-from guest_modules import build_modules,module_handle,resolve_export
+from guest_modules import build_modules,module_handle,resolve_export,mapped_pe
 from guest_heap import GuestHeap
 
 path=Path(sys.argv[1]);assert hashlib.sha256(path.read_bytes()).hexdigest()==PIN
@@ -24,6 +24,7 @@ for block in pe.DIRECTORY_ENTRY_BASERELOC:
   struct.pack_into('<Q',image,reloc.rva,(value+base-preferred)&0xffffffffffffffff)
 pe.OPTIONAL_HEADER.ImageBase=base
 uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
+uc.reg_write(x.UC_X86_REG_MXCSR,0x1f80)
 uc.mem_map(base,size);uc.mem_write(base,bytes(image))
 uc.mem_map(0x200000,0x100000);uc.mem_map(0x70000000,0x10000)
 imports={};i=0
@@ -36,6 +37,23 @@ modules,module_images,module_gateways=build_modules(pe,base)
 for module_base,module_image in module_images.items():
  uc.mem_map(module_base,len(module_image));uc.mem_write(module_base,module_image)
 imports.update(module_gateways)
+cocos=None;cocos_path=os.environ.get('GEODE_COCOS_IMG')
+if cocos_path:
+ from fetch_cocos_image import PIN as cocos_pin
+ cocos_data=Path(cocos_path).read_bytes();assert hashlib.sha256(cocos_data).hexdigest()==cocos_pin
+ cocos_pe=mapped_pe(cocos_data);cocos_base=0x10000000
+ assert len(cocos_data)==cocos_pe.OPTIONAL_HEADER.SizeOfImage and cocos_pe.FILE_HEADER.Machine==0x8664
+ uc.mem_map(cocos_base,len(cocos_data));uc.mem_write(cocos_base,cocos_data)
+ for desc in cocos_pe.DIRECTORY_ENTRY_IMPORT:
+  for imp in desc.imports:
+   name=desc.dll.decode()+'!'+(imp.name.decode() if imp.name else '#'+str(imp.ordinal))
+   target=next((p for p,n in imports.items() if n.lower()==name.lower()),None)
+   if target is None:
+    target=0x70000000+i*16;i+=1;assert target<0x70010000;imports[target]=name
+   uc.mem_write(cocos_base+imp.address-cocos_pe.OPTIONAL_HEADER.ImageBase,struct.pack('<Q',target))
+ cocos={'name':'libcocos2d.dll','base':cocos_base,'size':len(cocos_data),'complete':True,'shim':False,'initialized':False,
+  'sha256':cocos_pin,'entry':cocos_base+cocos_pe.OPTIONAL_HEADER.AddressOfEntryPoint,'staticTls':True,'exportCount':len(cocos_pe.DIRECTORY_ENTRY_EXPORT.symbols)}
+ modules.append(cocos);module_images[cocos_base]=bytes(uc.mem_read(cocos_base,len(cocos_data)))
 uc.reg_write(x.UC_X86_REG_RCX,base);uc.reg_write(x.UC_X86_REG_RDX,1)
 uc.reg_write(x.UC_X86_REG_R8,0);uc.reg_write(x.UC_X86_REG_RSP,0x2fff08)
 uc.mem_write(0x2fff08,(0x1234fedc).to_bytes(8,'little'))
@@ -67,12 +85,33 @@ for target in callbacks+[base+pe.OPTIONAL_HEADER.AddressOfEntryPoint]:
 loader+=bytes.fromhex('4883c428c3');uc.mem_write(bootstrap,bytes(loader))
 initial_image=bytes(uc.mem_read(base,size));initial_tib=bytes(uc.mem_read(tib,tib_size));initial_tls=bytes(uc.mem_read(tls_block,tls_size))
 completed_tls=[]
+load_frame=None;load_events=[];uc.mem_map(0x73000000,4096)
+if cocos:
+ t=cocos_pe.DIRECTORY_ENTRY_TLS.struct;targets=[]
+ for index in range(64):
+  target=struct.unpack_from('<Q',cocos_data,t.AddressOfCallBacks-cocos['base']+index*8)[0]
+  if not target:break
+  targets.append(target)
+ else:raise RuntimeError('Cocos TLS callback table limit')
+ template=cocos_data[t.StartAddressOfRawData-cocos['base']:t.EndAddressOfRawData-cocos['base']]
+ cocos['tls']={'base':0xd00000,'size':0x10000,'indexAddress':t.AddressOfIndex,'index':1,'templateHex':template.hex(),'callbacks':targets}
+ uc.mem_map(0xd00000,0x10000)
 trace=[];stop={};host_calls=[];cpu_calls=[]
 uc.mem_map(0x71000000,4096)
 arena=0x500000;arena_size=0x100000;uc.mem_map(arena,arena_size);next_allocation=arena
 initializer_frames=[];initializer_events=[];control_events=[]
 uc.mem_map(0x3400000,0x800000);uc.mem_map(0xc00000,0x10000)
 heap=GuestHeap(uc.mem_read,uc.mem_write)
+def advance_load():
+ global load_frame
+ f=load_frame
+ if f['next']==len(f['targets']):
+  f['module']['initialized']=True;uc.reg_write(x.UC_X86_REG_RAX,f['module']['base']);uc.reg_write(x.UC_X86_REG_RSP,f['sp']+8);uc.reg_write(x.UC_X86_REG_RIP,f['ret'])
+  load_events.append({'kind':'loaded','module':f['module']['name']});load_frame=None;return
+ target=f['targets'][f['next']];f['next']+=1;sp=f['sp']-48;f['callbackSp']=sp
+ uc.mem_write(sp,struct.pack('<Q',0x73000000));uc.reg_write(x.UC_X86_REG_RSP,sp);uc.reg_write(x.UC_X86_REG_RIP,target)
+ for reg,value in [(x.UC_X86_REG_RCX,f['module']['base']),(x.UC_X86_REG_RDX,1),(x.UC_X86_REG_R8,0)]:uc.reg_write(reg,value)
+ load_events.append({'kind':'entry' if f['next']==len(f['targets']) else 'tls','target':hex(target)})
 def finish_initializer(result):
  f=initializer_frames.pop()
  if f['error']:uc.reg_write(x.UC_X86_REG_RAX,result&0xffffffff)
@@ -107,8 +146,13 @@ def read_ansi(p):
   text+=value
  raise RuntimeError('Unterminated ANSI string')
 def code(uc,pc,length,_):
- global next_allocation,last_error,thread_description,local_next
+ global next_allocation,last_error,thread_description,local_next,load_frame
  if pc in callback_returns:completed_tls.append(callback_returns[pc])
+ if load_frame and pc==0x73000000:
+  f=load_frame;assert uc.reg_read(x.UC_X86_REG_RSP)==f['callbackSp']+8
+  if f['next']==len(f['targets']) and uc.reg_read(x.UC_X86_REG_RAX)&0xffffffff==0:stop.update(reason='MODULE_ATTACH_FAILED_DETACH_REQUIRED');uc.emu_stop();return
+  load_events.append({'kind':'entryComplete' if f['next']==len(f['targets']) else 'tlsComplete'})
+  advance_load();control_events.append(pc);uc.emu_stop();return
  if initializer_frames and pc==initializer_frames[-1]['sentinel']:
   f=initializer_frames[-1];assert uc.reg_read(x.UC_X86_REG_RSP)==f['callbackSp']+8
   result=uc.reg_read(x.UC_X86_REG_RAX)&0xffffffff
@@ -133,6 +177,45 @@ def code(uc,pc,length,_):
   uc.emu_stop();return
  if pc in imports:
   name=imports[pc].lower()
+  if name=='kernel32.dll!disablethreadlibrarycalls':
+   handle=uc.reg_read(x.UC_X86_REG_RCX);module=next((m for m in modules if m['base']==handle),None)
+   if module is None:stop.update(reason='UNMODELED_MODULE_HANDLE',address=hex(handle));uc.emu_stop();return
+   if module.get('staticTls'):result=0;last_error=126;uc.mem_write(tib+0x68,struct.pack('<I',last_error))
+   else:result=1;module['threadCalloutsDisabled']=True
+   host_calls.append({'address':hex(pc),'name':imports[pc],'module':hex(handle),'result':hex(result)});sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+   uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
+  if (name.startswith('api-ms-win-crt-string-') or name.startswith('vcruntime140.dll!')) and name.split('!')[-1] in ['strlen','wcslen','memcpy','memmove','memset','memcmp']:
+   symbol=name.split('!')[-1];a=uc.reg_read(x.UC_X86_REG_RCX);b=uc.reg_read(x.UC_X86_REG_RDX);n=uc.reg_read(x.UC_X86_REG_R8)
+   if symbol in ['strlen','wcslen']:
+    result=0;width=2 if symbol=='wcslen' else 1
+    while result<0x800000//width and int.from_bytes(uc.mem_read(a+result*width,width),'little')!=0:result+=1
+    assert result<0x800000//width
+   else:
+    assert n<=0x800000;result=a
+    if symbol=='memset':
+     if n:uc.mem_write(a,bytes([b&255])*n)
+    elif symbol in ['memcpy','memmove']:
+     if n:
+      if symbol=='memcpy':assert not(a<b+n and b<a+n)
+      uc.mem_write(a,bytes(uc.mem_read(b,n)))
+    else:
+     result=0
+     if n:
+      left,right=bytes(uc.mem_read(a,n)),bytes(uc.mem_read(b,n))
+      for l,r in zip(left,right):
+       if l!=r:result=(l-r)&0xffffffff;break
+   host_calls.append({'address':hex(pc),'name':imports[pc],'result':hex(result)});sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+   uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
+  if name=='kernel32.dll!loadlibraryexa' and cocos:
+   requested=read_ansi(uc.reg_read(x.UC_X86_REG_RCX));flags=uc.reg_read(x.UC_X86_REG_R8);file=uc.reg_read(x.UC_X86_REG_RDX)
+   if requested.lower()!='libcocos2d.dll' or flags or file:stop.update(reason='UNMODELED_LOAD_LIBRARY',requestedModule=requested,flags=hex(flags),file=hex(file));uc.emu_stop();return
+   if load_frame:stop.update(reason='NESTED_DEPENDENCY_LOAD_UNSUPPORTED');uc.emu_stop();return
+   if cocos['initialized']:stop.update(reason='MODULE_REFERENCE_COUNT_REQUIRED');uc.emu_stop();return
+   sp=uc.reg_read(x.UC_X86_REG_RSP);assert sp%16==8;tls=cocos['tls']
+   uc.mem_write(tls['indexAddress'],struct.pack('<I',tls['index']));uc.mem_write(tib+0x2000+tls['index']*8,struct.pack('<Q',tls['base']))
+   uc.mem_write(tls['base'],b'\0'*tls['size']);uc.mem_write(tls['base'],bytes.fromhex(tls['templateHex']))
+   host_calls.append({'address':hex(pc),'name':imports[pc],'module':requested,'action':'initializeDependency','base':cocos['base']})
+   load_frame={'module':cocos,'sp':sp,'ret':int.from_bytes(uc.mem_read(sp,8),'little'),'next':0,'targets':tls['callbacks']+[cocos['entry']]};advance_load();uc.emu_stop();return
   if (name.startswith('api-ms-win-crt-heap-') and name.split('!')[-1] in ['malloc','free','realloc','calloc','_msize']) or name=='api-ms-win-crt-runtime-l1-1-0.dll!_errno':
    a=uc.reg_read(x.UC_X86_REG_RCX);b=uc.reg_read(x.UC_X86_REG_RDX)
    result=heap.invoke(name.split('!')[-1],a,b)
@@ -282,6 +365,7 @@ def code(uc,pc,length,_):
    uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret)
    host_calls.append(call);uc.emu_stop();return
   stop.update(reason='WINDOWS_IMPORT_REQUIRED',importName=imports[pc],address=hex(pc));uc.emu_stop();return
+ if len(trace)>=10000:stop.update(reason='INSTRUCTION_LIMIT');uc.emu_stop();return
  trace.append(pc)
  if bytes(uc.mem_read(pc,2))==b'\x0f\xa2':
   leaf=uc.reg_read(x.UC_X86_REG_EAX);subleaf=uc.reg_read(x.UC_X86_REG_ECX)
@@ -289,7 +373,6 @@ def code(uc,pc,length,_):
   for reg,value in zip([x.UC_X86_REG_RAX,x.UC_X86_REG_RBX,x.UC_X86_REG_RCX,x.UC_X86_REG_RDX],values):uc.reg_write(reg,value)
   cpu_calls.append({'pc':hex(pc),'leaf':leaf,'subleaf':subleaf,'results':values})
   uc.reg_write(x.UC_X86_REG_RIP,pc+2);uc.emu_stop();return
- if len(trace)>=10000:stop.update(reason='INSTRUCTION_LIMIT');uc.emu_stop()
 def memory_error(uc,access,address,size,value,_):
  stop.update(reason='UNMAPPED_MEMORY',address=hex(address),access=access,instruction=hex(uc.reg_read(x.UC_X86_REG_RIP)));return False
 uc.hook_add(unicorn.UC_HOOK_CODE,code);uc.hook_add(unicorn.UC_HOOK_MEM_INVALID,memory_error)
@@ -316,6 +399,7 @@ if stop.get('importName','').lower() in ['kernel32.dll!getmodulehandlea','kernel
  if stop['importName'].lower().endswith('loadlibraryexa'):stop.update(flags=hex(uc.reg_read(x.UC_X86_REG_R8)),file=hex(uc.reg_read(x.UC_X86_REG_RDX)))
 if stop.get('reason')=='UNMAPPED_MEMORY' and trace and trace[-1]==uc.reg_read(x.UC_X86_REG_RIP):trace.pop()
 lifter=Lifter(pe,10000,allow_indirect=True,yield_unknown=True,single_threaded=True,wide_mode=True);blocked=None;translated=0
+if cocos:lifter.allowed_images.append((cocos['base'],cocos['base']+cocos['size']))
 for pc in dict.fromkeys(trace):
  data=bytes(uc.mem_read(pc,32));ins=lifter.ctx.disassemble(data,base_address=pc,max_instructions=1).instructions[0]
  ops=lifter.ctx.translate(data[:ins.length],base_address=pc,max_instructions=1).ops
@@ -347,13 +431,18 @@ report={'status':'DLL_STARTUP_BLOCKED','generationId':generation_id,'dllSha256':
  'tibBase':tib,'tlsCallbacksExecuted':False,'fullGeodeLoader':False,'existingGeodePackagesSupported':False}
 report['initializerEvents']=initializer_events
 report['guestModules']=modules
+report['dependencyImageInstructions']=sum(cocos['base']<=pc<cocos['base']+cocos['size'] for pc in trace) if cocos else 0
+report['dependencyLoadEvents']=load_events
+report['dependencyLoadInProgress']=load_frame is not None
+report['nativeExportChecks']=[{'name':symbol.name.decode(),'ordinal':symbol.ordinal,'address':base+symbol.address,'module':base} for symbol in pe.DIRECTORY_ENTRY_EXPORT.symbols[::600] if symbol.name and not symbol.forwarder]
+if cocos:report['nativeExportChecks'] += [{'name':symbol.name.decode(),'ordinal':symbol.ordinal,'address':cocos['base']+symbol.address,'module':cocos['base']} for symbol in cocos_pe.DIRECTORY_ENTRY_EXPORT.symbols[::1000] if symbol.name and not symbol.forwarder]
 report['threadDescription']=thread_description
 report['localAllocations']=local_allocations
 report['crtHeap']={'base':heap.base,'size':heap.size,'errno':heap.errno,'allocations':heap.allocations,'freeBlocks':heap.available,'calls':heap.calls}
 report['resolvedExports']=[c for c in host_calls if c['name'].lower().endswith('!getprocaddress')]
 report['windowsCompatibilityProfile']=windows_profile
 report['tibReads']=sorted(set(tib_reads))
-known_tib_fields=[(8,24),(0x30,0x38),(0x58,0x60),(0x68,0x6c),(0x2000,0x2008)]
+known_tib_fields=[(8,24),(0x30,0x38),(0x58,0x60),(0x68,0x6c),(0x2000,0x2010)]
 unknown_tib=[(offset,n) for offset,n in report['tibReads'] if not any(start<=offset and offset+n<=end for start,end in known_tib_fields)]
 report['unmodeledTibReads']=unknown_tib
 report.update(originalDllInstructionsExecuted=sum(base<=pc<base+size for pc in trace),loaderBootstrapInstructions=sum(bootstrap<=pc<bootstrap+4096 for pc in trace),
@@ -370,6 +459,7 @@ if len(sys.argv)>2 and not blocked and not unknown_tib:
  (out/'tib-after.bin').write_bytes(bytes(uc.mem_read(tib,tib_size)))
  (out/'tls.bin').write_bytes(initial_tls);(out/'tls-after.bin').write_bytes(bytes(uc.mem_read(tls_block,tls_size)))
  (out/'image-after.bin').write_bytes(bytes(uc.mem_read(base,size)))
+ if cocos:(out/'dependency-tls-after.bin').write_bytes(bytes(uc.mem_read(cocos['tls']['base'],cocos['tls']['size'])))
  (out/'crt-heap-after.bin').write_bytes(bytes(uc.mem_read(heap.base,heap.size)))
  (out/'errno-after.bin').write_bytes(bytes(uc.mem_read(heap.errno,0x10000)))
  (out/'local-heap-after.bin').write_bytes(bytes(uc.mem_read(local_heap,local_heap_size)))
@@ -377,8 +467,9 @@ if len(sys.argv)>2 and not blocked and not unknown_tib:
  names=['RAX','RCX','RDX','RBX','RSP','RBP','RSI','RDI','R8','R9','R10','R11','R12','R13','R14','R15']
  (out/'expected.json').write_text(json.dumps({'generationId':generation_id,'entry':entry,'base':base,'stop':uc.reg_read(x.UC_X86_REG_RIP),
   'instructions':len(trace),'hostCalls':host_calls,'tibBase':tib,'tibSize':tib_size,'tlsBase':tls_block,'tlsSize':tls_size,
-  'modules':modules,'moduleGateways':{hex(k):v for k,v in module_gateways.items()},
+  'modules':[{**m,'initialized':False} if m.get('tls') else m for m in modules],'moduleGateways':{hex(k):v for k,v in module_gateways.items()},
   'bootstrap':bootstrap,'loaderHex':loader.hex(),
+  'mxcsr':{'offset':lifter.reg_offset(lifter.ctx.registers['MXCSR']),'value':uc.reg_read(x.UC_X86_REG_MXCSR)},
   'xmm':[hex(uc.reg_read(getattr(x,f'UC_X86_REG_XMM{i}'))) for i in range(16)],
   'flags':{name:{'offset':2048+lifter.ctx.registers[name].offset,'value':(uc.reg_read(x.UC_X86_REG_EFLAGS)>>bit)&1} for name,bit in [('CF',0),('PF',2),('ZF',6),('SF',7),('OF',11)]},
   'registers':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+name))) for name in names]}))

@@ -1,78 +1,70 @@
-# Resume checkpoint — Geode startup batch
+# Resume checkpoint — actual Geode DLL translation
 
-User goal: continue the real binary translation in batches, quickly; save durable checkpoints. Do not equate a prefix test with full Geode loading. Normal game files are unchanged.
+User goal: keep progressing in batches and save durable checkpoints. Do not equate a prefix or SDK canary with the full Geode loader. Work on branch `geode-startup-batch` in `risoekppoo-cyber/gddashyes`; normal game files remain unchanged.
 
 ## Latest verified milestone
 
-`dist/batch-verified.json` records **1,591 original Geode DLL instructions plus 16 loader-bootstrap instructions** (1,607 total) executed in translated WASM and compared with Unicorn 2.1.4 under the declared guest platform model.
+`dist/batch-verified.json`: **8,416 total original-machine/loader instructions** in WASM, compared with independent x64 reference execution under the declared guest model:
 
-Verified state: all 16 general registers, all 16 XMM registers, five arithmetic flags, the full native stack, the complete DLL image, TLS memory, TIB and CRT callback arena match. Both actual PE TLS callbacks completed; static TLS copies the DLL's 784-byte template and supplies its TLS index and main-thread vector. Real initializer callbacks run through a native call/return bridge, with null skipping and error propagation. One initializer table completed; the C++ constructor table is still in progress. On-exit callbacks are stored, not executed yet.
+- **6,958 original Geode.dll instructions**.
+- **1,442 original libcocos2d.dll instructions**.
+- **16 generated initial-loader instructions**, counted separately.
+- **152 host calls**; Cocos's real PE DLL entrypoint completed and its pending LoadLibraryExA call returned the real guest module base. This is Cocos initialization in the bounded guest model, not completion of Geode initialization.
+- Both actual Geode PE TLS callbacks completed. Native C/C++ initializer callbacks execute with Win64 shadow space and checked native return frames; callback counts and table state are recorded in the report.
+- All 16 GPRs, all 16 XMMs, five arithmetic flags, MXCSR, the full native stack, complete Geode and Cocos images, shim images, TIB, both static TLS areas, CRT heap, allocation metadata, errno region, local-description heap and on-exit arena match.
 
-The longer run passes process ID, monotonic counter/frequency, SList initialization, CRT table initialization and callback registration, initializer dispatch, UTF-16 environment lookup/last-error state, uncontended SRW locking, empty-queue condition wakes, version/system information, CPUID and scalar/SSE integer transfers. `implementedImports` lists exactly which imports the actual run exercised; API contract tests cover additional boundaries.
+Geode resolved three actual Cocos exports after the dependency finished: clearQueuedInput, pumpRawInput and setupWindow (full mangled names and guest addresses are in `resolvedExports`). It has not reached full loader startup or loaded an existing .geode mod.
 
-CPU and Windows versions are explicit virtual profiles, not host hardware/OS reports. There is one serialized guest execution context. Contended blocking locks and nonempty condition queues stop; worker scheduling is not implemented.
+The complete local script passed: module/heap/initializer/thread/string/synchronization contracts, the actual 8,416-instruction prefix, 80 machine-code ALU/SSE cases, and 200 regenerated original scalar getter comparisons. Fresh-runner confirmation of this newest revision is pending until recorded below.
 
-## Exact resume point
+## Exact runtime stop and next work
 
-The current stop is **KERNEL32.dll!LoadLibraryExA("libcocos2d.dll", NULL, 0)** at import gateway `0x70000900`. This is now an actual game dependency, not a CRT allocation blocker. Inspect the pinned GD WASM data segments for the mapped Cocos PE image and exports; verify whether original executable code survives before trying native reference execution. Reuse the game's existing translated dispatcher where necessary, with full register/callback/memory state accounting. Do not substitute an empty DLL handle or fake Cocos constructors.
+**KERNEL32.dll!GetModuleHandleW(NULL)** at `0x70000730` now requests the real **primary GeometryDash.exe image**. No fake main-module handle is returned. Current Geode initialization is incomplete.
 
-A bounded CRT heap now owns guest addresses 52–60 MiB. It implements malloc/free/calloc/realloc/_msize and an errno location at 12 MiB. Allocation failure sets ENOMEM (12); calloc overflow is checked; realloc failure preserves the old allocation; valid blocks are 16-byte aligned; freeing coalesces blocks. Unknown/double frees stop. This is one serialized guest context, not a complete MSVC allocator or concurrent CRT. Two actual malloc calls executed in the DLL prefix. All heap bytes, allocation metadata, errno memory and previous state comparisons match the independent native trace. GetCurrentProcess supplies the documented current-process pseudo handle. Five real initializer callbacks started, four completed; one table remains in progress.
+1. Recover the hash-pinned `GeometryDash.exe.img` from the same upstream payload. The manifest identifies GD 2.209, Steam build 26002420, primary image SHA-256 `dab65e0527e343f03ea08614b2967f5a20cdb481b1622aadde76cde648803c2a`. Determine the image's actual rebased guest address from its pointers, not merely the preferred base still present in its header.
+2. Audit address conflicts before mapping it. Existing test-only TIB/arenas/compiler stack occupy low guest addresses and must move if they overlap the actual primary image. Centralize these regions; update native and WASM sides together and re-run the complete comparison.
+3. Register the real primary module and bind its imported services explicitly. GetModuleHandleW(NULL) may then return its mapped base. Continue the original Geode code, stopping at the next real missing operation. Do not fake GD functions or assume game objects have initialized.
+4. Before claiming game support, attach this startup runtime to the actual game dispatcher and initialized game memory. The standalone prefix has not booted the game. Existing `.geode` packages, hook installation, exception unwinding, worker scheduling and browser performance remain separate unproven stages.
 
-Module lookup now resolves case-insensitive names to actual mapped PE images. Two explicitly partial system shim images contain real export tables and only implemented host gateways. GetProcAddress parses mapped PE export tables, preserves case-sensitive names, and returns real guest VAs. Real Geode.dll exports also use its mapped PE table. Unknown shim exports/ordinals/forwarders stop; they are not reported as absent. NULL GetModuleHandle stops until the real primary executable is integrated.
+The generated single giant dispatcher also triggers a V8 TurboFan Zone-memory failure during tier-up after executing successfully. The standalone test uses `node --liftoff-only` to keep verification reliable. **Browser execution/performance of this enlarged dispatcher is not verified**. Split translated code into smaller native-function dispatch units before browser integration; a compiler flag is not a production-browser fix.
 
-The actual DLL resolved both SetThreadDescription and GetThreadDescription, but has not called those gateways in this prefix. Focused contracts verify callable RtlGetVersion resolution, UTF-16 thread naming, allocated description ownership and LocalFree. Only the current-thread pseudo handle is modeled; arbitrary thread handles stop. Local description allocations use 10–11 MiB, separate from the CRT heap to be added.
+## Implemented runtime model
 
-The declared compatibility profile is native Windows, not Wine. Exactly `ntdll.dll!wine_get_version` is declared absent, returning NULL/error 127; unrelated unknown exports still stop. This is the Wine extension used for detection, documented in Wine's own export specification and API list: https://source.winehq.org/WineAPI/ntdll.html and https://github.com/wine-mirror/wine/blob/master/dlls/ntdll/ntdll.spec. Shim catalogs are not complete Windows export catalogs.
+This is one serialized guest execution context, not Windows or Wine. Declared CPU/Windows compatibility profiles are not reports about host hardware/OS. Unimplemented imports, unknown modules/exports/ordinals/forwarders, primary-module requests, nested dependency loads, repeated loads needing reference counts, failed attach needing detach, blocking lock contention, nonempty condition queues and unknown guest frees stop explicitly.
 
-Integer division/remainder is now implemented with divide-by-zero and quotient-overflow traps. The 128-bit backend and overlapping p-code temporaries support the reached SSE moves/shuffles. Keep the scalar backend as the default: the original 200 native-reference getter comparisons still pass after regeneration.
+Module lookup is case-insensitive and export names are case-sensitive. Mapped PE export tables supply real native VAs. System shims contain actual PE32+ export tables exposing implemented gateways only; incomplete catalogs never imply that an arbitrary export is absent. The exact Wine extension `ntdll.dll!wine_get_version` is declared absent for the native-Windows compatibility model (NULL/error 127). Geode and Cocos catalogs are complete mapped PE catalogs. `mapped_pe` must interpret image RVAs as memory offsets, not disk raw-section offsets.
 
-## Checkpoints and reports
+Cocos image SHA-256: `1ade9d1b9603d82a41f2211348ec98516098b6d012114f785a763b8762512257`; 1,900,544 bytes; actual guest base `0x10000000`; 5,917 exports. Although its header retains preferred base `0x180000000`, the supplied memory image is already rebased to `0x10000000`: do not relocate it twice. The fetcher verifies both exact source chunks and the complete extracted image. No game or official Geode binaries are committed.
 
-GitHub branch: `geode-startup-batch` in `risoekppoo-cyber/gddashyes`.
+Supported executed services include process/thread identity, FILETIME and monotonic timing, system/version information, CPUID, static TLS, environment/last error, SRW locks, condition wakes, on-exit registration, C/C++ initializer callbacks, CRT allocation and strlen, mapped-module/export lookup and bounded dependency attach. DisableThreadLibraryCalls fails for active static TLS, using declared model error ERROR_MOD_NOT_FOUND (126), rather than pretending it disabled required TLS notifications. Unknown modules are rejected.
 
-Initial durable checkpoint commit: `87e5d6c47524ac4e27f20be88da82448e2ea2c81` (575 verified total instructions). Later commits advance this branch. `dist/batch-native-next.json` is an ARCHIVED earlier unverified 850-instruction trace, not the current result. Always use `dist/batch-verified.json` for the latest verified milestone.
+The CRT heap (52–60 MiB) owns tracked 16-byte-aligned blocks. calloc overflow/zero fill, realloc preservation/failure, coalescing free and errno ENOMEM are tested. Thread descriptions use a separate local heap and LocalFree. Arbitrary thread handles and callbacks on shutdown remain unsupported.
 
-Every generated native reference and its report carry the same fresh generation ID. The verifier rejects mismatched/stale outputs, unsupported IR and unmodeled TIB reads. This prevents an old generated C/WASM file from falsely passing a newer blocked trace.
+Floating point is deliberately bounded: finite normal/zero comparisons and predicates, signed integer-to-binary32/64 conversions with all four MXCSR rounding modes and sticky precision, and normal/zero binary32 division in nearest-even mode. NaN/infinity/subnormal comparisons, unsupported division inputs/results/modes and unmasked precision exceptions stop. This is not general SSE/x87 support. The guest starts with MXCSR 0x1f80. Raw SSE fixtures were also executed on real x64 hardware with host MXCSR restored: 69 hardware cases passed; Unicorn 2.1.4 omitted precision flags in 20 cases, so those expected flags come from hardware. The prior MIN64/-1 integer-division discrepancy is likewise checked with real x64 SIGFPE.
 
-## Rebuild after scratch storage disappears
+## Durable milestones
 
-Worktree used: `/workspace/scratch/d6c02ef02c38/geode-startup-batch`.
+| Source revision | Total prefix | Recorded evidence |
+|---|---:|---|
+| e33d28c36977bff1b29e77b9c01203cf11da4eeb | 865 | https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42188246572 |
+| 7a6188aa21209386b4eff54a3dfca5f992e8368a | 988 | `dist/module-resolution-verified.json`; https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42196526947 |
+| d708353b8abc6c864776c5a85c9ee87bdbdc4696 | 1,607 | `dist/crt-heap-verified.json`; https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42197100197 |
+| Current checkpoint | 8,416 | `dist/batch-verified.json`; complete local script passed, CI pending |
+
+Older `dist/batch-native-next.json`, startup-smoke/time/thread reports and README original-canary tables are historical, not the current result. Always prefer this file plus `dist/batch-verified.json`. Each generation has a fresh ID; stale generated C/WASM or mismatched report/reference outputs are rejected. Repeated visits to the final API's address must still execute earlier successful calls: the verifier enables its stop PC only after all expected host calls have been consumed.
+
+## Rebuild after scratch disappears
+
+Worktree: `/workspace/scratch/d6c02ef02c38/geode-startup-batch`.
 
 ```bash
 python -m pip install -r experiments/geode-binary/requirements.txt ziglang==0.14.1
 npm install --prefix /tmp/geode-wasm-tools binaryen@123.0.0
 python experiments/geode-binary/fetch-startup-dll.py /tmp/Geode.dll
-GEODE_DLL=/tmp/Geode.dll GEODE_OUT=/tmp/geode-batch-run GEODE_WASM_OPT=/tmp/geode-wasm-tools/node_modules/.bin/wasm-opt bash experiments/geode-binary/run-startup-tests.sh
+python experiments/geode-binary/fetch_cocos_image.py /tmp/libcocos2d.dll.img
+GEODE_DLL=/tmp/Geode.dll GEODE_COCOS_IMG=/tmp/libcocos2d.dll.img GEODE_OUT=/tmp/geode-resume-run GEODE_WASM_OPT=/tmp/geode-wasm-tools/node_modules/.bin/wasm-opt bash experiments/geode-binary/run-startup-tests.sh
 ```
 
-The fetcher verifies both release ZIP and extracted DLL SHA-256. The source DLL hash remains `ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499`. No original DLL or game payload is committed.
+Local tools if present: Python dependencies `/tmp/geode-batch-tools` (set PYTHONPATH), Zig `/tmp/geode-batch-tools/ziglang/zig` (set GEODE_ZIG), Binaryen `/tmp/geode-wasm-tools/node_modules/.bin/wasm-opt`. Official DLL SHA-256 remains `ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499`; its release ZIP is also checked. CI runs the same script, uses pinned dependencies and read-only repository permissions, and uploads only the JSON report.
 
-Existing local tool paths, if still present: Python dependencies `/tmp/geode-batch-tools` (set PYTHONPATH); Zig `/tmp/geode-batch-tools/ziglang/zig` (set GEODE_ZIG); Binaryen `/tmp/geode-wasm-tools/node_modules/.bin/wasm-opt` (set GEODE_WASM_OPT); DLL `/tmp/Geode.dll`. All are reproducible.
-
-The updated GitHub workflow runs the same script on a fresh runner with read-only repository permissions. It uploads only the JSON report.
-
-## Verification and limitations
-
-Passed locally: time/thread/startup/initializer/synchronization contracts; 11 raw-machine-code division/SSE cases; 200 original scalar reference cases; full 1,607-instruction startup-prefix comparison. A known Unicorn 2.1.4 discrepancy on signed MIN64 / -1 is documented in `verify-alu.py`: preserve the architectural divide fault, independently confirmed by real x64 SIGFPE, rather than copying the emulator's wrapped result.
-
-The original shared-game `instantiateLift` validator is unchanged. Wide generated code uses `startup-module.mjs` in the standalone test, which permits only the exported i32 compiler-stack global and rejects data/start sections or unexpected imports. It reserves a private compiler stack and checks restoration after each dispatcher return. This does not claim a general untrusted-module sandbox.
-
-Memory layout: native stack 2–3 MiB; TIB/TLS vector 4 MiB; CRT callback arena 5–6 MiB; static TLS 7 MiB; compiler stack 8–9 MiB; DLL image 32 MiB. The TLS/constructor loader bootstrap has separate instruction counts, so it does not inflate the reported DLL progress.
-
-Full DLL initialization, arbitrary Geode package loading, real game integration of this startup runtime, general Windows/CRT services, exception handling, real workers and shutdown callback execution remain incomplete. The live game remains the earlier SDK/binary canary, not full Geode.
-
-## Prior fresh-runner confirmation
-
-The same complete test script passed on GitHub Actions: https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42188246572
-
-Tested source commit: `e33d28c36977bff1b29e77b9c01203cf11da4eeb`. That run covers the prior 865-instruction checkpoint; the current module-resolution checkpoint has passed the complete local script and awaits its own CI run. All focused contracts, the actual 865-instruction prefix comparison, 11 division/SSE machine-code cases, and 200 regenerated scalar comparisons passed. The only subsequent edits in this checkpoint are documentation and recorded results.
-
-## Latest checkpoint validation
-
-Module resolution checkpoint: 988 total instructions, 37 host calls, 3 module lookups, 2 positive export resolutions, matching shim PE images and all prior state comparisons. Complete local test script passed, including 11 division/SSE and 200 regenerated scalar cases. GitHub Actions confirmation pending for this new source revision.
-
-## Saved module checkpoint and current heap checkpoint
-
-Module checkpoint source: `7a6188aa21209386b4eff54a3dfca5f992e8368a`. Fresh-runner full script PASSED: https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42196526947 . Immutable result: `dist/module-resolution-verified.json` (988 total instructions).
-
-Current heap checkpoint: 1,607 total instructions, 49 host calls, 5 initializer callbacks started / 4 completed, full heap/state comparison passed locally. Focused allocator contracts, module/thread contracts, 11 division/SSE regressions and 200 regenerated scalar cases passed. Fresh-runner confirmation for this heap revision pending.
+Current guest regions: native stack 2–3 MiB; TIB/vector 4 MiB; on-exit arena 5–6 MiB; Geode static TLS 7 MiB; private compiler stack 8–9 MiB; local description heap 10–11 MiB; errno 12 MiB; Cocos static TLS 13 MiB; shim PE images 16 MiB onward; Geode DLL 32 MiB; CRT heap 52–60 MiB; Cocos DLL 256 MiB. Audit and relocate auxiliary regions before mapping the real primary executable.

@@ -15,6 +15,7 @@ compile() {
  "$GEODE_WASM_OPT" "$output" --remove-unused-module-elements -o "$output.clean"
  mv "$output.clean" "$output"
 }
+node experiments/geode-binary/verify-native-loads.mjs
 node experiments/geode-binary/verify-guest-heap.mjs
 node experiments/geode-binary/verify-windows-time.mjs
 node experiments/geode-binary/verify-windows-threads.mjs
@@ -22,10 +23,10 @@ node experiments/geode-binary/verify-windows-startup.mjs
 node experiments/geode-binary/verify-native-initializers.mjs
 node experiments/geode-binary/verify-synchronization.mjs
 python experiments/geode-binary/startup-smoke.py "$GEODE_DLL" "$GEODE_OUT" > "$GEODE_OUT/report.json"
-python -c 'import json,sys;d=json.load(open(sys.argv[1]));assert d["firstTranslationBlocker"] is None,d;assert not d["unmodeledTibReads"],d' "$GEODE_OUT/report.json"
+python -c 'import json,sys;d=json.load(open(sys.argv[1]));assert d["firstTranslationBlocker"] is None,d["firstTranslationBlocker"];assert not d["unmodeledTibReads"],d["unmodeledTibReads"]' "$GEODE_OUT/report.json"
 node experiments/geode-binary/verify-guest-modules.mjs "$GEODE_OUT"
 compile "$GEODE_OUT/startup.c" "$GEODE_OUT/startup.wasm" wide
-node experiments/geode-binary/verify-startup.mjs "$GEODE_OUT" "$GEODE_OUT/report.json"
+node --liftoff-only experiments/geode-binary/verify-startup.mjs "$GEODE_OUT" "$GEODE_OUT/report.json"
 python experiments/geode-binary/verify-alu.py "$GEODE_OUT"
 compile "$GEODE_OUT/alu.c" "$GEODE_OUT/alu.wasm" wide
 node experiments/geode-binary/verify-alu.mjs "$GEODE_OUT"

@@ -1,7 +1,15 @@
 """Declared PE shim modules. Gateways dispatch only explicitly implemented APIs."""
 import struct
 import pefile
-KERNEL_EXPORTS='GetCurrentProcess GetCurrentThread SetThreadDescription GetThreadDescription LocalFree GetModuleHandleA GetModuleHandleW GetProcAddress GetSystemTimeAsFileTime GetCurrentThreadId GetCurrentProcessId QueryPerformanceCounter QueryPerformanceFrequency GetSystemInfo GetNativeSystemInfo InitializeSListHead GetEnvironmentVariableW GetLastError SetLastError InitializeSRWLock AcquireSRWLockExclusive ReleaseSRWLockExclusive TryAcquireSRWLockExclusive AcquireSRWLockShared ReleaseSRWLockShared TryAcquireSRWLockShared InitializeConditionVariable WakeConditionVariable WakeAllConditionVariable'.split()
+KERNEL_EXPORTS='DisableThreadLibraryCalls GetCurrentProcess GetCurrentThread SetThreadDescription GetThreadDescription LocalFree GetModuleHandleA GetModuleHandleW GetProcAddress GetSystemTimeAsFileTime GetCurrentThreadId GetCurrentProcessId QueryPerformanceCounter QueryPerformanceFrequency GetSystemInfo GetNativeSystemInfo InitializeSListHead GetEnvironmentVariableW GetLastError SetLastError InitializeSRWLock AcquireSRWLockExclusive ReleaseSRWLockExclusive TryAcquireSRWLockExclusive AcquireSRWLockShared ReleaseSRWLockShared TryAcquireSRWLockShared InitializeConditionVariable WakeConditionVariable WakeAllConditionVariable'.split()
+
+def mapped_pe(data):
+ pe=pefile.PE(data=bytes(data),fast_load=True)
+ for section in pe.sections:
+  section.PointerToRawData=section.VirtualAddress
+  section.SizeOfRawData=max(section.SizeOfRawData,section.Misc_VirtualSize)
+ pe.parse_data_directories()
+ return pe
 
 def shim(name,base,exports):
  # Loaded PE32+ image: headers, executable gateway section, real export tables.
@@ -33,7 +41,7 @@ def shim(name,base,exports):
  return {'name':name,'base':base,'size':len(image),'complete':False,'shim':True,'knownAbsent':['wine_get_version'] if name=='ntdll.dll' else []},bytes(image),gates
 
 def build_modules(pe,base):
- modules=[{'name':'Geode.dll','base':base,'size':pe.OPTIONAL_HEADER.SizeOfImage,'complete':True,'shim':False}];images={};gates={}
+ modules=[{'name':'Geode.dll','base':base,'size':pe.OPTIONAL_HEADER.SizeOfImage,'complete':True,'shim':False,'staticTls':bool(pe.OPTIONAL_HEADER.DATA_DIRECTORY[9].VirtualAddress)}];images={};gates={}
  for index,(name,exports) in enumerate([('kernel32.dll',KERNEL_EXPORTS),('ntdll.dll',['RtlGetVersion'])]):
   item,image,targets=shim(name,0x1000000+index*65536,exports);modules.append(item);images[item['base']]=image;gates.update(targets)
  return modules,images,gates
@@ -54,7 +62,7 @@ def resolve_export(modules,read,handle,symbol):
  module=next((m for m in modules if m['base']==handle),None)
  if module is None:raise RuntimeError('UNMODELED_MODULE_HANDLE: '+hex(handle))
  if isinstance(symbol,int) and module['shim']:raise RuntimeError('UNMODELED_SHIM_ORDINAL: '+str(symbol))
- data=bytes(read(handle,module['size']));pe=pefile.PE(data=data)
+ data=bytes(read(handle,module['size']));pe=mapped_pe(data)
  for entry in pe.DIRECTORY_ENTRY_EXPORT.symbols:
   if (isinstance(symbol,int) and entry.ordinal==symbol) or (entry.name is not None and entry.name.decode('ascii')==symbol):
    if entry.forwarder:raise RuntimeError('UNMODELED_EXPORT_FORWARDER: '+entry.forwarder.decode())

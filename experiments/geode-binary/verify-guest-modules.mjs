@@ -3,9 +3,9 @@ import {readFile} from 'node:fs/promises';
 import {GuestModules} from './guest-modules.mjs';
 import {StartupServices} from './windows-startup.mjs';
 import {GuestThreads} from './windows-threads.mjs';
-const dir=process.argv[2],expected=JSON.parse(await readFile(dir+'/expected.json'));
-const memory=new WebAssembly.Memory({initial:1024}),v=new DataView(memory.buffer),cpu=4096;
-for(const m of expected.modules)new Uint8Array(memory.buffer,m.base,m.size).set(await readFile(m.shim?dir+'/module-'+m.base.toString(16)+'.bin':dir+'/image.bin'));
+const dir=process.argv[2],expected=JSON.parse(await readFile(dir+'/expected.json')),report=JSON.parse(await readFile(dir+'/report.json'));
+const memory=new WebAssembly.Memory({initial:Math.max(1024,...expected.modules.map(m=>Math.ceil((m.base+m.size)/65536)))}),v=new DataView(memory.buffer),cpu=4096;
+for(const m of expected.modules)new Uint8Array(memory.buffer,m.base,m.size).set(await readFile(m.name==='Geode.dll'?dir+'/image.bin':dir+'/module-'+m.base.toString(16)+'.bin'));
 let error=0;const modules=new GuestModules(expected.modules,{setLastError:value=>error=value});
 const ntdll=modules.handle('NtDlL'),kernel=modules.handle('C:\\Windows\\System32\\KERNEL32.DLL');
 assert.equal(modules.handle('kernel32.dll.'),kernel);
@@ -34,6 +34,7 @@ for(const name of ['alpha','new name 😀']){
  assert.throws(()=>threads.invoke('kernel32.dll!LocalFree',memory,cpu,'main'),/UNMODELED_LOCAL_HANDLE/);
 }
 prepare();v.setBigUint64(cpu+8,123n,true);assert.throws(()=>threads.invoke('kernel32.dll!GetThreadDescription',memory,cpu,'main'),/UNMODELED_THREAD_HANDLE/);
+for(const check of report.nativeExportChecks){assert.equal(modules.resolve(memory,check.module,check.name),check.address);assert.equal(modules.resolve(memory,check.module,check.ordinal),check.address);}
 const header=v.getUint32(ntdll+0x3c,true);v.setUint32(ntdll+header+24+112,0x10001,true);
 assert.throws(()=>modules.resolve(memory,ntdll,'RtlGetVersion'),/bounds/);
 console.log('PASS: PE export resolution, explicit absence, unknown rejection, callable gateway, UTF-16 thread name ownership');

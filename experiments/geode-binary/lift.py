@@ -20,9 +20,11 @@ class Lifter:
         self.single_threaded=single_threaded
         self.wide_mode=wide_mode
         self.base = pe.OPTIONAL_HEADER.ImageBase
+        self.allowed_images=[(self.base,self.base+pe.OPTIONAL_HEADER.SizeOfImage)]
         self.ctx = pypcode.Context('x86:LE:64:default')
         self.reg_roots = [(self.ctx.registers[n].offset, i*8, 8) for i,n in enumerate(REGS)]
         self.reg_roots.append((self.ctx.registers['RIP'].offset, 192, 8))
+        self.reg_roots.append((self.ctx.registers['MXCSR'].offset,1536,4))
         self.blocks = {}
         self.instruction_overrides = {}
         self.opcodes = collections.Counter()
@@ -55,7 +57,7 @@ class Lifter:
             base,shift=self.unique_groups.get(v.offset,(v.offset,0))
             return f'((u_{base:x}>>{shift}u)&mask({v.size}u))'
         if v.space.name == 'ram':
-            if not self.base <= v.offset < self.base+self.pe.OPTIONAL_HEADER.SizeOfImage:
+            if not any(start<=v.offset and v.offset+v.size<=end for start,end in self.allowed_images):
                 raise LiftError(f'Absolute memory reference outside image: {v}')
             return f'guest_read(image_base+UINT64_C({v.offset-self.base}),{v.size}u,guest_base)'
         raise LiftError(f'Unsupported input space {v.space.name}')
@@ -66,7 +68,7 @@ class Lifter:
             base,shift=self.unique_groups.get(v.offset,(v.offset,0))
             return f'u_{base:x}=(u_{base:x}&~(mask({v.size}u)<<{shift}u))|((({expression})&mask({v.size}u))<<{shift}u);'
         if v.space.name == 'ram':
-            if not self.base <= v.offset < self.base+self.pe.OPTIONAL_HEADER.SizeOfImage:
+            if not any(start<=v.offset and v.offset+v.size<=end for start,end in self.allowed_images):
                 raise LiftError(f'Absolute memory write outside image: {v}')
             return f'guest_write(image_base+UINT64_C({v.offset-self.base}),({expression}),{v.size}u,guest_base);'
         raise LiftError(f'Unsupported output space {v.space.name}')
@@ -101,6 +103,19 @@ class Lifter:
                 return cond+f'goto op_{to};'
             raise LiftError(f'Unsupported branch target {target}')
         elif code=='RETURN': return f'raw_write(cpu+192u,{self.expr(a[0])},8u); goto next_instruction;'
+        elif code=='FLOAT_NAN':
+            if a[0].size not in [4,8]:raise LiftError('Unsupported float predicate width')
+            e=f'(!finite_compare({x[0]},{x[0]},{a[0].size}u,2u,cpu,image_base+UINT64_C({self.current_instruction.addr.offset-self.base})))'
+        elif code=='FLOAT_DIV':
+            if a[0].size!=4 or a[1].size!=4 or op.output.size!=4:raise LiftError('Only bounded binary32 division is implemented')
+            e=f'finite_divide32({x[0]},{x[1]},cpu,image_base+UINT64_C({self.current_instruction.addr.offset-self.base}))'
+        elif code=='FLOAT_INT2FLOAT':
+            if a[0].size not in [4,8] or op.output.size not in [4,8]:raise LiftError('Unsupported int-to-float width')
+            e=f'int_to_ieee({x[0]},{a[0].size}u,{op.output.size}u,cpu,image_base+UINT64_C({self.current_instruction.addr.offset-self.base}))'
+        elif code in ['FLOAT_LESS','FLOAT_LESSEQUAL','FLOAT_EQUAL','FLOAT_NOTEQUAL']:
+            if a[0].size not in [4,8] or a[1].size!=a[0].size:raise LiftError('Unsupported float comparison width')
+            predicate={'FLOAT_LESS':0,'FLOAT_LESSEQUAL':1,'FLOAT_EQUAL':2,'FLOAT_NOTEQUAL':3}[code]
+            e=f'finite_compare({x[0]},{x[1]},{a[0].size}u,{predicate}u,cpu,image_base+UINT64_C({self.current_instruction.addr.offset-self.base}))'
         elif code in ['INT_ZEXT','CAST']: e=x[0]
         elif code=='INT_SEXT': e=f'sext({x[0]},{a[0].size}u)'
         elif code in ['INT_ADD','INT_SUB','INT_MULT','INT_AND','INT_OR','INT_XOR']:
@@ -217,6 +232,58 @@ static inline wide_t guest_read(uint64_t p,uint32_t n,uint32_t base) {
 }
 static inline void guest_write(uint64_t p,wide_t v,uint32_t n,uint32_t base) {
   if(p>UINT32_MAX){lift_fault(3u,p,0);__builtin_trap();}raw_write(p+base,v,n);
+}
+/* Normal/zero binary32 division, nearest-even only; exactness from integer significands. */
+static inline wide_t finite_divide32(wide_t a,wide_t b,uint32_t cpu,uint64_t pc){
+ uint32_t left=(uint32_t)a,right=(uint32_t)b,ea=(left>>23u)&255u,eb=(right>>23u)&255u,csr=(uint32_t)raw_read(cpu+1536u,4u);
+ if(ea==255u||eb==255u||(!ea&&(left&0x7fffffu))||!eb||(csr&0x6000u))goto unsupported;
+ union {uint32_t bits;float value;} x={.bits=left},y={.bits=right},z;z.value=x.value/y.value;
+ uint32_t er=(z.bits>>23u)&255u;if(er==255u||(!er&&ea)||(!er&&(z.bits&0x7fffffu)))goto unsupported;
+ if(ea){
+  uint64_t numerator=(left&0x7fffffu)|0x800000u,product=(uint64_t)((right&0x7fffffu)|0x800000u)*((z.bits&0x7fffffu)|0x800000u);
+  int32_t en=(int32_t)ea-(int32_t)eb,ep=(int32_t)er-150;
+  while(!(numerator&1u)){numerator>>=1u;en++;}while(!(product&1u)){product>>=1u;ep++;}
+  if(numerator!=product||en!=ep){if(!(csr&0x1000u))goto unsupported;raw_write(cpu+1536u,csr|0x20u,4u);}
+ }
+ return z.bits;
+ unsupported:raw_write(cpu+192u,pc,8u);lift_fault(7u,pc,pc);__builtin_trap();
+}
+/* Integer-only IEEE conversion: signed input, all MXCSR rounding modes, sticky precision. */
+static inline wide_t int_to_ieee(wide_t input,uint32_t width,uint32_t output,uint32_t cpu,uint64_t pc){
+ uint64_t mask64=width==8?UINT64_MAX:UINT32_MAX,bits=(uint64_t)input&mask64;
+ uint64_t negative=bits>>(width*8u-1u),magnitude=negative?((~bits+1u)&mask64):bits;
+ if(!magnitude)return 0;
+ uint32_t precision=output==4?24u:53u,length=0;
+ for(uint64_t v=magnitude;v;v>>=1u)length++;
+ uint32_t exponent=length-1u,csr=(uint32_t)raw_read(cpu+1536u,4u);
+ uint64_t significand;
+ if(length>precision){
+  uint32_t shift=length-precision;significand=magnitude>>shift;
+  uint64_t remainder=magnitude&((UINT64_C(1)<<shift)-1u),half=UINT64_C(1)<<(shift-1u);
+  uint32_t mode=(csr>>13u)&3u;
+  if(remainder){
+   if(!(csr&0x1000u)){raw_write(cpu+192u,pc,8u);lift_fault(7u,pc,pc);__builtin_trap();}
+   raw_write(cpu+1536u,csr|0x20u,4u);
+  }
+  uint32_t increment=mode==0?(remainder>half||(remainder==half&&(significand&1u))):mode==1?(negative&&remainder):mode==2?(!negative&&remainder):0;
+  significand+=increment;
+  if(significand==(UINT64_C(1)<<precision)){significand>>=1u;exponent++;}
+ }else significand=magnitude<<(precision-length);
+ uint64_t result=(negative<<(output*8u-1u))|((uint64_t)(exponent+(output==4?127u:1023u))<<(precision-1u))|(significand&((UINT64_C(1)<<(precision-1u))-1u));
+ return result;
+}
+/* Only normal finite numbers and signed zero; NaN/Inf/subnormal/FP status unsupported. */
+static inline wide_t finite_compare(wide_t a,wide_t b,uint32_t n,uint32_t predicate,uint32_t cpu,uint64_t pc) {
+ uint64_t exponent=n==4?UINT64_C(0x7f800000):UINT64_C(0x7ff0000000000000);
+ uint64_t fraction=n==4?UINT64_C(0x007fffff):UINT64_C(0x000fffffffffffff);
+ uint64_t left=(uint64_t)a,right=(uint64_t)b;
+ if((left&exponent)==exponent||(right&exponent)==exponent||(!(left&exponent)&&(left&fraction))||(!(right&exponent)&&(right&fraction))){
+  raw_write(cpu+192u,pc,8u);lift_fault(6u,pc,pc);__builtin_trap();
+ }
+ double x,y;
+ if(n==4){union {uint32_t bits;float value;} l={.bits=(uint32_t)left},r={.bits=(uint32_t)right};x=l.value;y=r.value;}
+ else {union {uint64_t bits;double value;} l={.bits=left},r={.bits=right};x=l.value;y=r.value;}
+ return predicate==0?x<y:predicate==1?x<=y:predicate==2?x==y:x!=y;
 }
 __attribute__((visibility("default")))
 uint32_t lift_run(uint32_t cpu,uint64_t entry,uint64_t image_base,uint32_t guest_base,uint64_t stop,uint32_t limit) {

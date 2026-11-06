@@ -2,7 +2,11 @@
 
 This experiment executes instructions from the **official Windows Geode.dll**, not a replacement C++ implementation of those functions. It is an early binary compatibility component, **not the full Geode loader**. Downloaded `.geode` packages do not work yet.
 
-## Try it
+## Current startup work
+
+The original browser canary below is historical. The active `geode-startup-batch` branch now verifies 8,416 startup instructions (6,958 Geode, 1,442 real Cocos and 16 loader instructions), including completion of the real Cocos DLL entrypoint under the declared standalone guest model. Geode initialization and existing mod packages remain unsupported. See [CHECKPOINT.md](CHECKPOINT.md) for the exact runtime stop, evidence, limitations and reproducible resume commands.
+
+## Try the earlier browser canary
 
 - [Independent x64 reference comparison](https://risoekppoo-cyber.github.io/gddashyes/experiments/geode-binary/)
 - [Game with binary canary](https://risoekppoo-cyber.github.io/gddashyes/index.html?sdkmenu=1&binarygeode=1&quality=low&rev=binary1)

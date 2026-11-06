@@ -32,7 +32,10 @@ export class GuestModules {
  invoke(name,memory,cpu){
   const v=new DataView(memory.buffer),read=(p,wide)=>{let s='';for(let i=0;i<32768;i++){const at=Number(p)+i*(wide?2:1);if(p<=0n||p>0xffffffffn||at+(wide?2:1)>memory.buffer.byteLength)throw Error('Guest string bounds');const c=wide?v.getUint16(at,true):v.getUint8(at);if(!c)return s;s+=String.fromCharCode(c);}throw Error('Unterminated guest string');};
   const key=name.toLowerCase(),arg=v.getBigUint64(cpu+8,true);let result;
-  if(key.endsWith('!getmodulehandlea')||key.endsWith('!getmodulehandlew'))result=this.handle(arg===0n?null:read(arg,key.endsWith('w')));
+  if(key.endsWith('!disablethreadlibrarycalls')){
+   const m=this.modules.find(m=>BigInt(m.base)===arg);if(!m)throw Error('UNMODELED_MODULE_HANDLE');
+   if(m.staticTls){this.setLastError(126);result=0;}else{m.threadCalloutsDisabled=true;result=1;}
+  }else if(key.endsWith('!getmodulehandlea')||key.endsWith('!getmodulehandlew'))result=this.handle(arg===0n?null:read(arg,key.endsWith('w')));
   else if(key.endsWith('!getprocaddress')){const p=v.getBigUint64(cpu+16,true);result=this.resolve(memory,Number(arg),p<=65535n?Number(p):read(p,false));}
   else throw Error('Unknown module API '+name);
   const sp=v.getBigUint64(cpu+32,true);if(sp<=0n||sp>0xffffffffn||Number(sp)+8>memory.buffer.byteLength)throw Error('Guest stack bounds');
