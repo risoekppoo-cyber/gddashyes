@@ -8,7 +8,7 @@ User goal: keep progressing in batches and save durable checkpoints. Do not equa
 
 Full state matches: all GPRs/XMMs, five arithmetic flags, MXCSR, native stack, complete Geode/Cocos/primary/MSVCP/shim images, three static TLS areas, TIB, CRT heap and ownership metadata, errno and callback/local arenas. The real Cocos entrypoint completed; Geode initialization remains in progress. This run used 2,499 supported host calls and 660 hardware-referenced floating instructions. Both Geode TLS callbacks completed.
 
-Complete local script passed: runtime contracts, 535,183-instruction comparison, **118 CPU fixtures including 107 real-x64 floating cases**, and **200 regenerated original scalar cases**. Unicorn omitted MXCSR precision flags in 36 fixture cases; the expected status comes from real hardware, not the emulator bug. Fresh-runner CI for this newest revision is pending below.
+Complete local script passed: runtime contracts, 535,183-instruction comparison, **118 CPU fixtures including 107 real-x64 floating cases**, and **200 regenerated original scalar cases**. Unicorn omitted MXCSR precision flags in 36 fixture cases; the expected status comes from real hardware, not the emulator bug. The same complete test passed on a fresh GitHub runner: https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42230332418 . Tested code revision: `a56a1e63f507deeb31439b227511049448759af3`.
 
 ## Exact resume point
 
@@ -20,7 +20,7 @@ The exact current stop is **MSVCP140.dll!basic_ios<char>::init**, import gateway
 
 The ios_base constructor blocker was cleared by translating its exact 13 instructions from the official DLL. The DLL is mapped at `0x12000000`, but only this stateless constructor is permitted to execute. Full MSVCP initialization is **false**. GetModuleHandle on the slice-only provider and any attempt to execute another MSVCP body stop explicitly. Other MSVCP IAT imports remain unresolved. A separate fixture poisons a 128-byte object, executes the native constructor and compares all GPRs, return state and all object bytes, including untouched padding at offsets 0x1c–0x1f. It passed.
 
-The next export is RVA **0x8690** in the same pinned MSVCP DLL. Its first instructions call internal RVA **0x6830**, then store the stream buffer and call RVA **0x9590**. This begins nontrivial stream/locale initialization; do not return success or fabricate zero-valued locale/vtable objects. Analyze the dependency closure and mutable-runtime preconditions, or provide real MSVCP DLL initialization before executing it. The pinned game WASM does not contain the exact constructor or this exact init import name, so direct reuse is not established.
+The next export is RVA **0x8690** in the same pinned MSVCP DLL. Its first instructions call internal RVA **0x6830**, (`ios_base::_Init`), then store the stream buffer and call RVA **0x9590** (`basic_ios<char>::widen`). This begins nontrivial stream/locale initialization; do not return success or fabricate zero-valued locale/vtable objects. Analyze the dependency closure and mutable-runtime preconditions, or provide real MSVCP DLL initialization before executing it. The pinned game WASM does not contain the exact constructor or this exact init import name, so direct reuse is not established.
 
 1. Continue the bounded native probe with `GEODE_INSTRUCTION_LIMIT`, up to 1,000,000. Inspect the next actual dependency, translation gap or budget stop. Use an output directory to generate a fresh proof; a native-only discovery report is not a verified WASM result.
 2. Prefer batches. A larger unique-instruction graph can strain the C compiler and V8 tier-up; do not equate a higher instruction total with compatibility/completion percentage.
@@ -57,7 +57,7 @@ Floating point is deliberately bounded: finite normal/zero comparisons and predi
 | d23ee69fcb9b7a5056449539bf2df1b0b66fdf31 | 8,416 | `dist/cocos-verified.json`; https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42200279670 |
 | bb4781a367084ede9c86b9db4557767abfcb2eca | 20,000 | `dist/primary-image-verified.json`; https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42227445945 |
 | 0295f6b13356c11664bcab1bcd6723e968f14292 | 535,140 | `dist/pre-iostream-verified.json`; https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42229062319 |
-| Current MSVCP-constructor checkpoint | 535,183 | `dist/batch-verified.json`; full local script passed, fresh CI pending |
+| a56a1e63f507deeb31439b227511049448759af3 | 535,183 | `dist/batch-verified.json`; https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42230332418 |
 
 Older `dist/batch-native-next.json`, startup-smoke/time/thread reports and README original-canary tables are historical, not the current result. Always prefer this file plus `dist/batch-verified.json`. Each generation has a fresh ID; stale generated C/WASM or mismatched report/reference outputs are rejected. Exact step budgets and the complete host-call transcript distinguish earlier visits to repeated terminal PCs from the actual reference endpoint.
 
@@ -89,3 +89,7 @@ The exact missing export is at RVA 0x4930. Disassembly shows a pure 13-instructi
 ## Current source and evidence scope
 
 The complete local MSVCP slice test passed at 535,183 instructions, including 13 actual Microsoft constructor instructions and the poisoned-object ABI fixture. This does not initialize the Microsoft C++ DLL, complete Geode's entrypoint, boot the game or load .geode packages. No new browser/live-game behavior has been claimed. The game's existing SDK/canary remains separate from this standalone startup work.
+
+## Fresh-runner confirmation
+
+Latest source revision: `a56a1e63f507deeb31439b227511049448759af3`. Successful complete CI run: https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42230332418 . It fetched and hash-verified all original inputs, including Microsoft's redistributable and extracted DLL. Native/WASM prefix, constructor padding/return fixture, runtime contracts, 118 CPU fixtures (107 real-x64 floating cases) and 200 original scalar cases passed. `dist/batch-verified.json` is the fresh-runner report with its source commit and run URL. The subsequent commit only records evidence and resume documentation.

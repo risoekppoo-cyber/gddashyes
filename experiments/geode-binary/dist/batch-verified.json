@@ -1,6 +1,6 @@
 {
   "status": "DLL_STARTUP_PREFIX_VERIFIED",
-  "generationId": "2907464b-fb2c-463e-a77d-de5758aa30f4",
+  "generationId": "ea6b26f5-ea06-4fcf-9eef-522b9e45c496",
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
   "entry": "0x72000000",
   "originalX64InstructionsExecuted": 535183,
@@ -19,7 +19,7 @@
     {
       "address": "0x700007c0",
       "name": "KERNEL32.dll!GetSystemTimeAsFileTime",
-      "unixMilliseconds": 1793973464734,
+      "unixMilliseconds": 1793973754399,
       "output": "0x2ffeb0"
     },
     {
@@ -35,7 +35,7 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "1942605304168",
+      "counter": "173706937942",
       "output": "0x2ffeb8"
     },
     {
@@ -110,13 +110,13 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "1942613301907",
+      "counter": "173797413963",
       "output": "0x2ffdc0"
     },
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "1942613768540",
+      "counter": "173797796510",
       "output": "0x2ffd70"
     },
     {
@@ -296,7 +296,7 @@
     {
       "address": "0x700007c0",
       "name": "KERNEL32.dll!GetSystemTimeAsFileTime",
-      "unixMilliseconds": 1793973464734,
+      "unixMilliseconds": 1793973754399,
       "output": "0x2ff9e0"
     },
     {
@@ -312,7 +312,7 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "1942624528350",
+      "counter": "173808251508",
       "output": "0x2ff9e8"
     },
     {
@@ -20664,12 +20664,14 @@
     "ntdll.dll!RtlGetVersion"
   ],
   "msvcConstructorPoisonFixture": true,
-  "verificationRun": "local complete script passed; MSVC slice fresh-runner confirmation pending",
+  "verificationRun": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42230332418",
+  "testedCommit": "a56a1e63f507deeb31439b227511049448759af3",
+  "fullGameBootTested": false,
+  "fullMsvcRuntimeInitialized": false,
   "validation": {
     "aluCases": 118,
     "realX64FloatingCases": 107,
     "emulatorMxcsrDiscrepancies": 36,
     "scalarReferenceCases": 200
-  },
-  "fullGameBootTested": false
+  }
 }
