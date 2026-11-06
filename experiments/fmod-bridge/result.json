@@ -31,5 +31,10 @@
   "nativeFlagsAndXmmPreserved": true,
   "runtimeNativePatchToWasmLinked": false,
   "fullGeodeLoader": false,
-  "existingGeodePackagesSupported": false
+  "existingGeodePackagesSupported": false,
+  "ciVerification": {
+    "sourceCommit": "309233501d70932f128477bf45765ded5ccd7ca2",
+    "run": 42278351214,
+    "url": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42278351214"
+  }
 }

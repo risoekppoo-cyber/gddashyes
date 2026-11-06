@@ -35,3 +35,5 @@ python experiments/fmod-bridge/verify_native.py /tmp/fmod/test
 ```
 
 Do not commit generated fixture WASM or downloaded game images. Only code, manifests and verification summaries belong in the repository. The fixture excludes original data segments and traps every unselected function; it is not a playable game.
+
+Verified locally and on a clean GitHub runner: https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42278351214 . Tested source: `309233501d70932f128477bf45765ded5ccd7ca2`.

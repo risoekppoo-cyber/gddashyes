@@ -16,7 +16,7 @@ The partitioned translator passes 118 CPU fixtures, including 107 real-x64 float
 
 ## FMOD follow-up component
 
-`../fmod-bridge/README.md` records a verified mapping from the pinned primary import IAT 0x00ace740 through WASM table slot 24570 to function 24950. Its exact implementation only returns FMOD_OK and performs no audio initialization. A matching owned readable Win64 entry and a narrow native-E9-to-WASM router pass 64 register contexts, 576 browser-adapter calls and 192 independent native executions, including call-original and restoration. Unknown patches fail closed. This is a component proof, not Geode's own installer running. It does not change the canonical 1,051,993 boundary. Next wire the owned provider and patch-write invalidation into the actual Geode runtime, as described there. New focused CI is pending.
+`../fmod-bridge/README.md` records a verified mapping from the pinned primary import IAT 0x00ace740 through WASM table slot 24570 to function 24950. Its exact implementation only returns FMOD_OK and performs no audio initialization. A matching owned readable Win64 entry and a narrow native-E9-to-WASM router pass 64 register contexts, 576 browser-adapter calls and 192 independent native executions, including call-original and restoration. Unknown patches fail closed. This is a component proof, not Geode's own installer running. It does not change the canonical 1,051,993 boundary. Next wire the owned provider and patch-write invalidation into the actual Geode runtime, as described there. The focused CI passed: https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42278351214 . Tested source: `309233501d70932f128477bf45765ded5ccd7ca2`.
 
 ## Exact resume point
 
