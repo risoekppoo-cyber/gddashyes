@@ -52,3 +52,9 @@ The original shared-game `instantiateLift` validator is unchanged. Wide generate
 Memory layout: native stack 2–3 MiB; TIB/TLS vector 4 MiB; CRT callback arena 5–6 MiB; static TLS 7 MiB; compiler stack 8–9 MiB; DLL image 32 MiB. The TLS/constructor loader bootstrap has separate instruction counts, so it does not inflate the reported DLL progress.
 
 Full DLL initialization, arbitrary Geode package loading, real game integration of this startup runtime, general Windows/CRT services, exception handling, real workers and shutdown callback execution remain incomplete. The live game remains the earlier SDK/binary canary, not full Geode.
+
+## Fresh-runner confirmation
+
+The same complete test script passed on GitHub Actions: https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42188246572
+
+Tested source commit: `e33d28c36977bff1b29e77b9c01203cf11da4eeb`. The canonical verified report now includes that run URL and source revision. All focused contracts, the actual 865-instruction prefix comparison, 11 division/SSE machine-code cases, and 200 regenerated scalar comparisons passed. The only subsequent edits in this checkpoint are documentation and recorded results.

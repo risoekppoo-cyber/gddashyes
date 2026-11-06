@@ -1,6 +1,6 @@
 {
   "status": "DLL_STARTUP_PREFIX_VERIFIED",
-  "generationId": "43b9e15e-c829-457e-8fe4-0de2e1428dc6",
+  "generationId": "dd5e6b4c-ed24-4b40-bece-5f22a8fabd88",
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
   "entry": "0x72000000",
   "originalX64InstructionsExecuted": 865,
@@ -20,7 +20,7 @@
     {
       "address": "0x700007c0",
       "name": "KERNEL32.dll!GetSystemTimeAsFileTime",
-      "unixMilliseconds": 1793953307825,
+      "unixMilliseconds": 1793953887456,
       "output": "0x2ffeb0"
     },
     {
@@ -36,7 +36,7 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "4543962838312",
+      "counter": "35203105974",
       "output": "0x2ffeb8"
     },
     {
@@ -111,13 +111,13 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "4543982018726",
+      "counter": "35211867122",
       "output": "0x2ffdc0"
     },
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "4543982341051",
+      "counter": "35212168760",
       "output": "0x2ffd70"
     },
     {
@@ -353,5 +353,7 @@
     "api-ms-win-crt-runtime-l1-1-0.dll!_initterm_e",
     "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
     "ntdll.dll!RtlGetVersion"
-  ]
+  ],
+  "verificationRun": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42188246572",
+  "testedCommit": "e33d28c36977bff1b29e77b9c01203cf11da4eeb"
 }
