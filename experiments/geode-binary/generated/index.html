@@ -1,0 +1,12 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Westminster Dash — Geode generated code check</title>
+<style>body{max-width:800px;margin:40px auto;padding:0 20px;background:#101b2b;color:#eef7ff;font:16px/1.6 system-ui}button{padding:12px 18px;background:#b7f35b;color:#152506;border:0;border-radius:8px;font-weight:bold}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#192b40;padding:20px;border-radius:12px}a{color:#b7f35b}</style>
+<h1>Geode generated code check</h1>
+<p>Tests the jump patch and original-call trampoline emitted by the official Geode DLL during its completed attachment. Checks native CPU and stack results, patch restoration, and rejection of changed code.</p>
+<p><strong>This checks code routing. It does not load the complete Geode interface or downloaded mods.</strong></p>
+<button id="run">Run check</button> <button id="copy" hidden>Copy report</button><pre id="report">Ready. Uses about 352 MB of address space.</pre>
+<script type="module">
+import {verifyGeneratedCode} from './verify.mjs';let result;
+document.querySelector('#run').onclick=async()=>{document.querySelector('#run').disabled=true;document.querySelector('#report').textContent='Checking actual Geode patch and trampoline…';await new Promise(r=>setTimeout(r,30));try{result=await verifyGeneratedCode(async(file,json)=>{const r=await fetch(new URL(file,import.meta.url));if(!r.ok)throw Error(file+' HTTP '+r.status);return json?r.json():r.arrayBuffer();});result.browser=navigator.userAgent;}catch(e){result={status:'FAIL',error:e.stack||String(e),fullGeodeLoader:false};}document.querySelector('#report').textContent=JSON.stringify(result,null,2);document.querySelector('#copy').hidden=false;document.querySelector('#run').disabled=false;};
+document.querySelector('#copy').onclick=()=>navigator.clipboard.writeText(JSON.stringify(result,null,2));
+</script></html>

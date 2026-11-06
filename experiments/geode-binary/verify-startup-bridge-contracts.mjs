@@ -3,6 +3,7 @@ import {convertUtf8} from './windows-text.mjs';
 import {fullPath,getFullPathNameW} from './windows-paths.mjs';
 import {GuestDirectories} from './guest-directories.mjs';
 import {ExecutableMemory} from './executable-memory.mjs';
+import {CodeProtection} from './code-protection.mjs';
 const memory=new WebAssembly.Memory({initial:0x1520}),v=new DataView(memory.buffer),cpu=4096,sp=8192;let error=42;
 const setError=x=>error=x;
 function prepare(a=0n,b=0n,c=0n,d=0n){new Uint8Array(memory.buffer,sp,80).fill(0);v.setBigUint64(sp,0x1234fedcn,true);v.setBigUint64(cpu+32,BigInt(sp),true);for(const [i,n] of [[8,a],[16,b],[64,c],[72,d]])v.setBigUint64(cpu+i,BigInt(n),true);}
@@ -21,4 +22,10 @@ prepare(handle,16384n,0n,0n);assert.equal(dirs.invoke('KERNEL32.dll!GetFinalPath
 prepare(handle);assert.equal(dirs.invoke('KERNEL32.dll!CloseHandle',memory,cpu,setError),1n);returned();prepare(handle);assert.equal(dirs.invoke('KERNEL32.dll!CloseHandle',memory,cpu,setError),0n);assert.equal(error,6);
 assert.throws(()=>dirs.open('C:\\WestminsterDash',0x80000000,7,0n,3,0x2000000,0n),/FILE_CONTENT_OR_OPEN_MODE_REQUIRED/);assert.deepEqual(dirs.open('C:\\WestminsterDash\\missing',0,7,0n,3,0x2000000,0n),[0xffffffffffffffffn,2]);
 const executable=new ExecutableMemory(memory);prepare(0n,32n,0x3000n,0x40n);assert.equal(executable.invoke(memory,cpu,setError),0x15000000n);returned();assert.equal(executable.allocations[0].committed,4096);assert.equal(executable.allocations[0].reserved,65536);assert.equal(executable.allocations[0].writeRoutingPending,true);assert.deepEqual([...new Uint8Array(memory.buffer,0x15000000,32)],Array(32).fill(0));prepare(0n,0n,0x3000n,0x40n);assert.equal(executable.invoke(memory,cpu,setError),0n);assert.equal(error,87);prepare(0n,0x300000n,0x3000n,0x40n);assert.equal(executable.invoke(memory,cpu,setError),0n);assert.equal(error,8);
-console.log('PASS: UTF-8 sizing/errors/BOM/surrogates, lexical paths, directory-handle lifetime and bounded executable allocation');
+const protection=new CodeProtection([{start:0x20000,end:0x24000,module:'owned executable image'},{start:0x30000,end:0x31000,module:'unresolved import gateways'}]);
+assert.throws(()=>protection.checkWrite(0x20fff,2),/without VirtualProtectEx/);
+prepare(0xffffffffffffffffn,0x20fffn,2n,0x40n);v.setBigUint64(sp+40,16384n,true);assert.equal(protection.invoke(memory,cpu,setError),1n);returned();assert.equal(v.getUint32(16384,true),0x20);protection.checkWrite(0x20fff,2);
+prepare(0xffffffffffffffffn,0x21000n,1n,0x20n);v.setBigUint64(sp+40,16384n,true);protection.invoke(memory,cpu,setError);assert.equal(v.getUint32(16384,true),0x40);assert.throws(()=>protection.checkWrite(0x20fff,2),/without VirtualProtectEx/);
+assert.throws(()=>protection.checkWrite(0x30000,1),/Unresolved import/);
+prepare(0xffffffffffffffffn,0x24000n,1n,0x40n);v.setBigUint64(sp+40,16384n,true);assert.throws(()=>protection.invoke(memory,cpu,setError),/UNOWNED_CODE_PROTECTION/);
+console.log('PASS: UTF-8, paths, directory ownership, executable allocation and page-scoped code protection/restoration');

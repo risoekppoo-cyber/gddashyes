@@ -28,6 +28,8 @@ class Lifter:
         self.reg_roots.append((self.ctx.registers['MXCSR'].offset,1536,4))
         self.blocks = {}
         self.instruction_overrides = {}
+        self.code_guards = {}
+        self.checked_code_writes = False
         self.opcodes = collections.Counter()
         self.reg_roots.append((self.ctx.registers['GS_OFFSET'].offset,128,8))
         self.reg_roots += [(self.ctx.registers[f'XMM{i}'].offset,256+i*16,16) for i in range(16)]
@@ -200,6 +202,10 @@ class Lifter:
         for va,(ins,ops,emitted) in sorted(self.blocks.items()):
             unique=self.prepare_uniques(ops)
             lines=[f'case UINT64_C({va-self.base}): {{ /* {ins} */']
+            if va in self.code_guards:
+                code=self.code_guards[va]
+                condition='||'.join(f'raw_read(pc+{i}u+guest_base,1u)!={byte}u' for i,byte in enumerate(code))
+                lines += [f'if({condition}){{raw_write(cpu+192u,pc,8u);lift_fault(8u,pc,pc);__builtin_trap();}}']
             lines += [f'wide_t u_{n:x}=0;' for n in unique]
             lines += [f'raw_write(cpu+192u,image_base+UINT64_C({va-self.base+ins.length}),8u);']
             if va in self.instruction_overrides:
@@ -232,6 +238,8 @@ class Lifter:
 }
 '''
         if self.yield_on_budget:result=result.replace('lift_fault(4u,raw_read(cpu+192u,8u),entry); __builtin_trap();','return 0x80000000u|limit;')
+        if self.checked_code_writes:
+            result=result.replace('static inline void guest_write(uint64_t p,wide_t v,uint32_t n,uint32_t base) {','__attribute__((import_module("env"),import_name("code_write")))\nvoid code_write(uint64_t p,uint32_t n);\nstatic inline void guest_write(uint64_t p,wide_t v,uint32_t n,uint32_t base) {code_write(p,n);')
         return result
 
 PRELUDE='''/* Generated from the pinned Windows DLL's instruction semantics. */

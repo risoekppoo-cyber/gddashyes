@@ -1,6 +1,6 @@
 // Standalone startup test only: reserve an isolated compiler stack. The
 // existing shared-game auxiliary-module validator remains unchanged.
-export async function instantiateStartupLift(bytes,memory,{stackTop=0x900000,stackSize=0x100000}={}) {
+export async function instantiateStartupLift(bytes,memory,{stackTop=0x900000,stackSize=0x100000,codeWrite}={}) {
  const b=new Uint8Array(bytes);let p=8,globals=0;
  const leb=()=>{let n=0,s=0,v;do{v=b[p++];n+=(v&127)*2**s;s+=7;}while(v&128);return n;};
  while(p<b.length){const id=b[p++],size=leb(),end=p+size;
@@ -11,9 +11,10 @@ export async function instantiateStartupLift(bytes,memory,{stackTop=0x900000,sta
   }p=end;
  }
  const module=await WebAssembly.compile(bytes),imports=WebAssembly.Module.imports(module);
- if(imports.length!==2||!imports.every(i=>i.module==='env'&&(i.name==='memory'&&i.kind==='memory'||i.name==='lift_fault'&&i.kind==='function')))
+ const hasWriteGuard=imports.some(i=>i.name==='code_write');
+ if(imports.length!==(hasWriteGuard?3:2)||hasWriteGuard&&typeof codeWrite!=='function'||!imports.every(i=>i.module==='env'&&(i.name==='memory'&&i.kind==='memory'||['lift_fault','code_write'].includes(i.name)&&i.kind==='function')))
   throw Error('Unexpected startup module imports');
- const instance=await WebAssembly.instantiate(module,{env:{memory,lift_fault(code,address,pc){throw Error(`Startup lift fault ${code} at 0x${address.toString(16)}, PC 0x${pc.toString(16)}`);}}});
+ const instance=await WebAssembly.instantiate(module,{env:{memory,code_write:codeWrite,lift_fault(code,address,pc){throw Error(`Startup lift fault ${code} at 0x${address.toString(16)}, PC 0x${pc.toString(16)}`);}}});
  if(globals){
   const pointer=instance.exports.__stack_pointer;
   if(!(pointer instanceof WebAssembly.Global)||!Number.isInteger(stackTop)||stackTop>memory.buffer.byteLength||stackTop-stackSize<0||stackTop%16)throw Error('Missing compiler stack export or invalid reservation');

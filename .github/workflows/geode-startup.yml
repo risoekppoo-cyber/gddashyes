@@ -48,6 +48,7 @@ jobs:
       - name: Verify actual DLL startup and boundary contracts
         env:
           GEODE_FMOD_BRIDGE: ${{ matrix.mode == 'combined' && '1' || '' }}
+          GEODE_GENERATED_CODE: ${{ matrix.mode == 'combined' && '1' || '' }}
           GEODE_MSVCP_BOOT: '1'
           GEODE_INSTRUCTION_LIMIT: 2000000
           GEODE_DLL: /tmp/geode-startup/Geode.dll
@@ -59,6 +60,17 @@ jobs:
           GEODE_OUT: /tmp/geode-startup/${{ matrix.mode }}
           GEODE_WASM_OPT: /tmp/geode-wasm-tools/node_modules/.bin/wasm-opt
         run: bash experiments/geode-binary/run-startup-tests.sh
+      - name: Check actual emitted patch and trampoline
+        if: matrix.mode == 'combined'
+        run: |
+          python experiments/geode-binary/build-generated-check.py /tmp/geode-startup/combined /tmp/geode-generated
+          GEODE_GENERATED_OUT=/tmp/geode-generated bash experiments/geode-binary/generated/build.sh
+          node experiments/geode-binary/generated/verify-node.mjs /tmp/geode-generated
+          python - <<'PY'
+          from pathlib import Path
+          for name in ['original', 'patched', 'trampoline']:
+              assert Path('/tmp/geode-generated/'+name+'.wasm').read_bytes() == Path('experiments/geode-binary/generated/'+name+'.wasm').read_bytes(), name+' committed WASM differs from rebuild'
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -22,6 +22,7 @@ from guest_windows_paths import full_path
 from guest_directories import GuestDirectories
 from executable_memory import ExecutableMemory,BASE as EXECUTABLE_BASE,SIZE as EXECUTABLE_SIZE
 from native_fmod_bridge import provider as fmod_provider,OwnedBridgeWriteRequired
+from code_protection import CodeProtection
 from native_fp_reference import NativeFpReference
 
 trace_limit=int(os.environ.get('GEODE_INSTRUCTION_LIMIT','20000'));assert 1<=trace_limit<=5000000
@@ -171,6 +172,7 @@ if vcruntime_path:
  modules.append(vcruntime);module_images[runtime_base]=bytes(mapped)
 fmod_code_reads=[];protected_code_regions=[];executable_memory=None
 fmod=None;bridge_mode=os.environ.get('GEODE_FMOD_BRIDGE','');assert bridge_mode in ['', '1']
+generated_mode=os.environ.get('GEODE_GENERATED_CODE','');assert generated_mode in ['', '1'];assert not generated_mode or bridge_mode
 if bridge_mode:
  fmod,fmod_image=fmod_provider(imports);uc.mem_map(fmod['base'],fmod['size']);uc.mem_write(fmod['base'],fmod_image)
  modules.append(fmod);module_images[fmod['base']]=fmod_image;bindings=0
@@ -196,10 +198,13 @@ if bridge_mode:
 
 protected_code_regions.append((0x70000000,0x70010000,'unresolved import gateways'))
 uc.mem_protect(0x70000000,0x10000,unicorn.UC_PROT_READ|unicorn.UC_PROT_EXEC)
+code_protection=CodeProtection(uc,protected_code_regions) if generated_mode else None
+if code_protection:uc.hook_add(unicorn.UC_HOOK_MEM_WRITE,code_protection.observe)
+instruction_bytes={}
 original_mem_write=uc.mem_write
 def guarded_mem_write(address,data):
  owner=next((owner for start,end,owner in protected_code_regions if len(data) and address<end and address+len(data)>start),None)
- if owner:
+ if owner and not (code_protection and code_protection.writable(address,len(data))):
   pc=uc.reg_read(x.UC_X86_REG_RIP);occurrence=1+sum(int(call['address'],16)==pc for call in host_calls) if pc in imports else trace.count(pc)+1
   raise OwnedBridgeWriteRequired({'reason':'NATIVE_CODE_WRITE_REQUIRES_ROUTING','ownerModule':owner,'instructionPc':hex(pc),'occurrence':occurrence,'writeAddress':hex(address),'writeSize':len(data),'writeBytesHex':bytes(data[:128]).hex(),'writeBytesTruncated':len(data)>128,'hostApi':imports.get(pc)})
  original_mem_write(address,data)
@@ -458,12 +463,19 @@ def code(uc,pc,length,_):
    host_calls.append({'address':hex(pc),'name':imports[pc],'codePage':args[0]&0xffffffff,'flags':args[1]&0xffffffff,'result':result})
    ret=int.from_bytes(uc.mem_read(sp,8),'little');uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
   if name=='kernel32.dll!virtualalloc':
-   if executable_memory is None:executable_memory=ExecutableMemory(uc,protected_code_regions)
+   if executable_memory is None:executable_memory=ExecutableMemory(uc,protected_code_regions,generated=bool(generated_mode))
    args=[uc.reg_read(r) for r in [x.UC_X86_REG_RCX,x.UC_X86_REG_RDX,x.UC_X86_REG_R8,x.UC_X86_REG_R9]]
    try:result,error=executable_memory.allocate(args[0],args[1],args[2]&0xffffffff,args[3]&0xffffffff)
    except RuntimeError as error:stop.update(reason=str(error),importName=imports[pc]);uc.emu_stop();return
    if error is not None:last_error=error;uc.mem_write(tib+0x68,struct.pack('<I',error))
    host_calls.append({'address':hex(pc),'name':imports[pc],'result':hex(result)});sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+   uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
+  if name=='kernel32.dll!virtualprotectex' and code_protection:
+   args=[uc.reg_read(r) for r in [x.UC_X86_REG_RCX,x.UC_X86_REG_RDX,x.UC_X86_REG_R8,x.UC_X86_REG_R9]];sp=uc.reg_read(x.UC_X86_REG_RSP);output=int.from_bytes(uc.mem_read(sp+40,8),'little')
+   try:result,error=code_protection.protect(*args,output)
+   except RuntimeError as error:stop.update(reason=str(error),importName=imports[pc]);uc.emu_stop();return
+   if error is not None:last_error=error;uc.mem_write(tib+0x68,struct.pack('<I',error))
+   host_calls.append({'address':hex(pc),'name':imports[pc],'result':result});ret=int.from_bytes(uc.mem_read(sp,8),'little')
    uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
   if name in ['kernel32.dll!createfilew','kernel32.dll!getfinalpathnamebyhandlew','kernel32.dll!closehandle']:
    sp=uc.reg_read(x.UC_X86_REG_RSP);args=[uc.reg_read(r) for r in [x.UC_X86_REG_RCX,x.UC_X86_REG_RDX,x.UC_X86_REG_R8,x.UC_X86_REG_R9]];error=None
@@ -668,7 +680,13 @@ def code(uc,pc,length,_):
    host_calls.append(call);uc.emu_stop();return
   stop.update(reason='WINDOWS_IMPORT_REQUIRED',importName=imports[pc],address=hex(pc));uc.emu_stop();return
  if len(trace)>=trace_limit:stop.update(reason='INSTRUCTION_LIMIT');uc.emu_stop();return
+ if executable_memory:
+  try:executable_memory.capture(pc,length)
+  except RuntimeError as error:stop.update(reason=str(error),instructionPc=hex(pc));uc.emu_stop();return
  data=bytes(uc.mem_read(pc,length))
+ if generated_mode:
+  if pc in instruction_bytes and instruction_bytes[pc]!=data:stop.update(reason='NATIVE_CODE_VERSION_RETRANSLATION_REQUIRED',instructionPc=hex(pc));uc.emu_stop();return
+  instruction_bytes[pc]=data
  if data[0] in [0xf2,0xf3]:
   if pc not in fp_instructions:fp_instructions[pc]=native_disasm.disassemble(data,base_address=pc,max_instructions=1).instructions[0]
   ins=fp_instructions[pc]
@@ -732,8 +750,12 @@ if primary:lifter.allowed_images.append((primary['base'],primary['base']+primary
 if msvc:lifter.allowed_images.append((msvc['base'],msvc['base']+msvc['size']))
 if vcruntime:lifter.allowed_images.append((vcruntime['base'],vcruntime['base']+vcruntime['size']))
 if fmod:lifter.allowed_images.append((fmod['base'],fmod['base']+fmod['size']))
+if executable_memory:
+ lifter.allowed_images.append((EXECUTABLE_BASE,EXECUTABLE_BASE+EXECUTABLE_SIZE))
+ lifter.code_guards.update(executable_memory.instructions)
+if generated_mode:lifter.code_guards.update(instruction_bytes);lifter.checked_code_writes=True
 for pc in dict.fromkeys(trace):
- data=bytes(uc.mem_read(pc,32));ins=lifter.ctx.disassemble(data,base_address=pc,max_instructions=1).instructions[0]
+ data=instruction_bytes.get(pc,bytes(uc.mem_read(pc,32)));ins=lifter.ctx.disassemble(data,base_address=pc,max_instructions=1).instructions[0]
  ops=lifter.ctx.translate(data[:ins.length],base_address=pc,max_instructions=1).ops
  lifter.current_instruction=ins
  try:
@@ -782,6 +804,12 @@ report['stoppedBeforeNativePatch']=bool(stop.get('stoppedBeforeInstruction') and
 report['protectedExecutableRegions']=[{'start':start,'end':end,'module':owner} for start,end,owner in protected_code_regions]
 report['guestDirectoryHandles']=directories.snapshot()
 report['executableMemory']=executable_memory.snapshot() if executable_memory else None
+report['generatedCode']=executable_memory.generated_snapshot() if executable_memory and generated_mode else None
+report['codeProtection']=code_protection.snapshot() if code_protection else None
+report['nativeCodeWrites']=code_protection.writes if code_protection else []
+report['instructionByteGuards']=len(instruction_bytes)
+report['dllProcessAttachCompleted']=bool(stop['reason']=='ENTRYPOINT_RETURNED' and uc.reg_read(x.UC_X86_REG_RIP)==0x1234fedc and uc.reg_read(x.UC_X86_REG_RAX)&0xffffffff==1 and not vcruntime_only and msvc_boot!='only')
+report['dllAttachResult']=uc.reg_read(x.UC_X86_REG_RAX)&0xffffffff if stop['reason']=='ENTRYPOINT_RETURNED' else None
 report['criticalSections']={'states':critical.states,'acquisitions':critical.acquisitions}
 report['testedComponent']='vcruntime-dll-attach' if vcruntime_only else 'msvc-dll-attach' if msvc_boot=='only' else 'geode-startup'
 report['vcruntimeDllAttachCompleted']=bool(vcruntime and vcruntime['runtimeInitialized'])

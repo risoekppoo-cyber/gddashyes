@@ -1,4 +1,5 @@
 import {ExecutableMemory} from './executable-memory.mjs';
+import {CodeProtection} from './code-protection.mjs';
 import {GuestDirectories} from './guest-directories.mjs';
 import {getFullPathNameW} from './windows-paths.mjs';
 import {convertUtf8} from './windows-text.mjs';
@@ -35,7 +36,8 @@ assert.equal(report.originalX64InstructionsExecuted,expected.instructions,'Nativ
 assert.deepEqual(report.hostCalls,expected.hostCalls,'Host call transcript is stale');
 const memory=new WebAssembly.Memory({initial:Math.max(1024,report.executableMemory?Math.ceil((report.executableMemory.base+report.executableMemory.size)/65536):0,...expected.modules.map(m=>Math.ceil((m.base+m.size)/65536))),maximum:65536});
 const executableMemory=report.executableMemory?new ExecutableMemory(memory):null;
-const instance=await instantiateStartupLift(wasm,memory),v=new DataView(memory.buffer),cpu=4096;
+const codeProtection=report.codeProtection?new CodeProtection(report.protectedExecutableRegions):null;
+const instance=await instantiateStartupLift(wasm,memory,{codeWrite:codeProtection?(p,n)=>codeProtection.checkWrite(p,n):undefined}),v=new DataView(memory.buffer),cpu=4096;
 new Uint8Array(memory.buffer,expected.base,image.length).set(image);
 for(const m of expected.modules.filter(m=>m.name!=='Geode.dll'))new Uint8Array(memory.buffer,m.base,m.size).set(await readFile(dir+'/module-'+m.base.toString(16)+'.bin'));
 if(expected.tibBase){
@@ -88,6 +90,7 @@ for(let transfers=0;transfers<transferLimit;transfers++){
  if(call.name==='api-ms-win-crt-math-l1-1-0.dll!ceilf')assert.equal(BigInt(ceilf(memory,cpu)),BigInt(call.outputBits));
  else if(/^(api-ms-win-crt-string-.*|VCRUNTIME140.dll)!(strlen|wcslen|memcpy|memmove|memset|memcmp|memchr|strcpy_s|strcmp)$/i.test(call.name))assert.equal(crtString(call.name,memory,cpu),BigInt(call.result));
  else if(/!virtualalloc$/i.test(call.name))assert.equal(executableMemory.invoke(memory,cpu,value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);}),BigInt(call.result));
+ else if(/!virtualprotectex$/i.test(call.name))assert.equal(codeProtection.invoke(memory,cpu,value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);}),BigInt(call.result));
  else if(/!(createfilew|getfinalpathnamebyhandlew|closehandle)$/i.test(call.name))assert.equal(directories.invoke(call.name,memory,cpu,value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);}),BigInt(call.result));
  else if(/!getfullpathnamew$/i.test(call.name))assert.equal(getFullPathNameW(memory,cpu),call.result);
  else if(/!(widechartomultibyte|multibytetowidechar)$/i.test(call.name))assert.equal(convertUtf8(call.name,memory,cpu,value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);}),call.result);
@@ -148,10 +151,11 @@ if(report.slists)assert.deepEqual(slists.snapshot(),report.slists);
 if(report.fiberLocalStorage)assert.deepEqual(fls.snapshot(),report.fiberLocalStorage);
 if(report.executableMemory){assert.deepEqual(executableMemory.snapshot(),report.executableMemory);assert.deepEqual(Buffer.from(memory.buffer,executableMemory.base,executableMemory.size),await readFile(dir+'/executable-arena-after.bin'));}
 if(report.guestDirectoryHandles)assert.deepEqual(directories.snapshot(),report.guestDirectoryHandles);
+if(codeProtection){assert.deepEqual(codeProtection.snapshot(),report.codeProtection);report.codeProtectionMatches=true;report.generatedArenaMemoryMatches=!!report.executableMemory;}
 report.moduleLookups=modules.lookups;report.exportResolutions=modules.resolutions;report.shimModuleImagesMatch=true;
 Object.assign(report,{status:'DLL_STARTUP_PREFIX_VERIFIED',wasmStartupExecuted:true,
  wasmStartupInstructions:steps,allGeneralRegistersMatch:true,entireNativeStackMatches:true,
- dllInitializationCompleted:false,windowsImportsExecuted:handled>0,implementedWindowsCalls:handled,
+ dllInitializationCompleted:!!report.dllProcessAttachCompleted,windowsImportsExecuted:handled>0,implementedWindowsCalls:handled,
  initializerCallbacksExecuted:initializers.callbackCount,completedInitializerTables:initializers.completedTables,
  entireDllImageMatches:true,allXmmRegistersMatch:true,arithmeticFlagsMatch:true,tlsMemoryMatches:true});
 assert.equal(pointers.encodes,report.pointerEncoding.encodes);assert.equal(pointers.decodes,report.pointerEncoding.decodes);
