@@ -1,40 +1,74 @@
 import {readFile,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
-import {instantiateLift} from './verify.mjs';
+import {instantiateStartupLift} from './startup-module.mjs';
 import {getSystemTimeAsFileTime} from './windows-time.mjs';
 import {GuestThreads,getCurrentThreadId} from './windows-threads.mjs';
+import {StartupServices} from './windows-startup.mjs';
+import {NativeInitializers} from './native-initializers.mjs';
+import {OnExitTables} from './onexit-tables.mjs';
+import {SrwLocks} from './srw-locks.mjs';
+import {ConditionVariables} from './condition-variables.mjs';
 const dir=process.argv[2],reportPath=process.argv[3];
 const [expected,image,stack,wasm,report]=await Promise.all([
  readFile(dir+'/expected.json').then(JSON.parse),readFile(dir+'/image.bin'),
  readFile(dir+'/stack.bin'),readFile(dir+'/startup.wasm'),readFile(reportPath).then(JSON.parse)]);
 const memory=new WebAssembly.Memory({initial:1024,maximum:65536});
-const instance=await instantiateLift(wasm,memory),v=new DataView(memory.buffer),cpu=4096;
+const instance=await instantiateStartupLift(wasm,memory),v=new DataView(memory.buffer),cpu=4096;
 new Uint8Array(memory.buffer,expected.base,image.length).set(image);
+if(expected.tibBase){
+ new Uint8Array(memory.buffer,expected.tibBase,expected.tibSize).set(await readFile(dir+'/tib.bin'));
+ v.setBigUint64(cpu+128,BigInt(expected.tibBase),true);
+}
+if(expected.tlsBase)new Uint8Array(memory.buffer,expected.tlsBase,expected.tlsSize).set(await readFile(dir+'/tls.bin'));
 v.setBigUint64(cpu+8,BigInt(expected.base),true);v.setBigUint64(cpu+16,1n,true);
 v.setBigUint64(cpu+32,0x2fff08n,true);v.setBigUint64(0x2fff08,0x1234fedcn,true);
 const threads=new GuestThreads();threads.register('main');
+let currentCall;const services=new StartupServices({counter:()=>BigInt(currentCall.counter),tibBase:expected.tibBase});
+const initializers=new NativeInitializers();
+const onexit=new OnExitTables();
+const locks=new SrwLocks();
+const conditions=new ConditionVariables();
 let steps=0,handled=0,pc=BigInt(expected.entry);
-for(let transfers=0;transfers<64;transfers++){
+for(let transfers=0;transfers<4096;transfers++){
  const result=instance.exports.lift_run(cpu,pc,BigInt(expected.base),0,BigInt(expected.stop),10000)>>>0;
+ if(instance.exports.__stack_pointer)assert.equal(instance.exports.__stack_pointer.value,0x900000,'Compiler stack was not restored');
  steps+=result&0x7fffffff;
  if(!(result&0x80000000))break;
- const call=expected.hostCalls[handled];pc=v.getBigUint64(cpu+192,true);
+ pc=v.getBigUint64(cpu+192,true);
+ if(initializers.handles(pc)){initializers.resume(memory,cpu);pc=v.getBigUint64(cpu+192,true);continue;}
+ const call=expected.hostCalls[handled];
+ currentCall=call;
  assert.ok(call&&pc===BigInt(call.address),'Unexpected native import');
  if(call.name.toLowerCase()==='kernel32.dll!getsystemtimeasfiletime')
   getSystemTimeAsFileTime(memory,cpu,()=>call.unixMilliseconds);
  else if(call.name.toLowerCase()==='kernel32.dll!getcurrentthreadid'){
   assert.equal(threads.id('main'),call.threadId);
   getCurrentThreadId(memory,cpu,threads,'main');
- }else throw Error('Unimplemented import '+call.name);
+ }else if(call.name.endsWith('!_register_onexit_function'))onexit.register(memory,cpu);
+ else if(/!((try)?acquire|release|initialize)srwlock/i.test(call.name))locks.invoke(call.name,memory,cpu);
+ else if(/!(wakeall|wake|initialize)conditionvariable/i.test(call.name))conditions.invoke(call.name,memory,cpu);
+ else if(call.name.endsWith('!_initterm_e')||call.name.endsWith('!_initterm'))initializers.begin(call.name,memory,cpu);
+ else services.invoke(call.name,memory,cpu);
  handled++;
  pc=v.getBigUint64(cpu+192,true);
 }
 assert.equal(handled,expected.hostCalls.length);
 assert.equal(steps,expected.instructions);
 for(let i=0;i<16;i++)assert.equal(v.getBigUint64(cpu+i*8,true),BigInt(expected.registers[i]),'GPR '+i);
+for(let i=0;i<16;i++)assert.equal(v.getBigUint64(cpu+256+i*16,true)|(v.getBigUint64(cpu+264+i*16,true)<<64n),BigInt(expected.xmm[i]),'XMM '+i);
+for(const [name,flag] of Object.entries(expected.flags))assert.equal(v.getUint8(cpu+flag.offset),flag.value,name);
 assert.equal(v.getBigUint64(cpu+192,true),BigInt(expected.stop));
 assert.deepEqual(Buffer.from(memory.buffer,0x200000,0x100000),stack);
-Object.assign(report,{status:'DLL_STARTUP_REACHED_WINDOWS_IMPORT',wasmStartupExecuted:true,
+assert.deepEqual(Buffer.from(memory.buffer,expected.base,image.length),await readFile(dir+'/image-after.bin'));
+assert.deepEqual(Buffer.from(memory.buffer,0x500000,0x100000),await readFile(dir+'/arena-after.bin'));
+assert.deepEqual(Buffer.from(memory.buffer,expected.tibBase,expected.tibSize),await readFile(dir+'/tib-after.bin'));
+assert.deepEqual(Buffer.from(memory.buffer,expected.tlsBase,expected.tlsSize),await readFile(dir+'/tls-after.bin'));
+Object.assign(report,{status:'DLL_STARTUP_PREFIX_VERIFIED',wasmStartupExecuted:true,
  wasmStartupInstructions:steps,allGeneralRegistersMatch:true,entireNativeStackMatches:true,
- dllInitializationCompleted:false,windowsImportsExecuted:handled>0,implementedWindowsCalls:handled});
+ dllInitializationCompleted:false,windowsImportsExecuted:handled>0,implementedWindowsCalls:handled,
+ initializerCallbacksExecuted:initializers.callbackCount,completedInitializerTables:initializers.completedTables,
+ entireDllImageMatches:true,allXmmRegistersMatch:true,arithmeticFlagsMatch:true,tlsMemoryMatches:true});
+report.onexitRegistrations=onexit.registrations;
+report.srwAcquisitions=locks.acquisitions;
+report.emptyQueueConditionWakes=conditions.wakes;
 await writeFile(reportPath,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));

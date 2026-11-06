@@ -1,0 +1,304 @@
+{
+  "status": "DLL_STARTUP_BLOCKED",
+  "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
+  "entry": "0x72000000",
+  "originalX64InstructionsExecuted": 850,
+  "uniqueInstructionsReached": 611,
+  "firstRuntimeDependency": {
+    "reason": "WINDOWS_IMPORT_REQUIRED",
+    "importName": "ntdll.dll!RtlGetVersion",
+    "address": "0x700018a0"
+  },
+  "reachedInstructionsSupportedBeforeBlock": 532,
+  "firstTranslationBlocker": {
+    "instruction": "0x250fc64/3: DIV RDI",
+    "reason": "Unsupported p-code INT_DIV: unique[44780:16] = unique[44680:16] / unique[44400:16]",
+    "pcode": "unique[44780:16] = unique[44680:16] / unique[44400:16]"
+  },
+  "wasmStartupExecuted": false,
+  "windowsImportsExecuted": false,
+  "guestThreadModel": "single registered main context",
+  "hostCalls": [
+    {
+      "address": "0x700007c0",
+      "name": "KERNEL32.dll!GetSystemTimeAsFileTime",
+      "unixMilliseconds": 1793951800570,
+      "output": "0x2ffeb0"
+    },
+    {
+      "address": "0x70000600",
+      "name": "KERNEL32.dll!GetCurrentThreadId",
+      "threadId": 1
+    },
+    {
+      "address": "0x700005e0",
+      "name": "KERNEL32.dll!GetCurrentProcessId",
+      "processId": 1
+    },
+    {
+      "address": "0x700009e0",
+      "name": "KERNEL32.dll!QueryPerformanceCounter",
+      "counter": "3036706968513",
+      "output": "0x2ffeb8"
+    },
+    {
+      "address": "0x700023e0",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_initialize_onexit_table",
+      "table": "0x2fb1960"
+    },
+    {
+      "address": "0x700023e0",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_initialize_onexit_table",
+      "table": "0x2fb1978"
+    },
+    {
+      "address": "0x70000880",
+      "name": "KERNEL32.dll!InitializeSListHead",
+      "head": "0x2fb1920"
+    },
+    {
+      "address": "0x70002400",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_initterm_e",
+      "first": "0x2e43760",
+      "end": "0x2e43768"
+    },
+    {
+      "address": "0x700023f0",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_initterm",
+      "first": "0x2e43578",
+      "end": "0x2e43728"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x2fb1960",
+      "function": "0x2a52d30"
+    },
+    {
+      "address": "0x70000620",
+      "name": "KERNEL32.dll!GetEnvironmentVariableW",
+      "variable": "OPENSSL_ia32cap"
+    },
+    {
+      "address": "0x700002d0",
+      "name": "KERNEL32.dll!AcquireSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000a30",
+      "name": "KERNEL32.dll!ReleaseSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x700009f0",
+      "name": "KERNEL32.dll!QueryPerformanceFrequency",
+      "counter": "1000000000",
+      "output": "0x2fbc460"
+    },
+    {
+      "address": "0x700002d0",
+      "name": "KERNEL32.dll!AcquireSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000a30",
+      "name": "KERNEL32.dll!ReleaseSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000d30",
+      "name": "KERNEL32.dll!WakeAllConditionVariable",
+      "condition": "0x2fb1930"
+    },
+    {
+      "address": "0x700009e0",
+      "name": "KERNEL32.dll!QueryPerformanceCounter",
+      "counter": "3036718760794",
+      "output": "0x2ffdc0"
+    },
+    {
+      "address": "0x700009e0",
+      "name": "KERNEL32.dll!QueryPerformanceCounter",
+      "counter": "3036719344060",
+      "output": "0x2ffd70"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x2fb1960",
+      "function": "0x2118f70"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x2fb1960",
+      "function": "0x21271e0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x2fb1960",
+      "function": "0x2127270"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x2fb1960",
+      "function": "0x212a9e0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x2fb1960",
+      "function": "0x212aa70"
+    }
+  ],
+  "cpuCalls": [
+    {
+      "pc": "0x2a2e944",
+      "leaf": 0,
+      "subleaf": 0,
+      "results": [
+        1,
+        1970169159,
+        1818588270,
+        1231384169
+      ]
+    },
+    {
+      "pc": "0x2a2e966",
+      "leaf": 1,
+      "subleaf": 0,
+      "results": [
+        1536,
+        0,
+        0,
+        125861905
+      ]
+    },
+    {
+      "pc": "0x2a2e944",
+      "leaf": 0,
+      "subleaf": 0,
+      "results": [
+        1,
+        1970169159,
+        1818588270,
+        1231384169
+      ]
+    },
+    {
+      "pc": "0x2a2e966",
+      "leaf": 1,
+      "subleaf": 0,
+      "results": [
+        1536,
+        0,
+        0,
+        125861905
+      ]
+    },
+    {
+      "pc": "0x200104d",
+      "leaf": 0,
+      "subleaf": 50010560,
+      "results": [
+        1,
+        1970169159,
+        1818588270,
+        1231384169
+      ]
+    },
+    {
+      "pc": "0x2001130",
+      "leaf": 1,
+      "subleaf": 1818588270,
+      "results": [
+        1536,
+        0,
+        0,
+        125861905
+      ]
+    }
+  ],
+  "cpuProfile": {
+    "description": "Virtual x64 baseline: SSE2, no AVX/XSAVE; unlisted CPUID leaves return zero",
+    "leaves": {
+      "0": [
+        1,
+        1970169159,
+        1818588270,
+        1231384169
+      ],
+      "1": [
+        1536,
+        0,
+        0,
+        125861905
+      ],
+      "2147483648": [
+        2147483649,
+        0,
+        0,
+        0
+      ],
+      "2147483649": [
+        0,
+        0,
+        0,
+        537919488
+      ]
+    }
+  },
+  "tibBase": 4194304,
+  "tlsCallbacksExecuted": true,
+  "fullGeodeLoader": false,
+  "existingGeodePackagesSupported": false,
+  "initializerEvents": [
+    {
+      "kind": "complete",
+      "result": 0
+    },
+    {
+      "kind": "callback",
+      "target": "0x2a2d92c"
+    },
+    {
+      "kind": "callback",
+      "target": "0x263d8e0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x2118f60"
+    },
+    {
+      "kind": "callback",
+      "target": "0x2179750"
+    }
+  ],
+  "tibReads": [
+    [
+      8,
+      8
+    ],
+    [
+      48,
+      8
+    ],
+    [
+      88,
+      8
+    ],
+    [
+      8192,
+      8
+    ]
+  ],
+  "originalDllInstructionsExecuted": 834,
+  "loaderBootstrapInstructions": 16,
+  "tlsTemplateBytes": 784,
+  "tlsZeroFillBytes": 0,
+  "tlsCallbacksScheduled": 2,
+  "tlsCallbacksCompleted": 2,
+  "tibSize": 65536
+}

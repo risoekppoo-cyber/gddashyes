@@ -1,0 +1,9 @@
+{
+  "description": "Virtual x64 baseline: SSE2, no AVX/XSAVE; unlisted CPUID leaves return zero",
+  "leaves": {
+    "0": [1, 1970169159, 1818588270, 1231384169],
+    "1": [1536, 0, 0, 125861905],
+    "2147483648": [2147483649, 0, 0, 0],
+    "2147483649": [0, 0, 0, 537919488]
+  }
+}

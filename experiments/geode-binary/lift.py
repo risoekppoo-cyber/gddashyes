@@ -14,15 +14,29 @@ REGS = ['RAX','RCX','RDX','RBX','RSP','RBP','RSI','RDI','R8','R9','R10','R11','R
 class LiftError(Exception): pass
 
 class Lifter:
-    def __init__(self, pe, limit, allow_indirect=False, yield_unknown=False):
+    def __init__(self, pe, limit, allow_indirect=False, yield_unknown=False, single_threaded=False):
         self.pe, self.limit = pe, limit
         self.allow_indirect, self.yield_unknown = allow_indirect, yield_unknown
+        self.single_threaded=single_threaded
         self.base = pe.OPTIONAL_HEADER.ImageBase
         self.ctx = pypcode.Context('x86:LE:64:default')
         self.reg_roots = [(self.ctx.registers[n].offset, i*8, 8) for i,n in enumerate(REGS)]
         self.reg_roots.append((self.ctx.registers['RIP'].offset, 192, 8))
         self.blocks = {}
+        self.instruction_overrides = {}
         self.opcodes = collections.Counter()
+        self.reg_roots.append((self.ctx.registers['GS_OFFSET'].offset,128,8))
+        self.reg_roots += [(self.ctx.registers[f'XMM{i}'].offset,256+i*16,16) for i in range(16)]
+        self.unique_groups={}
+    def prepare_uniques(self,ops):
+        intervals=sorted({(v.offset,v.offset+v.size) for op in ops for v in ([op.output] if op.output else [])+list(op.inputs) if v.space.name=='unique'})
+        groups=[]
+        for start,end in intervals:
+            if groups and start<groups[-1][1]:groups[-1]=(groups[-1][0],max(end,groups[-1][1]))
+            else:groups.append((start,end))
+        if any(end-start>16 for start,end in groups):raise LiftError('Unique overlap group wider than 128 bits')
+        self.unique_groups={start:(lo,(start-lo)*8) for start,end in intervals for lo,hi in groups if lo<=start and end<=hi}
+        return sorted({lo for lo,shift in self.unique_groups.values()})
     def reg_offset(self, v):
         for source, target, size in self.reg_roots:
             if source <= v.offset and v.offset+v.size <= source+size:
@@ -32,19 +46,23 @@ class Lifter:
         if v.offset < 1024: return 2048+v.offset
         raise LiftError(f'Unmapped register {v}')
     def expr(self, v):
-        if v.size > 8: raise LiftError(f'IR value wider than 64 bits: {v}')
-        if v.space.name == 'const': return f'UINT64_C({v.offset})'
+        if v.size > 16: raise LiftError(f'IR value wider than 128 bits: {v}')
+        if v.space.name == 'const': return f'((wide_t)UINT64_C({v.offset}))'
         if v.space.name == 'register': return f'raw_read(cpu+{self.reg_offset(v)}u,{v.size}u)'
-        if v.space.name == 'unique': return f'(u_{v.offset:x}&mask({v.size}u))'
+        if v.space.name == 'unique':
+            base,shift=self.unique_groups.get(v.offset,(v.offset,0))
+            return f'((u_{base:x}>>{shift}u)&mask({v.size}u))'
         if v.space.name == 'ram':
             if not self.base <= v.offset < self.base+self.pe.OPTIONAL_HEADER.SizeOfImage:
                 raise LiftError(f'Absolute memory reference outside image: {v}')
             return f'guest_read(image_base+UINT64_C({v.offset-self.base}),{v.size}u,guest_base)'
         raise LiftError(f'Unsupported input space {v.space.name}')
     def assign(self, v, expression):
-        if v.size > 8: raise LiftError(f'IR result wider than 64 bits: {v}')
+        if v.size > 16: raise LiftError(f'IR result wider than 128 bits: {v}')
         if v.space.name == 'register': return f'raw_write(cpu+{self.reg_offset(v)}u,({expression}),{v.size}u);'
-        if v.space.name == 'unique': return f'u_{v.offset:x}=({expression})&mask({v.size}u);'
+        if v.space.name == 'unique':
+            base,shift=self.unique_groups.get(v.offset,(v.offset,0))
+            return f'u_{base:x}=(u_{base:x}&~(mask({v.size}u)<<{shift}u))|((({expression})&mask({v.size}u))<<{shift}u);'
         if v.space.name == 'ram':
             if not self.base <= v.offset < self.base+self.pe.OPTIONAL_HEADER.SizeOfImage:
                 raise LiftError(f'Absolute memory write outside image: {v}')
@@ -55,6 +73,8 @@ class Lifter:
         self.opcodes[code] += 1
         x = [self.expr(v) for v in a] if code not in ['IMARK','LOAD','STORE','BRANCH','CBRANCH','CALL','RETURN'] else []
         if code == 'IMARK': return ''
+        if code=='CALLOTHER' and self.single_threaded and str(op) in ['LOCK()','UNLOCK()']:
+            return '/* Serialized single-thread guest: complete the following atomic instruction without yielding. */'
         if code in ['CALLIND','BRANCHIND'] and self.allow_indirect:
             return f'raw_write(cpu+192u,{self.expr(a[0])},8u); goto next_instruction;'
         if code == 'COPY': e=x[0]
@@ -84,8 +104,9 @@ class Lifter:
         elif code in ['INT_ADD','INT_SUB','INT_MULT','INT_AND','INT_OR','INT_XOR']:
             operator={'INT_ADD':'+','INT_SUB':'-','INT_MULT':'*','INT_AND':'&','INT_OR':'|','INT_XOR':'^'}[code]
             e=f'({x[0]} {operator} {x[1]})'
-        elif code=='INT_LEFT': e=f'({x[1]}>=64u?0:({x[0]}<<{x[1]}))'
-        elif code=='INT_RIGHT': e=f'({x[1]}>=64u?0:({x[0]}>>{x[1]}))'
+        elif code=='INT_LEFT': e=f'({x[1]}>={a[0].size*8}u?0:({x[0]}<<{x[1]}))'
+        elif code=='INT_RIGHT': e=f'({x[1]}>={a[0].size*8}u?0:({x[0]}>>{x[1]}))'
+        elif code=='INT_SRIGHT': e=f'({x[1]}>={a[0].size*8}u?(((__int128)sext({x[0]},{a[0].size}u)<0)?mask({a[0].size}u):0):(wide_t)((__int128)sext({x[0]},{a[0].size}u)>>{x[1]}))'
         elif code=='INT_NEGATE': e=f'~{x[0]}'
         elif code=='INT_2COMP': e=f'(UINT64_C(0)-{x[0]})'
         elif code in ['INT_EQUAL','INT_NOTEQUAL','INT_LESS','INT_LESSEQUAL']:
@@ -93,17 +114,17 @@ class Lifter:
             e=f'({x[0]} {operator} {x[1]})'
         elif code in ['INT_SLESS','INT_SLESSEQUAL']:
             operator='<' if code=='INT_SLESS' else '<='
-            e=f'((int64_t)sext({x[0]},{a[0].size}u) {operator} (int64_t)sext({x[1]},{a[1].size}u))'
+            e=f'((__int128)sext({x[0]},{a[0].size}u) {operator} (__int128)sext({x[1]},{a[1].size}u))'
         elif code=='INT_CARRY': e=f'(({x[0]}+{x[1]})&mask({a[0].size}u))<{x[0]}'
         elif code=='INT_SCARRY': e=f'((~({x[0]}^{x[1]})&({x[0]}^({x[0]}+{x[1]})))>>{a[0].size*8-1})&1u'
         elif code=='INT_SBORROW': e=f'((({x[0]}^{x[1]})&({x[0]}^({x[0]}-{x[1]})))>>{a[0].size*8-1})&1u'
         elif code=='BOOL_NEGATE': e=f'!{x[0]}'
         elif code in ['BOOL_AND','BOOL_OR','BOOL_XOR']:
             operator={'BOOL_AND':'&','BOOL_OR':'|','BOOL_XOR':'^'}[code]; e=f'((!!{x[0]}){operator}(!!{x[1]}))'
-        elif code=='POPCOUNT': e=f'__builtin_popcountll({x[0]})'
+        elif code=='POPCOUNT': e=f'(__builtin_popcountll((uint64_t){x[0]})+__builtin_popcountll((uint64_t)({x[0]}>>64u)))'
         elif code=='SUBPIECE': e=f'({x[0]}>>({x[1]}*8u))'
         elif code=='PIECE':
-            if sum(v.size for v in a)>8: raise LiftError('PIECE wider than 64 bits')
+            if sum(v.size for v in a)>16: raise LiftError('PIECE wider than 128 bits')
             e=f'({x[0]}<<{a[1].size*8})|{x[1]}'
         else: raise LiftError(f'Unsupported p-code {code}: {op}')
         return self.assign(op.output,e)
@@ -119,6 +140,7 @@ class Lifter:
             data=self.pe.get_data(va-self.base,32)
             instruction=self.ctx.disassemble(data,base_address=va,max_instructions=1).instructions[0]
             ops=self.ctx.translate(data[:instruction.length],base_address=va,max_instructions=1).ops
+            self.prepare_uniques(ops)
             emitted=[]
             for i,op in enumerate(ops):
                 try: emitted.append(self.emit_op(op,i,len(ops)))
@@ -133,10 +155,13 @@ class Lifter:
     def source(self):
         cases=[]
         for va,(ins,ops,emitted) in sorted(self.blocks.items()):
-            unique=sorted({v.offset for op in ops for v in ([op.output] if op.output else [])+list(op.inputs) if v.space.name=='unique'})
+            unique=self.prepare_uniques(ops)
             lines=[f'case UINT64_C({va-self.base}): {{ /* {ins} */']
-            lines += [f'uint64_t u_{n:x}=0;' for n in unique]
+            lines += [f'wide_t u_{n:x}=0;' for n in unique]
             lines += [f'raw_write(cpu+192u,image_base+UINT64_C({va-self.base+ins.length}),8u);']
+            if va in self.instruction_overrides:
+                lines += [self.instruction_overrides[va], 'goto next_instruction; }']
+                cases.append('\n'.join(lines));continue
             for i,line in enumerate(emitted):
                 line=re.sub(r'\bop_(\d+)\b',lambda m:f'pc_{va:x}_op_{m[1]}',line)
                 lines += [f'pc_{va:x}_op_{i}: ; '+line]
@@ -153,22 +178,23 @@ class Lifter:
 
 PRELUDE='''/* Generated from the pinned Windows DLL's instruction semantics. */
 #include <stdint.h>
+typedef unsigned __int128 wide_t;
 __attribute__((import_module("env"),import_name("lift_fault")))
 void lift_fault(uint32_t code,uint64_t address,uint64_t pc);
-static inline uint64_t mask(uint32_t n) {return n==8u?UINT64_MAX:((UINT64_C(1)<<(n*8u))-1u);}
-static inline uint64_t sext(uint64_t v,uint32_t n) {uint32_t s=64u-n*8u;return (uint64_t)((int64_t)(v<<s)>>s);}
-static inline uint64_t raw_read(uint64_t p,uint32_t n) {
+static inline wide_t mask(uint32_t n) {return n==16u?~(wide_t)0:(((wide_t)1<<(n*8u))-1u);}
+static inline wide_t sext(wide_t v,uint32_t n) {uint32_t s=128u-n*8u;return (wide_t)((__int128)(v<<s)>>s);}
+static inline wide_t raw_read(uint64_t p,uint32_t n) {
   if(p+n>(uint64_t)__builtin_wasm_memory_size(0)*65536u){lift_fault(2u,p,0);__builtin_trap();}
-  uint64_t v=0;for(uint32_t i=0;i<n;i++)v|=(uint64_t)(*(uint8_t*)(uintptr_t)(p+i))<<(i*8u);return v;
+  wide_t v=0;for(uint32_t i=0;i<n;i++)v|=(wide_t)(*(uint8_t*)(uintptr_t)(p+i))<<(i*8u);return v;
 }
-static inline void raw_write(uint64_t p,uint64_t v,uint32_t n) {
+static inline void raw_write(uint64_t p,wide_t v,uint32_t n) {
   if(p+n>(uint64_t)__builtin_wasm_memory_size(0)*65536u){lift_fault(2u,p,0);__builtin_trap();}
   for(uint32_t i=0;i<n;i++)*(uint8_t*)(uintptr_t)(p+i)=(uint8_t)(v>>(i*8u));
 }
-static inline uint64_t guest_read(uint64_t p,uint32_t n,uint32_t base) {
+static inline wide_t guest_read(uint64_t p,uint32_t n,uint32_t base) {
   if(p>UINT32_MAX){lift_fault(3u,p,0);__builtin_trap();}return raw_read(p+base,n);
 }
-static inline void guest_write(uint64_t p,uint64_t v,uint32_t n,uint32_t base) {
+static inline void guest_write(uint64_t p,wide_t v,uint32_t n,uint32_t base) {
   if(p>UINT32_MAX){lift_fault(3u,p,0);__builtin_trap();}raw_write(p+base,v,n);
 }
 __attribute__((visibility("default")))
