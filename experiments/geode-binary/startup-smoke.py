@@ -45,6 +45,14 @@ def code(uc,pc,length,_):
   host_calls.append({'address':hex(pc),'name':imports[pc],'unixMilliseconds':clock_ms,'output':hex(output)})
   uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret)
   uc.emu_stop();return
+ if pc in imports and imports[pc].lower()=='kernel32.dll!getcurrentthreadid':
+  # The one registered guest execution context is main, with stable ID 1.
+  thread_id=1
+  sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+  host_calls.append({'address':hex(pc),'name':imports[pc],'threadId':thread_id})
+  uc.reg_write(x.UC_X86_REG_RAX,thread_id)
+  uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret)
+  uc.emu_stop();return
  if pc in imports:
   stop.update(reason='WINDOWS_IMPORT_REQUIRED',importName=imports[pc],address=hex(pc));uc.emu_stop();return
  trace.append(pc)
@@ -78,7 +86,7 @@ report={'status':'DLL_STARTUP_BLOCKED','dllSha256':PIN,'entry':hex(entry),
  'originalX64InstructionsExecuted':len(trace),'uniqueInstructionsReached':len(set(trace)),
  'firstRuntimeDependency':stop,'reachedInstructionsSupportedBeforeBlock':translated,
  'firstTranslationBlocker':blocked,'wasmStartupExecuted':False,'windowsImportsExecuted':False,
- 'hostCalls':host_calls,'tlsCallbacksExecuted':False,'fullGeodeLoader':False,'existingGeodePackagesSupported':False}
+ 'guestThreadModel':'single registered main context','hostCalls':host_calls,'tlsCallbacksExecuted':False,'fullGeodeLoader':False,'existingGeodePackagesSupported':False}
 if len(sys.argv)>2 and not blocked:
  out=Path(sys.argv[2]);out.mkdir(parents=True,exist_ok=True)
  (out/'startup.c').write_text(lifter.source());(out/'image.bin').write_bytes(initial_image)

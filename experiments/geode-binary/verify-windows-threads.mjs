@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {GuestThreads,getCurrentThreadId} from './windows-threads.mjs';
+const threads=new GuestThreads(),main=threads.register('main'),other=threads.register('other');
+assert.ok(main>0&&other>0&&main!==other);
+assert.equal(threads.register('main'),main);assert.equal(threads.id('main'),main);
+assert.throws(()=>threads.id('absent'),/Unregistered/);
+const memory=new WebAssembly.Memory({initial:2}),v=new DataView(memory.buffer),cpu=4096;
+v.setBigUint64(cpu,0xffffffffffffffffn,true);v.setBigUint64(cpu+8,999n,true);
+v.setBigUint64(cpu+32,8192n,true);v.setBigUint64(8192,0x1234fedcn,true);
+assert.equal(getCurrentThreadId(memory,cpu,threads,'main'),main);
+assert.equal(v.getBigUint64(cpu,true),BigInt(main));assert.equal(v.getBigUint64(cpu+8,true),999n);
+assert.equal(v.getBigUint64(cpu+32,true),8200n);assert.equal(v.getBigUint64(cpu+192,true),0x1234fedcn);
+v.setBigUint64(cpu+32,0x100000000n,true);
+assert.throws(()=>getCurrentThreadId(memory,cpu,threads,'main'),/outside memory/);
+threads.retire('main');assert.throws(()=>getCurrentThreadId(memory,cpu,threads,'main'),/Unregistered/);
+assert.notEqual(threads.register('main'),main);
+console.log('PASS: guest IDs stable, unique, nonzero; DWORD result and native return preserved');

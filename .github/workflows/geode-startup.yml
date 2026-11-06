@@ -4,6 +4,8 @@ on:
     paths:
       - '.github/workflows/geode-startup.yml'
       - 'experiments/geode-binary/windows-time.mjs'
+      - 'experiments/geode-binary/windows-threads.mjs'
+      - 'experiments/geode-binary/verify-windows-threads.mjs'
       - 'experiments/geode-binary/startup-smoke.py'
       - 'experiments/geode-binary/verify-startup.mjs'
   workflow_dispatch:
@@ -28,6 +30,8 @@ jobs:
           sudo apt-get install -y -qq clang lld binaryen wabt
       - name: Test the time-service contract
         run: node experiments/geode-binary/verify-windows-time.mjs
+      - name: Test the thread identity contract
+        run: node experiments/geode-binary/verify-windows-threads.mjs
       - name: Fetch hash-pinned official DLL
         run: |
           mkdir -p /tmp/geode-startup
