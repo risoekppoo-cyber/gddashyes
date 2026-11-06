@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {filetimeFromUnixMilliseconds,getSystemTimeAsFileTime} from './windows-time.mjs';
+assert.equal(filetimeFromUnixMilliseconds(-11644473600000),0n);
+assert.equal(filetimeFromUnixMilliseconds(0),116444736000000000n);
+assert.equal(filetimeFromUnixMilliseconds(1),116444736000010000n);
+assert.throws(()=>filetimeFromUnixMilliseconds(NaN),/clock/);
+const memory=new WebAssembly.Memory({initial:2}),v=new DataView(memory.buffer),cpu=4096;
+new Uint8Array(memory.buffer,8191,10).fill(0xaa);
+v.setBigUint64(cpu+8,8192n,true);v.setBigUint64(cpu+32,16384n,true);
+v.setBigUint64(cpu,123n,true);v.setBigUint64(16384,0x12345678n,true);
+getSystemTimeAsFileTime(memory,cpu,()=>0);
+assert.equal(v.getBigUint64(8192,true),116444736000000000n);
+assert.equal(v.getUint8(8191),0xaa);assert.equal(v.getUint8(8200),0xaa);
+assert.equal(v.getBigUint64(cpu,true),123n);
+assert.equal(v.getBigUint64(cpu+32,true),16392n);assert.equal(v.getBigUint64(cpu+192,true),0x12345678n);
+v.setBigUint64(cpu+8,131071n,true);
+assert.throws(()=>getSystemTimeAsFileTime(memory,cpu,()=>0),/outside memory/);
+console.log('PASS: FILETIME epoch, units, bounds and native return');

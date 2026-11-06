@@ -5,7 +5,7 @@ Unicorn executes original relocated x64 bytes; the reached instructions are
 then checked against the current binary translator. No API success is faked.
 TLS callbacks and actual Windows loader initialization are not provided.
 """
-import sys,json,hashlib,struct
+import sys,json,hashlib,struct,time
 from pathlib import Path
 import pefile,pypcode,unicorn
 from unicorn import x86_const as x
@@ -34,8 +34,17 @@ uc.reg_write(x.UC_X86_REG_RCX,base);uc.reg_write(x.UC_X86_REG_RDX,1)
 uc.reg_write(x.UC_X86_REG_R8,0);uc.reg_write(x.UC_X86_REG_RSP,0x2fff08)
 uc.mem_write(0x2fff08,(0x1234fedc).to_bytes(8,'little'))
 initial_image=bytes(uc.mem_read(base,size))
-trace=[];stop={}
+trace=[];stop={};host_calls=[]
+clock_ms=time.time_ns()//1_000_000
 def code(uc,pc,length,_):
+ if pc in imports and imports[pc].lower()=='kernel32.dll!getsystemtimeasfiletime':
+  output=uc.reg_read(x.UC_X86_REG_RCX)
+  timestamp=(clock_ms+11644473600000)*10000
+  uc.mem_write(output,struct.pack('<Q',timestamp))
+  sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+  host_calls.append({'address':hex(pc),'name':imports[pc],'unixMilliseconds':clock_ms,'output':hex(output)})
+  uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret)
+  uc.emu_stop();return
  if pc in imports:
   stop.update(reason='WINDOWS_IMPORT_REQUIRED',importName=imports[pc],address=hex(pc));uc.emu_stop();return
  trace.append(pc)
@@ -44,7 +53,14 @@ def memory_error(uc,access,address,size,value,_):
  stop.update(reason='UNMAPPED_MEMORY',address=hex(address),access=access);return False
 uc.hook_add(unicorn.UC_HOOK_CODE,code);uc.hook_add(unicorn.UC_HOOK_MEM_INVALID,memory_error)
 entry=base+pe.OPTIONAL_HEADER.AddressOfEntryPoint
-try:uc.emu_start(entry,0x1234fedc,count=10001)
+try:
+ resume=entry
+ for attempt in range(64):
+  count_before=len(host_calls)
+  uc.emu_start(resume,0x1234fedc,count=10001)
+  if stop or len(host_calls)==count_before:break
+  resume=uc.reg_read(x.UC_X86_REG_RIP)
+ else:stop['reason']='HOST_CALL_LIMIT'
 except unicorn.UcError as error:stop.setdefault('error',str(error))
 if not stop:stop['reason']='ENTRYPOINT_RETURNED'
 lifter=Lifter(pe,10000,allow_indirect=True,yield_unknown=True);blocked=None;translated=0
@@ -62,12 +78,12 @@ report={'status':'DLL_STARTUP_BLOCKED','dllSha256':PIN,'entry':hex(entry),
  'originalX64InstructionsExecuted':len(trace),'uniqueInstructionsReached':len(set(trace)),
  'firstRuntimeDependency':stop,'reachedInstructionsSupportedBeforeBlock':translated,
  'firstTranslationBlocker':blocked,'wasmStartupExecuted':False,'windowsImportsExecuted':False,
- 'tlsCallbacksExecuted':False,'fullGeodeLoader':False,'existingGeodePackagesSupported':False}
+ 'hostCalls':host_calls,'tlsCallbacksExecuted':False,'fullGeodeLoader':False,'existingGeodePackagesSupported':False}
 if len(sys.argv)>2 and not blocked:
  out=Path(sys.argv[2]);out.mkdir(parents=True,exist_ok=True)
  (out/'startup.c').write_text(lifter.source());(out/'image.bin').write_bytes(initial_image)
  (out/'stack.bin').write_bytes(bytes(uc.mem_read(0x200000,0x100000)))
  names=['RAX','RCX','RDX','RBX','RSP','RBP','RSI','RDI','R8','R9','R10','R11','R12','R13','R14','R15']
  (out/'expected.json').write_text(json.dumps({'entry':entry,'base':base,'stop':uc.reg_read(x.UC_X86_REG_RIP),
-  'instructions':len(trace),'registers':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+name))) for name in names]}))
+  'instructions':len(trace),'hostCalls':host_calls,'registers':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+name))) for name in names]}))
 print(json.dumps(report,indent=2))
