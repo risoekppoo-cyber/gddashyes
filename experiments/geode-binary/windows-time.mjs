@@ -33,3 +33,13 @@ export function getSystemTimePreciseAsFileTime(memory,cpu,nanoseconds,guestBase=
  const out=linear(v.getBigUint64(cpu+8,true),8),sp=v.getBigUint64(cpu+32,true),stack=linear(sp,8),ret=v.getBigUint64(stack,true),ticks=filetimeFromUnixNanoseconds(nanoseconds());
  v.setBigUint64(out,ticks,true);v.setBigUint64(cpu+32,sp+8n,true);v.setBigUint64(cpu+192,ret,true);return ticks;
 }
+// UTC conversion uses Date's independent proleptic-Gregorian implementation.
+export function systemTimeToFileTime(memory,cpu,setLastError=()=>{}){
+ const v=new DataView(memory.buffer),pointer=(p,n)=>{if(p<=0n||p>0xffffffffn||Number(p)+n>v.byteLength)throw Error('SYSTEMTIME access bounds');return Number(p);};
+ const source=pointer(v.getBigUint64(cpu+8,true),16),sp=v.getBigUint64(cpu+32,true),stack=pointer(sp,8);
+ const [year,month,weekday,day,hour,minute,second,millis]=Array.from({length:8},(_,i)=>v.getUint16(source+i*2,true));
+ const date=new Date(Date.UTC(year,month-1,day,hour,minute,second,millis));
+ const valid=year>=1601&&year<=30827&&month>=1&&month<=12&&day>=1&&day<=31&&hour<=23&&minute<=59&&second<=59&&millis<=999&&date.getUTCFullYear()===year&&date.getUTCMonth()===month-1&&date.getUTCDate()===day;
+ let result=null;if(valid){const output=pointer(v.getBigUint64(cpu+16,true),8);result=filetimeFromUnixMilliseconds(date.valueOf());v.setBigUint64(output,result,true);}else setLastError(87);
+ v.setBigUint64(cpu,valid?1n:0n,true);v.setBigUint64(cpu+192,v.getBigUint64(stack,true),true);v.setBigUint64(cpu+32,sp+8n,true);return result;
+}

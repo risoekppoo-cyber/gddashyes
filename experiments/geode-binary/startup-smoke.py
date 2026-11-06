@@ -16,9 +16,12 @@ from guest_critical_sections import CriticalSections
 from guest_crt_runtime import CrtRuntime
 from guest_fls import FiberLocalStorage
 from guest_slist import SLists
+from guest_windows_time import systemtime_ticks
 from native_fp_reference import NativeFpReference
 
 trace_limit=int(os.environ.get('GEODE_INSTRUCTION_LIMIT','20000'));assert 1<=trace_limit<=5000000
+stop_before_path=os.environ.get('GEODE_STOP_BEFORE_IMPORT_READ');stop_before=json.loads(Path(stop_before_path).read_text())['firstRuntimeDependency'] if stop_before_path else None
+stop_before_hits=0;import_memory_reads=[]
 path=Path(sys.argv[1]);assert hashlib.sha256(path.read_bytes()).hexdigest()==PIN
 pe=pefile.PE(str(path));base=0x2000000;preferred=pe.OPTIONAL_HEADER.ImageBase
 image=bytearray(pe.get_memory_mapped_image());size=(pe.OPTIONAL_HEADER.SizeOfImage+4095)&~4095
@@ -268,7 +271,11 @@ def read_ansi(p):
   text+=value
  raise RuntimeError('Unterminated ANSI string')
 def code(uc,pc,length,_):
- global next_allocation,last_error,thread_description,local_next,load_frame,pointer_encodes,pointer_decodes
+ global next_allocation,last_error,thread_description,local_next,load_frame,pointer_encodes,pointer_decodes,stop_before_hits
+ if stop_before and pc==int(stop_before['instructionPc'],16):
+  stop_before_hits+=1
+  if stop_before_hits==stop_before['occurrence']:
+   stop.update(stop_before);stop['stoppedBeforeInstruction']=True;uc.emu_stop();return
  if pc in module_boot_returns and pc not in completed_boots:
   module=module_boot_returns[pc]
   if uc.reg_read(x.UC_X86_REG_RAX)&0xffffffff==0:stop.update(reason='MODULE_ATTACH_FAILED_DETACH_REQUIRED',module=module['name']);uc.emu_stop();return
@@ -307,6 +314,12 @@ def code(uc,pc,length,_):
   uc.emu_stop();return
  if pc in imports:
   name=imports[pc].lower()
+  if name=='kernel32.dll!systemtimetofiletime':
+   fields=struct.unpack('<8H',uc.mem_read(uc.reg_read(x.UC_X86_REG_RCX),16));ticks=systemtime_ticks(fields);result=int(ticks is not None)
+   if ticks is not None:uc.mem_write(uc.reg_read(x.UC_X86_REG_RDX),struct.pack('<Q',ticks))
+   else:last_error=87;uc.mem_write(tib+0x68,struct.pack('<I',last_error))
+   host_calls.append({'address':hex(pc),'name':imports[pc],'fields':list(fields),'ticks':hex(ticks) if ticks is not None else None});sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+   uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
   if name.split('!')[-1] in ['flsalloc','flsgetvalue','flssetvalue','flsfree']:
    try:result,error=fls.invoke(name,uc.reg_read(x.UC_X86_REG_RCX),uc.reg_read(x.UC_X86_REG_RDX))
    except RuntimeError as error:stop.update(reason=str(error),importName=imports[pc]);uc.emu_stop();return
@@ -582,6 +595,11 @@ def code(uc,pc,length,_):
   uc.reg_write(x.UC_X86_REG_RIP,pc+2);uc.emu_stop();return
 def memory_error(uc,access,address,size,value,_):
  stop.update(reason='UNMAPPED_MEMORY',address=hex(address),access=access,instruction=hex(uc.reg_read(x.UC_X86_REG_RIP)));return False
+def import_memory_read(uc,access,address,size,value,data):
+ pc=uc.reg_read(x.UC_X86_REG_RIP);gateway=address&~15
+ event={'reason':'UNRESOLVED_IMPORT_MEMORY_REQUIRED','readAddress':hex(address),'readSize':size,'instructionPc':hex(pc),'occurrence':trace.count(pc),'importName':imports.get(gateway,'unknown import region')}
+ import_memory_reads.append(event);stop.update(event);uc.emu_stop()
+uc.hook_add(unicorn.UC_HOOK_MEM_READ,import_memory_read,begin=0x70000000,end=0x7000ffff)
 uc.hook_add(unicorn.UC_HOOK_CODE,code);uc.hook_add(unicorn.UC_HOOK_MEM_INVALID,memory_error)
 uc.hook_add(unicorn.UC_HOOK_MEM_READ,lambda uc,access,address,size,value,data:tib_reads.append((address-tib,size)),begin=tib,end=tib+tib_size-1)
 entry=bootstrap
@@ -648,6 +666,8 @@ report['pointerEncoding']={'key':str(pointer_key),'encodes':pointer_encodes,'dec
 report['crtRuntime']=crt_runtime.snapshot()
 report['fiberLocalStorage']=fls.snapshot()
 report['slists']=slists.snapshot()
+report['unresolvedImportMemoryReads']=import_memory_reads
+report['stoppedBeforeUnresolvedImportRead']=bool(stop.get('stoppedBeforeInstruction'))
 report['criticalSections']={'states':critical.states,'acquisitions':critical.acquisitions}
 report['testedComponent']='vcruntime-dll-attach' if vcruntime_only else 'msvc-dll-attach' if msvc_boot=='only' else 'geode-startup'
 report['vcruntimeDllAttachCompleted']=bool(vcruntime and vcruntime['runtimeInitialized'])

@@ -1,14 +1,20 @@
 {
   "status": "DLL_STARTUP_PREFIX_VERIFIED",
-  "generationId": "3627725c-17b7-4437-9b7d-b92e0947b5f2",
+  "generationId": "892d8d22-fc4a-435b-860b-7099dee83cf4",
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
   "entry": "0x72000000",
-  "originalX64InstructionsExecuted": 1000000,
-  "uniqueInstructionsReached": 32849,
+  "originalX64InstructionsExecuted": 1051993,
+  "uniqueInstructionsReached": 38091,
   "firstRuntimeDependency": {
-    "reason": "INSTRUCTION_LIMIT"
+    "reason": "UNRESOLVED_IMPORT_MEMORY_REQUIRED",
+    "readAddress": "0x70001020",
+    "readSize": 1,
+    "instructionPc": "0x21a6dad",
+    "occurrence": 33,
+    "importName": "fmod.dll!?init@System@FMOD@@QEAA?AW4FMOD_RESULT@@HIPEAX@Z",
+    "stoppedBeforeInstruction": true
   },
-  "reachedInstructionsSupportedBeforeBlock": 32849,
+  "reachedInstructionsSupportedBeforeBlock": 38091,
   "firstTranslationBlocker": null,
   "wasmStartupExecuted": true,
   "windowsImportsExecuted": true,
@@ -344,14 +350,14 @@
       "staticTls": false
     }
   ],
-  "instructionBudget": 1000000,
+  "instructionBudget": 2000000,
   "nativeFloatingReference": {
     "kind": "real host x64 SSE with normalized registers and checked memory-source decoding; MXCSR saved/restored",
-    "instructions": 1623
+    "instructions": 1679
   },
   "primaryMappingPhase": "mapped at declared ASLR base before EXE TLS callbacks and entrypoint",
   "pointerEncoding": {
-    "key": "16465209322986911709",
+    "key": "8163760004178198982",
     "encodes": 1,
     "decodes": 0
   },
@@ -398,6 +404,8 @@
     },
     "pushes": 2
   },
+  "unresolvedImportMemoryReads": [],
+  "stoppedBeforeUnresolvedImportRead": true,
   "criticalSections": {
     "states": {
       "302522672": {
@@ -451,12 +459,12 @@
   "testedComponent": "geode-startup",
   "vcruntimeDllAttachCompleted": true,
   "translationPartitionSize": 128,
-  "vcruntimeImageInstructions": 6096,
-  "msvcImageInstructions": 33525,
+  "vcruntimeImageInstructions": 6150,
+  "msvcImageInstructions": 33753,
   "msvcBootMode": "1",
   "msvcDllAttachCompleted": true,
   "msvcCtorFixtureScheduled": true,
-  "msvcSliceInstructions": 33525,
+  "msvcSliceInstructions": 33753,
   "primaryImageInstructions": 0,
   "dependencyImageInstructions": 1442,
   "dependencyLoadEvents": [
@@ -5658,6 +5666,10 @@
         16,
         16
       ],
+      "54645424": [
+        16,
+        16
+      ],
       "54645440": [
         32,
         32
@@ -5703,12 +5715,96 @@
         32
       ],
       "54646032": [
-        672,
-        672
+        64,
+        64
       ],
-      "54646704": [
-        672,
-        672
+      "54646096": [
+        128,
+        128
+      ],
+      "54646224": [
+        48,
+        48
+      ],
+      "54646272": [
+        24,
+        32
+      ],
+      "54646304": [
+        16,
+        16
+      ],
+      "54646320": [
+        32,
+        32
+      ],
+      "54646352": [
+        208,
+        208
+      ],
+      "54646560": [
+        24,
+        32
+      ],
+      "54646592": [
+        64,
+        64
+      ],
+      "54646656": [
+        128,
+        128
+      ],
+      "54646784": [
+        48,
+        48
+      ],
+      "54646832": [
+        24,
+        32
+      ],
+      "54646864": [
+        16,
+        16
+      ],
+      "54646880": [
+        24,
+        32
+      ],
+      "54646912": [
+        48,
+        48
+      ],
+      "54646960": [
+        208,
+        208
+      ],
+      "54647168": [
+        8,
+        16
+      ],
+      "54647184": [
+        40,
+        48
+      ],
+      "54647232": [
+        8,
+        16
+      ],
+      "54647248": [
+        24,
+        32
+      ],
+      "54647280": [
+        32,
+        32
+      ],
+      "54647312": [
+        40,
+        48
+      ],
+      "54647360": [
+        16,
+        16
       ],
       "54647376": [
         208,
@@ -5743,16 +5839,572 @@
         32
       ],
       "54648544": [
+        64,
+        64
+      ],
+      "54648608": [
+        128,
+        128
+      ],
+      "54648736": [
+        48,
+        48
+      ],
+      "54648784": [
+        24,
+        32
+      ],
+      "54648816": [
         32,
         32
       ],
-      "54648576": [
+      "54648848": [
+        208,
+        208
+      ],
+      "54649056": [
+        24,
+        32
+      ],
+      "54649088": [
         64,
         64
+      ],
+      "54649152": [
+        32,
+        32
+      ],
+      "54649184": [
+        16,
+        16
+      ],
+      "54649200": [
+        32,
+        32
+      ],
+      "54649232": [
+        128,
+        128
+      ],
+      "54649360": [
+        416,
+        416
+      ],
+      "54649776": [
+        24,
+        32
+      ],
+      "54649808": [
+        208,
+        208
+      ],
+      "54650016": [
+        16,
+        16
+      ],
+      "54650032": [
+        24,
+        32
+      ],
+      "54650064": [
+        64,
+        64
+      ],
+      "54650128": [
+        32,
+        32
+      ],
+      "54650160": [
+        32,
+        32
+      ],
+      "54650192": [
+        128,
+        128
+      ],
+      "54650320": [
+        376,
+        384
+      ],
+      "54650704": [
+        24,
+        32
+      ],
+      "54650736": [
+        16,
+        16
+      ],
+      "54650752": [
+        208,
+        208
+      ],
+      "54650960": [
+        16,
+        16
+      ],
+      "54650976": [
+        24,
+        32
+      ],
+      "54651008": [
+        64,
+        64
+      ],
+      "54651072": [
+        32,
+        32
+      ],
+      "54651104": [
+        32,
+        32
+      ],
+      "54651136": [
+        128,
+        128
+      ],
+      "54651264": [
+        448,
+        448
+      ],
+      "54651712": [
+        24,
+        32
+      ],
+      "54651744": [
+        16,
+        16
+      ],
+      "54651760": [
+        24,
+        32
+      ],
+      "54651792": [
+        48,
+        48
+      ],
+      "54651840": [
+        208,
+        208
+      ],
+      "54652048": [
+        64,
+        64
+      ],
+      "54652112": [
+        32,
+        32
+      ],
+      "54652144": [
+        32,
+        32
+      ],
+      "54652176": [
+        128,
+        128
+      ],
+      "54652304": [
+        24,
+        32
+      ],
+      "54652336": [
+        16,
+        16
+      ],
+      "54652352": [
+        208,
+        208
+      ],
+      "54652560": [
+        16,
+        16
+      ],
+      "54652576": [
+        24,
+        32
+      ],
+      "54652608": [
+        32,
+        32
+      ],
+      "54652640": [
+        64,
+        64
+      ],
+      "54652704": [
+        48,
+        48
+      ],
+      "54652752": [
+        24,
+        32
+      ],
+      "54652784": [
+        16,
+        16
+      ],
+      "54652800": [
+        208,
+        208
+      ],
+      "54653008": [
+        16,
+        16
+      ],
+      "54653024": [
+        24,
+        32
+      ],
+      "54653056": [
+        48,
+        48
+      ],
+      "54653104": [
+        24,
+        32
+      ],
+      "54653136": [
+        24,
+        32
+      ],
+      "54653168": [
+        600,
+        608
+      ],
+      "54653776": [
+        48,
+        48
+      ],
+      "54653824": [
+        24,
+        32
+      ],
+      "54653856": [
+        16,
+        16
+      ],
+      "54653872": [
+        32,
+        32
+      ],
+      "54653904": [
+        208,
+        208
+      ],
+      "54654112": [
+        24,
+        32
+      ],
+      "54654144": [
+        64,
+        64
+      ],
+      "54654208": [
+        48,
+        48
+      ],
+      "54654256": [
+        48,
+        48
+      ],
+      "54654304": [
+        24,
+        32
+      ],
+      "54654336": [
+        16,
+        16
+      ],
+      "54654352": [
+        32,
+        32
+      ],
+      "54654384": [
+        208,
+        208
+      ],
+      "54654592": [
+        24,
+        32
+      ],
+      "54654624": [
+        96,
+        96
+      ],
+      "54654720": [
+        16,
+        16
+      ],
+      "54654736": [
+        32,
+        32
+      ],
+      "54654768": [
+        32,
+        32
+      ],
+      "54654800": [
+        24,
+        32
+      ],
+      "54654832": [
+        32,
+        32
+      ],
+      "54654864": [
+        32,
+        32
+      ],
+      "54654896": [
+        32,
+        32
+      ],
+      "54654928": [
+        128,
+        128
+      ],
+      "54655056": [
+        48,
+        48
+      ],
+      "54655104": [
+        48,
+        48
+      ],
+      "54655152": [
+        32,
+        32
+      ],
+      "54655184": [
+        32,
+        32
+      ],
+      "54655216": [
+        24,
+        32
+      ],
+      "54655248": [
+        16,
+        16
+      ],
+      "54655264": [
+        24,
+        32
+      ],
+      "54655296": [
+        48,
+        48
+      ],
+      "54655344": [
+        208,
+        208
+      ],
+      "54655552": [
+        208,
+        208
+      ],
+      "54655760": [
+        16,
+        16
+      ],
+      "54655776": [
+        1008,
+        1008
+      ],
+      "54656784": [
+        1008,
+        1008
+      ],
+      "54657792": [
+        144,
+        144
+      ],
+      "54657936": [
+        208,
+        208
+      ],
+      "54658144": [
+        128,
+        128
+      ],
+      "54658272": [
+        24,
+        32
+      ],
+      "54658304": [
+        16,
+        16
+      ],
+      "54658320": [
+        16,
+        16
+      ],
+      "54658336": [
+        32,
+        32
+      ],
+      "54658368": [
+        208,
+        208
+      ],
+      "54658576": [
+        24,
+        32
+      ],
+      "54658608": [
+        64,
+        64
+      ],
+      "54658672": [
+        48,
+        48
+      ],
+      "54658720": [
+        32,
+        32
+      ],
+      "54658752": [
+        128,
+        128
+      ],
+      "54658880": [
+        24,
+        32
+      ],
+      "54658912": [
+        208,
+        208
+      ],
+      "54659120": [
+        16,
+        16
+      ],
+      "54659136": [
+        24,
+        32
+      ],
+      "54659168": [
+        64,
+        64
+      ],
+      "54659232": [
+        32,
+        32
+      ],
+      "54659264": [
+        16,
+        16
+      ],
+      "54659280": [
+        32,
+        32
+      ],
+      "54659312": [
+        128,
+        128
+      ],
+      "54659440": [
+        24,
+        32
+      ],
+      "54659472": [
+        32,
+        32
+      ],
+      "54659504": [
+        208,
+        208
+      ],
+      "54659712": [
+        24,
+        32
+      ],
+      "54659744": [
+        64,
+        64
+      ],
+      "54659808": [
+        24,
+        32
+      ],
+      "54659840": [
+        32,
+        32
+      ],
+      "54659872": [
+        128,
+        128
+      ],
+      "54660000": [
+        240,
+        240
+      ],
+      "54660240": [
+        48,
+        48
+      ],
+      "54660288": [
+        96,
+        96
+      ],
+      "54660384": [
+        208,
+        208
+      ],
+      "54660592": [
+        16,
+        16
+      ],
+      "54660608": [
+        24,
+        32
+      ],
+      "54660640": [
+        64,
+        64
+      ],
+      "54660704": [
+        48,
+        48
+      ],
+      "54660752": [
+        32,
+        32
+      ],
+      "54660784": [
+        128,
+        128
+      ],
+      "54660912": [
+        24,
+        32
+      ],
+      "54660944": [
+        16,
+        16
+      ],
+      "54660960": [
+        208,
+        208
+      ],
+      "54661168": [
+        16,
+        16
+      ],
+      "54661184": [
+        24,
+        32
+      ],
+      "54661216": [
+        64,
+        64
+      ],
+      "54661280": [
+        128,
+        128
       ]
     },
-    "calls": 6753,
-    "freeBlocksCount": 2
+    "calls": 7120,
+    "freeBlocksCount": 1
   },
   "resolvedExports": [
     {
@@ -5886,6 +6538,120 @@
       "name": "KERNEL32.dll!GetProcAddress",
       "symbol": "?update@CCScheduler@cocos2d@@UEAAXM@Z",
       "result": "0x100c6480"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?keyToString@CCKeyboardDispatcher@cocos2d@@QEAAPEBDW4enumKeyCodes@2@@Z",
+      "result": "0x10046610"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?init@CCDrawNode@cocos2d@@UEAA_NXZ",
+      "result": "0x100151e0"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?activate@CCMenuItem@cocos2d@@UEAAXXZ",
+      "result": "0x1005c130"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?ccTouchEnded@CCMenu@cocos2d@@UEAAXPEAVCCTouch@2@PEAVCCEvent@2@@Z",
+      "result": "0x1005b060"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?create@CCSprite@cocos2d@@SAPEAV12@PEBD@Z",
+      "result": "0x1008e670"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?createWithSpriteFrameName@CCSprite@cocos2d@@SAPEAV12@PEBD@Z",
+      "result": "0x1008e860"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?initWithSpriteFrame@CCSprite@cocos2d@@UEAA_NPEAVCCSpriteFrame@2@@Z",
+      "result": "0x1008edc0"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?initWithSpriteFrameName@CCSprite@cocos2d@@UEAA_NPEBD@Z",
+      "result": "0x1008ee30"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?initWithFile@CCSprite@cocos2d@@UEAA_NPEBD@Z",
+      "result": "0x1008ecc0"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?initWithFile@CCSprite@cocos2d@@UEAA_NPEBDAEBVCCRect@2@@Z",
+      "result": "0x1008ed50"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?spriteFrameByName@CCSpriteFrameCache@cocos2d@@QEAAPEAVCCSpriteFrame@2@PEBD@Z",
+      "result": "0x10095d60"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?initWithTexture@CCSpriteBatchNode@cocos2d@@QEAA_NPEAVCCTexture2D@2@I@Z",
+      "result": "0x10091880"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?sharedFileUtils@CCFileUtils@cocos2d@@SAPEAV12@XZ",
+      "result": "0x1007e270"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?fullPathForFilename@CCFileUtils@cocos2d@@UEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEBD_N@Z",
+      "result": "0x10070a20"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?gatherGPUInfo@CCConfiguration@cocos2d@@QEAAXXZ",
+      "result": "0x100bfd80"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "??1CCDirector@cocos2d@@UEAA@XZ",
+      "result": "0x100c1570"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?initWithArray@CCMenu@cocos2d@@QEAA_NPEAVCCArray@2@@Z",
+      "result": "0x1005b470"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?setScissorInPoints@CCEGLView@cocos2d@@UEAAXMMMM@Z",
+      "result": "0x1007b6e0"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "?getHighestChildZ@CCScene@cocos2d@@QEAAHXZ",
+      "result": "0x10053920"
     }
   ],
   "windowsCompatibilityProfile": {
@@ -5919,7 +6685,7 @@
     ]
   ],
   "unmodeledTibReads": [],
-  "originalDllInstructionsExecuted": 958911,
+  "originalDllInstructionsExecuted": 1010622,
   "loaderBootstrapInstructions": 26,
   "tlsTemplateBytes": 784,
   "tlsZeroFillBytes": 0,
@@ -5931,27 +6697,27 @@
   "dependencyTlsCallbacksCompleted": 0,
   "dependencyEntriesCompleted": 1,
   "dependencyLoadsCompleted": 1,
-  "moduleLookups": 7,
-  "exportResolutions": 21,
+  "moduleLookups": 8,
+  "exportResolutions": 40,
   "shimModuleImagesMatch": true,
-  "wasmStartupInstructions": 1000000,
+  "wasmStartupInstructions": 1051993,
   "allGeneralRegistersMatch": true,
   "entireNativeStackMatches": true,
   "dllInitializationCompleted": false,
-  "implementedWindowsCalls": 8792,
-  "initializerCallbacksExecuted": 137,
+  "implementedWindowsCalls": 9444,
+  "initializerCallbacksExecuted": 152,
   "completedInitializerTables": 5,
   "entireDllImageMatches": true,
   "allXmmRegistersMatch": true,
   "arithmeticFlagsMatch": true,
   "tlsMemoryMatches": true,
-  "onexitRegistrations": 97,
-  "srwAcquisitions": 122,
-  "emptyQueueConditionWakes": 48,
-  "initializerCallbacksStarted": 137,
-  "initializerCallbacksCompleted": 136,
+  "onexitRegistrations": 114,
+  "srwAcquisitions": 179,
+  "emptyQueueConditionWakes": 74,
+  "initializerCallbacksStarted": 152,
+  "initializerCallbacksCompleted": 151,
   "initializerTablesInProgress": 1,
-  "executedImportCalls": 8792,
+  "executedImportCalls": 9444,
   "implementedImports": [
     "KERNEL32.dll!AcquireSRWLockExclusive",
     "KERNEL32.dll!DisableThreadLibraryCalls",
@@ -6012,7 +6778,7 @@
   ],
   "msvcConstructorPoisonFixture": true,
   "reportFormat": "verification-summary-v1",
-  "fullReportSha256": "235ba2ba53a3efa96413c367f0877f1bba762ae2d69db999b7b9d5458a51fe68",
+  "fullReportSha256": "607b0b7d732a287d9898a89422648ae378524df21d32ee0fa9a028aca529f9ce",
   "omittedDetails": [
     "hostCalls",
     "initializerEvents",
@@ -6020,5 +6786,5 @@
     "crtHeap.freeBlocks",
     "nativeFloatingReference.byPc"
   ],
-  "verificationScope": "Local exact partitioned WASM comparison; 118 one-case-partition CPU fixtures passed; original 200 scalar cases passed; fresh CI pending"
+  "verificationScope": "Local complete guarded startup script passed, including 118 partitioned CPU fixtures and 200 scalar cases; fresh CI pending"
 }

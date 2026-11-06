@@ -27,7 +27,12 @@ node experiments/geode-binary/verify-windows-startup.mjs
 node experiments/geode-binary/verify-native-initializers.mjs
 node experiments/geode-binary/verify-synchronization.mjs
 python experiments/geode-binary/startup-smoke.py "$GEODE_DLL" "$GEODE_OUT" > "$GEODE_OUT/report.json"
+if python -c 'import json,sys;d=json.load(open(sys.argv[1]));sys.exit(0 if d["firstRuntimeDependency"]["reason"]=="UNRESOLVED_IMPORT_MEMORY_REQUIRED" else 1)' "$GEODE_OUT/report.json";then
+ cp "$GEODE_OUT/report.json" "$GEODE_OUT/unresolved-import-read.json"
+ GEODE_STOP_BEFORE_IMPORT_READ="$GEODE_OUT/unresolved-import-read.json" python experiments/geode-binary/startup-smoke.py "$GEODE_DLL" "$GEODE_OUT" > "$GEODE_OUT/report.json"
+fi
 python -c 'import json,sys;d=json.load(open(sys.argv[1]));assert d["firstTranslationBlocker"] is None,d["firstTranslationBlocker"];assert not d["unmodeledTibReads"],d["unmodeledTibReads"]' "$GEODE_OUT/report.json"
+python -c 'import json,sys;d=json.load(open(sys.argv[1]));assert not d["unresolvedImportMemoryReads"],d["firstRuntimeDependency"]' "$GEODE_OUT/report.json"
 node experiments/geode-binary/verify-guest-modules.mjs "$GEODE_OUT"
 compile "$GEODE_OUT/startup.c" "$GEODE_OUT/startup.wasm" wide
 node --liftoff-only experiments/geode-binary/verify-startup.mjs "$GEODE_OUT" "$GEODE_OUT/report.json"

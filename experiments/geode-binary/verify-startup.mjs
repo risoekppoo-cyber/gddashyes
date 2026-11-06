@@ -1,3 +1,4 @@
+import {systemTimeToFileTime} from './windows-time.mjs';
 import {readFile,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {instantiateStartupLift} from './startup-module.mjs';
@@ -23,6 +24,7 @@ const [expected,image,stack,wasm,report]=await Promise.all([
  readFile(dir+'/expected.json').then(JSON.parse),readFile(dir+'/image.bin'),
  readFile(dir+'/stack.bin'),readFile(dir+'/startup.wasm'),readFile(reportPath).then(JSON.parse)]);
 assert.ok(expected.generationId&&expected.generationId===report.generationId,'Stale startup output from another run');
+assert.deepEqual(report.unresolvedImportMemoryReads??[],[],'Unresolved import bytes may not be reference data');
 assert.equal(report.firstTranslationBlocker,null,'Native path contains unsupported IR');
 assert.deepEqual(report.unmodeledTibReads,[],'Native path used an unmodeled TEB field');
 assert.equal(report.originalX64InstructionsExecuted,expected.instructions,'Native report and reference disagree');
@@ -87,6 +89,7 @@ for(let transfers=0;transfers<transferLimit;transfers++){
  }else if(/!(getmodulehandle[aw]|getprocaddress|disablethreadlibrarycalls|rtlpctofileheader|loadlibraryexw)$/i.test(call.name)){
   const result=modules.invoke(call.name,memory,cpu);assert.equal(BigInt(result),BigInt(call.result));
  }else if(/!(getcurrentthread|setthreaddescription|getthreaddescription|localfree)$/i.test(call.name))threads.invoke(call.name,memory,cpu,'main');
+ else if(call.name.toLowerCase()==='kernel32.dll!systemtimetofiletime'){const result=systemTimeToFileTime(memory,cpu,value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);});assert.equal(result===null?null:'0x'+result.toString(16),call.ticks);}
  else if(call.name.toLowerCase()==='kernel32.dll!getsystemtimepreciseasfiletime')getSystemTimePreciseAsFileTime(memory,cpu,()=>BigInt(call.unixNanoseconds));
  else if(call.name.toLowerCase()==='kernel32.dll!getsystemtimeasfiletime')
   getSystemTimeAsFileTime(memory,cpu,()=>call.unixMilliseconds);
@@ -159,4 +162,6 @@ if(report.msvcCtorFixtureScheduled){
  assert.equal(v.getBigUint64(cpu+192,true),BigInt(fixture.pc));assert.equal(Buffer.from(memory.buffer,0x10000,128).toString('hex'),fixture.object);
  assert.equal(v.getUint32(0x1001c,true),0xa5a5a5a5,'MSVC object padding was overwritten');report.msvcConstructorPoisonFixture=true;
 }
-await writeFile(reportPath,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
+await writeFile(reportPath,JSON.stringify(report,null,2)+'\n');const summary=JSON.stringify(report,(key,value)=>['hostCalls','initializerEvents','live','freeBlocks','byPc'].includes(key)?undefined:value,2);
+await writeFile(dir+'/report-summary.json',summary+'\n');
+console.log(summary);

@@ -1,0 +1,24 @@
+{
+  "status": "DLL_STARTUP_PREFIX_VERIFIED",
+  "generationId": "892d8d22-fc4a-435b-860b-7099dee83cf4",
+  "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
+  "originalX64InstructionsExecuted": 1051993,
+  "originalDllInstructionsExecuted": 1010622,
+  "msvcImageInstructions": 33753,
+  "vcruntimeImageInstructions": 6150,
+  "firstRuntimeDependency": {
+    "reason": "UNRESOLVED_IMPORT_MEMORY_REQUIRED",
+    "readAddress": "0x70001020",
+    "readSize": 1,
+    "instructionPc": "0x21a6dad",
+    "occurrence": 33,
+    "importName": "fmod.dll!?init@System@FMOD@@QEAA?AW4FMOD_RESULT@@HIPEAX@Z",
+    "stoppedBeforeInstruction": true
+  },
+  "firstTranslationBlocker": null,
+  "stoppedBeforeUnresolvedImportRead": true,
+  "unresolvedImportMemoryReads": [],
+  "fullGeodeLoader": false,
+  "existingGeodePackagesSupported": false,
+  "verificationScope": "Native-only boundary discovery; not yet a verified WASM result"
+}

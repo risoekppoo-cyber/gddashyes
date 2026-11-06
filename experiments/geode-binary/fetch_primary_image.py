@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """Recover the hash-pinned primary image for the standalone ASLR guest test."""
-import gzip,hashlib,sys,urllib.request,concurrent.futures
+import gzip,hashlib,sys,urllib.request,urllib.error,concurrent.futures,time
 from pathlib import Path
 PIN='dab65e0527e343f03ea08614b2967f5a20cdb481b1622aadde76cde648803c2a'
 START,END=179142218,192368202
 CHUNKS=[(176160768, 'a2f5e21a608b83fc2162bab4a63566123f01578540a884593e63a0a0dd4339ad'), (180355072, '1d6f2b03305a1930f24bab451d7ca401ee7d70cf727b5df04f7961597e933e9b'), (184549376, '42b7faace9614b47ea7c6fefc42fd3bfa754e6b79714f271d3bd5b35b4da0ada'), (188743680, 'eb86d36f313282d9e15c2b72aba08fe1b611aaf26eb800e4af1d032bd55dc3ad')]
 def fetch(chunk):
  offset,digest=chunk
- with urllib.request.urlopen('https://raw.githubusercontent.com/Ale7208/geometry-dash-wasm/main/payload/data-'+digest[:24]+'.gz',timeout=45) as response:compressed=response.read(8*1024*1024+1)
+ for attempt in range(5):
+  try:
+   with urllib.request.urlopen('https://raw.githubusercontent.com/Ale7208/geometry-dash-wasm/main/payload/data-'+digest[:24]+'.gz',timeout=45) as response:compressed=response.read(8*1024*1024+1)
+   break
+  except urllib.error.HTTPError as error:
+   if error.code not in [429,500,502,503,504] or attempt==4:raise
+   time.sleep(min(30,max(2**attempt,int(error.headers.get('Retry-After','0')) if error.headers.get('Retry-After','0').isdigit() else 0)))
  if len(compressed)>8*1024*1024:raise RuntimeError('Unexpected payload chunk size')
  data=gzip.decompress(compressed)
  if len(data)!=4194304 or hashlib.sha256(data).hexdigest()!=digest:raise RuntimeError('Primary-image chunk hash mismatch')
