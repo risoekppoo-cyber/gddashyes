@@ -18,6 +18,18 @@ The partitioned translator passes 118 CPU fixtures, including 107 real-x64 float
 
 `../fmod-bridge/README.md` records a verified mapping from the pinned primary import IAT 0x00ace740 through WASM table slot 24570 to function 24950. Its exact implementation only returns FMOD_OK and performs no audio initialization. A matching owned readable Win64 entry and a narrow native-E9-to-WASM router pass 64 register contexts, 576 browser-adapter calls and 192 independent native executions, including call-original and restoration. Unknown patches fail closed. This is a component proof, not Geode's own installer running. It does not change the canonical 1,051,993 boundary. Next wire the owned provider and patch-write invalidation into the actual Geode runtime, as described there. The focused CI passed: https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42278351214 . Tested source: `309233501d70932f128477bf45765ded5ccd7ca2`.
 
+## Startup integration batch awaiting combined verification
+
+FMOD mode is now wired into the original DLL startup with `GEODE_FMOD_BRIDGE=1`. `native_fmod_bridge.py` exposes owned PE entries only for import mappings verified against the pinned game. `../fmod-bridge/adapter-map.json` records 64 mappings; the 26 exact return-only implementations use the independently verified MOV/RET contract. Other adapters tail-jump to their unresolved call gateways and stop if execution is requested. This does not claim native FMOD DLL execution or full audio support.
+
+The original Geode code has read the owned FMOD entries and proceeded through module paths, UTF-8 conversion, C-locale drive-letter classification, lexical C-drive paths, and directory metadata handles. These providers operate in a declared guest namespace, never the host filesystem. File-content I/O, other drives/code pages, reparse points and unsupported open modes remain explicit stops.
+
+The current native discovery is 1,063,054 attempted instructions, ending on the first write into a new executable allocation. This count is NOT a verified prefix: the write instruction has not completed. The clean prefix should stop immediately before it. `dist/fmod-startup-native-next.json` is discovery evidence only. The allocation is 32 requested bytes at 0x15000000 (4 KiB committed, 64 KiB reservation). Next instruction: 0x212f63e, occurrence 1. This is actual Geode-generated machine code, not another missing FMOD symbol.
+
+All existing executable images and the new executable allocation have native/host write guards. Discovery/replay stops before code mutation because generated-code execution and patch-to-live-WASM invalidation are not implemented. Do not remove these guards to make the loader appear to advance. The owned E9 router component alone does not handle these generated stubs.
+
+Batch runtime contracts pass locally. A single clean CI batch will perform the full translated-state comparison and existing CPU/scalar regressions; no canonical milestone is promoted until that passes. The earlier 1,051,993 result remains canonical in the meantime.
+
 ## Exact resume point
 
 With VCRUNTIME enabled, the verified boundary is **1,051,993 instructions**, stopped BEFORE occurrence 33 of instruction `0x21a6dad`. The next operation reads native bytes from **fmod.dll!FMOD::System::init**, currently represented only by callable gateway `0x70001020`. Exact mangled import: `?init@System@FMOD@@QEAA?AW4FMOD_RESULT@@HIPEAX@Z`. The guard records the first unresolved import-memory access, then reruns from fresh native state and stops before that exact instruction occurrence. A verified result must have `unresolvedImportMemoryReads: []` and `stoppedBeforeUnresolvedImportRead: true`.

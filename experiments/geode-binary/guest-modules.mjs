@@ -37,7 +37,12 @@ export class GuestModules {
  invoke(name,memory,cpu){
   const v=new DataView(memory.buffer),read=(p,wide)=>{let s='';for(let i=0;i<32768;i++){const at=Number(p)+i*(wide?2:1);if(p<=0n||p>0xffffffffn||at+(wide?2:1)>memory.buffer.byteLength)throw Error('Guest string bounds');const c=wide?v.getUint16(at,true):v.getUint8(at);if(!c)return s;s+=String.fromCharCode(c);}throw Error('Unterminated guest string');};
   const key=name.toLowerCase(),arg=v.getBigUint64(cpu+8,true);let result;
-  if(key.endsWith('!loadlibraryexw'))result=this.loadContract(read(arg,true),v.getBigUint64(cpu+64,true)&0xffffffffn,v.getBigUint64(cpu+16,true));
+  if(key.endsWith('!getmodulefilenamew')){
+   const m=arg?this.modules.find(m=>BigInt(m.base)===arg):this.modules.find(m=>m.primary);if(!m?.path)throw Error('UNMODELED_MODULE_HANDLE');
+   const out=v.getBigUint64(cpu+16,true),capacity=Number(v.getBigUint64(cpu+64,true)&0xffffffffn),text=m.path;
+   if(capacity){const count=Math.min(text.length,capacity-1);if(out<=0n||out>0xffffffffn||Number(out)+(count+1)*2>v.byteLength)throw Error('Module path buffer bounds');for(let i=0;i<count;i++)v.setUint16(Number(out)+i*2,text.charCodeAt(i),true);v.setUint16(Number(out)+count*2,0,true);}
+   result=Math.min(text.length,capacity);if(capacity<=text.length)this.setLastError(122);
+  }else if(key.endsWith('!loadlibraryexw'))result=this.loadContract(read(arg,true),v.getBigUint64(cpu+64,true)&0xffffffffn,v.getBigUint64(cpu+16,true));
   else if(key.endsWith('!rtlpctofileheader')){
    const m=this.modules.find(m=>arg>=BigInt(m.base)&&arg<BigInt(m.base+m.size)),out=v.getBigUint64(cpu+16,true);result=m?.base??0;
    if(out<=0n||out>0xffffffffn||Number(out)+8>v.byteLength)throw Error('Module header output bounds');v.setBigUint64(Number(out),BigInt(result),true);

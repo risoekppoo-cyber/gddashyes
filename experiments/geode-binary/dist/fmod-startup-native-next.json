@@ -1,0 +1,36 @@
+{
+  "generationId": "e9805751-4aef-41eb-acc4-14f3c2db7a3d",
+  "originalX64InstructionsExecuted": 1063054,
+  "firstRuntimeDependency": {
+    "reason": "NATIVE_CODE_WRITE_REQUIRES_ROUTING",
+    "ownerModule": "VirtualAlloc executable allocation",
+    "instructionPc": "0x212f63e",
+    "occurrence": 1,
+    "writeAddress": "0x15000000",
+    "writeSize": 8,
+    "error": "Write to write-protected memory (UC_ERR_WRITE_PROT)"
+  },
+  "firstTranslationBlocker": null,
+  "fmodInspectionBoundaryPassed": null,
+  "fmodNativeCodeReadCount": 2,
+  "fmodNativeCodeReadSites": [
+    "0x21a6dad"
+  ],
+  "executableMemory": {
+    "base": 352321536,
+    "size": 2097152,
+    "cursor": 352387072,
+    "allocations": [
+      {
+        "base": 352321536,
+        "requested": 32,
+        "committed": 4096,
+        "reserved": 65536,
+        "protection": 64,
+        "writeRoutingPending": true
+      }
+    ]
+  },
+  "nativePatchToLiveWasmLinked": false,
+  "verificationScope": "Native discovery only; combined WASM verification pending"
+}

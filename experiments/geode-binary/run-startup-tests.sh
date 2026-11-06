@@ -15,6 +15,7 @@ compile() {
  "$GEODE_WASM_OPT" "$output" --remove-unused-module-elements -o "$output.clean"
  mv "$output.clean" "$output"
 }
+node experiments/geode-binary/verify-startup-bridge-contracts.mjs
 node experiments/geode-binary/verify-slist.mjs
 node experiments/geode-binary/verify-fiber-local-storage.mjs
 node experiments/geode-binary/verify-crt-runtime.mjs
@@ -27,7 +28,7 @@ node experiments/geode-binary/verify-windows-startup.mjs
 node experiments/geode-binary/verify-native-initializers.mjs
 node experiments/geode-binary/verify-synchronization.mjs
 python experiments/geode-binary/startup-smoke.py "$GEODE_DLL" "$GEODE_OUT" > "$GEODE_OUT/report.json"
-if python -c 'import json,sys;d=json.load(open(sys.argv[1]));sys.exit(0 if d["firstRuntimeDependency"]["reason"]=="UNRESOLVED_IMPORT_MEMORY_REQUIRED" else 1)' "$GEODE_OUT/report.json";then
+if python -c 'import json,sys;d=json.load(open(sys.argv[1]));sys.exit(0 if d["firstRuntimeDependency"]["reason"] in ["UNRESOLVED_IMPORT_MEMORY_REQUIRED","OWNED_BRIDGE_WRITE_REQUIRES_ROUTING","NATIVE_CODE_WRITE_REQUIRES_ROUTING"] else 1)' "$GEODE_OUT/report.json";then
  cp "$GEODE_OUT/report.json" "$GEODE_OUT/unresolved-import-read.json"
  GEODE_STOP_BEFORE_IMPORT_READ="$GEODE_OUT/unresolved-import-read.json" python experiments/geode-binary/startup-smoke.py "$GEODE_DLL" "$GEODE_OUT" > "$GEODE_OUT/report.json"
 fi

@@ -37,3 +37,7 @@ python experiments/fmod-bridge/verify_native.py /tmp/fmod/test
 Do not commit generated fixture WASM or downloaded game images. Only code, manifests and verification summaries belong in the repository. The fixture excludes original data segments and traps every unselected function; it is not a playable game.
 
 Verified locally and on a clean GitHub runner: https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42278351214 . Tested source: `309233501d70932f128477bf45765ded5ccd7ca2`.
+
+## Startup provider integration
+
+`../geode-binary/native_fmod_bridge.py` now provides the owned entry catalog under the opt-in startup mode `GEODE_FMOD_BRIDGE=1`. The catalog has 64 hash-pinned adapter mappings; 26 have the exact return-only body. Stateful methods remain unsupported at their call gateways. Geode can inspect the owned entry bytes, but code writes are guarded until generated-code execution and live patch invalidation are implemented. This startup integration has a separate combined verification checkpoint; the original 64-case contract proof does not establish full loader support.

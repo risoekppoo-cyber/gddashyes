@@ -1,0 +1,455 @@
+{
+  "moduleSha256": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
+  "primarySha256": "dab65e0527e343f03ea08614b2967f5a20cdb481b1622aadde76cde648803c2a",
+  "initializerFunction": 24695,
+  "symbols": {
+    "FMOD_System_Create": {
+      "primaryIat": 11331264,
+      "table": 24554,
+      "function": 24920,
+      "bodySha256": "23f6331dac3f257898a33af7d4378506f7d7fe08986cc3afb3ed5da41353edd0",
+      "returnsOnlyFmodOk": false
+    },
+    "FMOD_System_UnlockDSP": {
+      "primaryIat": 11331272,
+      "table": 24555,
+      "function": 24922,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "FMOD_Channel_GetFadePoints": {
+      "primaryIat": 11331280,
+      "table": 24556,
+      "function": 24917,
+      "bodySha256": "4f7a0b2324da9e5f8694aa9cc31442095783dd2df06113bf2f1226ef47926009",
+      "returnsOnlyFmodOk": false
+    },
+    "?unlockDSP@System@FMOD@@QEAA?AW4FMOD_RESULT@@XZ": {
+      "primaryIat": 11331288,
+      "table": 24557,
+      "function": 24977,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?lockDSP@System@FMOD@@QEAA?AW4FMOD_RESULT@@XZ": {
+      "primaryIat": 11331296,
+      "table": 24558,
+      "function": 24951,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?playSound@System@FMOD@@QEAA?AW4FMOD_RESULT@@PEAVSound@2@PEAVChannelGroup@2@_NPEAPEAVChannel@2@@Z": {
+      "primaryIat": 11331304,
+      "table": 24559,
+      "function": 24954,
+      "bodySha256": "831c583850b1c28f0d4c88275fd0ddcc3da04577473c8fb415a44f4a8f931b4b",
+      "returnsOnlyFmodOk": false
+    },
+    "?createChannelGroup@System@FMOD@@QEAA?AW4FMOD_RESULT@@PEBDPEAPEAVChannelGroup@2@@Z": {
+      "primaryIat": 11331312,
+      "table": 24560,
+      "function": 24927,
+      "bodySha256": "1e8af523eb1fd7579459b4d3742638d3654135c83b265b55c9775fe30291af4b",
+      "returnsOnlyFmodOk": false
+    },
+    "?createDSPByType@System@FMOD@@QEAA?AW4FMOD_RESULT@@W4FMOD_DSP_TYPE@@PEAPEAVDSP@2@@Z": {
+      "primaryIat": 11331320,
+      "table": 24561,
+      "function": 24928,
+      "bodySha256": "2e0f31be0561ba3b522aecb0b0551b1e31351b12fa6a764860bab3ad120ea7bb",
+      "returnsOnlyFmodOk": false
+    },
+    "FMOD_System_LockDSP": {
+      "primaryIat": 11331328,
+      "table": 24562,
+      "function": 24921,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?createSound@System@FMOD@@QEAA?AW4FMOD_RESULT@@PEBDIPEAUFMOD_CREATESOUNDEXINFO@@PEAPEAVSound@2@@Z": {
+      "primaryIat": 11331336,
+      "table": 24563,
+      "function": 24929,
+      "bodySha256": "c0d7524ee03c1b331a60016b778af2852c0e5954f9b79e69a353f329aee980bc",
+      "returnsOnlyFmodOk": false
+    },
+    "?getVersion@System@FMOD@@QEAA?AW4FMOD_RESULT@@PEAI@Z": {
+      "primaryIat": 11331344,
+      "table": 24564,
+      "function": 24948,
+      "bodySha256": "014311957b11e3d3e90f2010411a0709da825a8109aa6b87f93ecf89eb977df8",
+      "returnsOnlyFmodOk": false
+    },
+    "?mixerResume@System@FMOD@@QEAA?AW4FMOD_RESULT@@XZ": {
+      "primaryIat": 11331352,
+      "table": 24565,
+      "function": 24952,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?mixerSuspend@System@FMOD@@QEAA?AW4FMOD_RESULT@@XZ": {
+      "primaryIat": 11331360,
+      "table": 24566,
+      "function": 24953,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?getStreamBufferSize@System@FMOD@@QEAA?AW4FMOD_RESULT@@PEAI0@Z": {
+      "primaryIat": 11331368,
+      "table": 24567,
+      "function": 24946,
+      "bodySha256": "dc2d7180d33ec65dbcaea00311314094e9afe4a59d34db26f12065ad68a44707",
+      "returnsOnlyFmodOk": false
+    },
+    "?update@System@FMOD@@QEAA?AW4FMOD_RESULT@@XZ": {
+      "primaryIat": 11331376,
+      "table": 24568,
+      "function": 24978,
+      "bodySha256": "c73154d79598d15792b4041f8448f4f614d00dd43c24236dc9fd02cc054a2413",
+      "returnsOnlyFmodOk": false
+    },
+    "?close@System@FMOD@@QEAA?AW4FMOD_RESULT@@XZ": {
+      "primaryIat": 11331384,
+      "table": 24569,
+      "function": 24926,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?init@System@FMOD@@QEAA?AW4FMOD_RESULT@@HIPEAX@Z": {
+      "primaryIat": 11331392,
+      "table": 24570,
+      "function": 24950,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?getDSPBufferSize@System@FMOD@@QEAA?AW4FMOD_RESULT@@PEAIPEAH@Z": {
+      "primaryIat": 11331400,
+      "table": 24571,
+      "function": 24933,
+      "bodySha256": "dc2d7180d33ec65dbcaea00311314094e9afe4a59d34db26f12065ad68a44707",
+      "returnsOnlyFmodOk": false
+    },
+    "?setDSPBufferSize@System@FMOD@@QEAA?AW4FMOD_RESULT@@IH@Z": {
+      "primaryIat": 11331408,
+      "table": 24572,
+      "function": 24961,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?createStream@System@FMOD@@QEAA?AW4FMOD_RESULT@@PEBDIPEAUFMOD_CREATESOUNDEXINFO@@PEAPEAVSound@2@@Z": {
+      "primaryIat": 11331416,
+      "table": 24573,
+      "function": 24930,
+      "bodySha256": "f089e07970dd93cf70c4d65bcf4513763bfb336e44b1679aed8c2e5bc0402d1a",
+      "returnsOnlyFmodOk": false
+    },
+    "?getSoftwareFormat@System@FMOD@@QEAA?AW4FMOD_RESULT@@PEAHPEAW4FMOD_SPEAKERMODE@@0@Z": {
+      "primaryIat": 11331424,
+      "table": 24574,
+      "function": 24945,
+      "bodySha256": "72a32f2c60784bff43632c666d544b9308ca5e52370ca950687d6c6e2b9c0a20",
+      "returnsOnlyFmodOk": false
+    },
+    "?setSoftwareFormat@System@FMOD@@QEAA?AW4FMOD_RESULT@@HW4FMOD_SPEAKERMODE@@H@Z": {
+      "primaryIat": 11331432,
+      "table": 24575,
+      "function": 24972,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?release@System@FMOD@@QEAA?AW4FMOD_RESULT@@XZ": {
+      "primaryIat": 11331440,
+      "table": 24576,
+      "function": 24958,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "FMOD_Channel_GetDSPClock": {
+      "primaryIat": 11331448,
+      "table": 24577,
+      "function": 24915,
+      "bodySha256": "3a11e4c9fde43aeb886601f1afc1f3b84bda4eddd841001bac514f59f59915a3",
+      "returnsOnlyFmodOk": false
+    },
+    "FMOD_Channel_GetDelay": {
+      "primaryIat": 11331456,
+      "table": 24578,
+      "function": 24916,
+      "bodySha256": "3a11e4c9fde43aeb886601f1afc1f3b84bda4eddd841001bac514f59f59915a3",
+      "returnsOnlyFmodOk": false
+    },
+    "FMOD_Debug_Initialize": {
+      "primaryIat": 11331464,
+      "table": 24579,
+      "function": 24919,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "FMOD_Channel_RemoveFadePoints": {
+      "primaryIat": 11331472,
+      "table": 24580,
+      "function": 24918,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?setPosition@Channel@FMOD@@QEAA?AW4FMOD_RESULT@@II@Z": {
+      "primaryIat": 11331480,
+      "table": 24581,
+      "function": 24971,
+      "bodySha256": "ba0a29d2bf47aba82dca1e64be772b1563d7057d44a3b4f1dcaeea669a69f014",
+      "returnsOnlyFmodOk": false
+    },
+    "?getPosition@Channel@FMOD@@QEAA?AW4FMOD_RESULT@@PEAII@Z": {
+      "primaryIat": 11331488,
+      "table": 24582,
+      "function": 24944,
+      "bodySha256": "180ed46ef3e4878e026739d0251296cac851c30a39f060f93b332cbb95a75ff5",
+      "returnsOnlyFmodOk": false
+    },
+    "?setLoopCount@Channel@FMOD@@QEAA?AW4FMOD_RESULT@@H@Z": {
+      "primaryIat": 11331496,
+      "table": 24583,
+      "function": 24963,
+      "bodySha256": "9121386e2bcca5cce2f596414285fabac1e230094f1da6a1221838355686239f",
+      "returnsOnlyFmodOk": false
+    },
+    "?setLoopPoints@Channel@FMOD@@QEAA?AW4FMOD_RESULT@@IIII@Z": {
+      "primaryIat": 11331504,
+      "table": 24584,
+      "function": 24965,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?getLoopPoints@Channel@FMOD@@QEAA?AW4FMOD_RESULT@@PEAII0I@Z": {
+      "primaryIat": 11331512,
+      "table": 24585,
+      "function": 24937,
+      "bodySha256": "8506aab2d79afecbef78b5542bc63f81208b87686cc5bd1c8940c13e3e2677ed",
+      "returnsOnlyFmodOk": false
+    },
+    "?getCurrentSound@Channel@FMOD@@QEAA?AW4FMOD_RESULT@@PEAPEAVSound@2@@Z": {
+      "primaryIat": 11331520,
+      "table": 24586,
+      "function": 24932,
+      "bodySha256": "4d79c24e7638f175ef2bf988a6c594ee57e70885584e7e6e0a0539a31493ab71",
+      "returnsOnlyFmodOk": false
+    },
+    "?release@ChannelGroup@FMOD@@QEAA?AW4FMOD_RESULT@@XZ": {
+      "primaryIat": 11331528,
+      "table": 24587,
+      "function": 24955,
+      "bodySha256": "b30f893e6c90baa032549fa563feb853e68c1949c117e4bc5a9eebf461c87c27",
+      "returnsOnlyFmodOk": false
+    },
+    "?addGroup@ChannelGroup@FMOD@@QEAA?AW4FMOD_RESULT@@PEAV12@_NPEAPEAVDSPConnection@2@@Z": {
+      "primaryIat": 11331536,
+      "table": 24588,
+      "function": 24925,
+      "bodySha256": "4908512ee72ef66a6cfa9d5eed1e0d314ce69fa4e47d81aa56270c6185a4d254",
+      "returnsOnlyFmodOk": false
+    },
+    "?getNumChannels@ChannelGroup@FMOD@@QEAA?AW4FMOD_RESULT@@PEAH@Z": {
+      "primaryIat": 11331544,
+      "table": 24589,
+      "function": 24939,
+      "bodySha256": "698b33ca52429479cea5791161b9d0482673388aea5e8e5e1b633e84acfb6039",
+      "returnsOnlyFmodOk": false
+    },
+    "?getChannel@ChannelGroup@FMOD@@QEAA?AW4FMOD_RESULT@@HPEAPEAVChannel@2@@Z": {
+      "primaryIat": 11331552,
+      "table": 24590,
+      "function": 24931,
+      "bodySha256": "6c6097ebccccd1c11e751541e4b48d45f11845ad0846eec4daef011f1a7d0239",
+      "returnsOnlyFmodOk": false
+    },
+    "?release@DSP@FMOD@@QEAA?AW4FMOD_RESULT@@XZ": {
+      "primaryIat": 11331560,
+      "table": 24591,
+      "function": 24956,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?setParameterFloat@DSP@FMOD@@QEAA?AW4FMOD_RESULT@@HM@Z": {
+      "primaryIat": 11331568,
+      "table": 24592,
+      "function": 24968,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?setParameterBool@DSP@FMOD@@QEAA?AW4FMOD_RESULT@@H_N@Z": {
+      "primaryIat": 11331576,
+      "table": 24593,
+      "function": 24967,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?setMeteringEnabled@DSP@FMOD@@QEAA?AW4FMOD_RESULT@@_N0@Z": {
+      "primaryIat": 11331584,
+      "table": 24594,
+      "function": 24966,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?getMeteringInfo@DSP@FMOD@@QEAA?AW4FMOD_RESULT@@PEAUFMOD_DSP_METERING_INFO@@0@Z": {
+      "primaryIat": 11331592,
+      "table": 24595,
+      "function": 24938,
+      "bodySha256": "970e2d19253c06ec83e63417feb892ed709cd142c614cd0c7cde5eaf600aef52",
+      "returnsOnlyFmodOk": false
+    },
+    "?stop@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@XZ": {
+      "primaryIat": 11331600,
+      "table": 24596,
+      "function": 24976,
+      "bodySha256": "c773b1dca51253cea21fe8dc78e5c061f6041c80b44b83b272057c682d329f91",
+      "returnsOnlyFmodOk": false
+    },
+    "?setPaused@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@_N@Z": {
+      "primaryIat": 11331608,
+      "table": 24597,
+      "function": 24969,
+      "bodySha256": "2a1a5abbfa7c4ac96048fb75401257d12b470d85cbc38c5212b092503c393328",
+      "returnsOnlyFmodOk": false
+    },
+    "?getPaused@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@PEA_N@Z": {
+      "primaryIat": 11331616,
+      "table": 24598,
+      "function": 24942,
+      "bodySha256": "8eeb0b74680363eaf9b2fb3ac366368dda57e3e5c06c7b033a59b8db402e63e6",
+      "returnsOnlyFmodOk": false
+    },
+    "?setVolume@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@M@Z": {
+      "primaryIat": 11331624,
+      "table": 24599,
+      "function": 24975,
+      "bodySha256": "3669473f8e8bd9871fd3c64fe44c22bf91f012e12e1b847c980f600f65cbbb27",
+      "returnsOnlyFmodOk": false
+    },
+    "?getVolume@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@PEAM@Z": {
+      "primaryIat": 11331632,
+      "table": 24600,
+      "function": 24949,
+      "bodySha256": "b4b14633d10154db4d71a55cf71a1e44a083485f64119a7f2bd6e085860177da",
+      "returnsOnlyFmodOk": false
+    },
+    "?setVolumeRamp@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@_N@Z": {
+      "primaryIat": 11331640,
+      "table": 24601,
+      "function": 24974,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?setPitch@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@M@Z": {
+      "primaryIat": 11331648,
+      "table": 24602,
+      "function": 24970,
+      "bodySha256": "9b0319bde582ec22391c38fba2b5e8f4b7e8c6716e137b404836d81f98eb884d",
+      "returnsOnlyFmodOk": false
+    },
+    "?getPitch@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@PEAM@Z": {
+      "primaryIat": 11331656,
+      "table": 24603,
+      "function": 24943,
+      "bodySha256": "135e2894241d55288deecf634aa14130d42251b865db454d8d94e0e97119c35c",
+      "returnsOnlyFmodOk": false
+    },
+    "?setCallback@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@P6A?AW43@PEAUFMOD_CHANNELCONTROL@@W4FMOD_CHANNELCONTROL_TYPE@@W4FMOD_CHANNELCONTROL_CALLBACK_TYPE@@PEAX3@Z@Z": {
+      "primaryIat": 11331664,
+      "table": 24604,
+      "function": 24960,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?getDSPClock@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@PEA_K0@Z": {
+      "primaryIat": 11331672,
+      "table": 24605,
+      "function": 24934,
+      "bodySha256": "094157a3f591fe3cfca24e348a44593d3fe7c8ee17fa81614cd784a0bae644b4",
+      "returnsOnlyFmodOk": false
+    },
+    "?setDelay@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@_K0_N@Z": {
+      "primaryIat": 11331680,
+      "table": 24606,
+      "function": 24962,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?addFadePoint@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@_KM@Z": {
+      "primaryIat": 11331688,
+      "table": 24607,
+      "function": 24924,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?getDSP@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@HPEAPEAVDSP@2@@Z": {
+      "primaryIat": 11331696,
+      "table": 24608,
+      "function": 24935,
+      "bodySha256": "2e0f31be0561ba3b522aecb0b0551b1e31351b12fa6a764860bab3ad120ea7bb",
+      "returnsOnlyFmodOk": false
+    },
+    "?addDSP@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@HPEAVDSP@2@@Z": {
+      "primaryIat": 11331704,
+      "table": 24609,
+      "function": 24923,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?removeDSP@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@PEAVDSP@2@@Z": {
+      "primaryIat": 11331712,
+      "table": 24610,
+      "function": 24959,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?getNumDSPs@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@PEAH@Z": {
+      "primaryIat": 11331720,
+      "table": 24611,
+      "function": 24940,
+      "bodySha256": "841b3bff974b76516a397b819abda748d4e1187ae9a0372d868b337d36cdaaa9",
+      "returnsOnlyFmodOk": false
+    },
+    "?setUserData@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@PEAX@Z": {
+      "primaryIat": 11331728,
+      "table": 24612,
+      "function": 24973,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    },
+    "?getUserData@ChannelControl@FMOD@@QEAA?AW4FMOD_RESULT@@PEAPEAX@Z": {
+      "primaryIat": 11331736,
+      "table": 24613,
+      "function": 24947,
+      "bodySha256": "bbc8e6c68edc30aabe1d54974cf2ad0a5d507b14950c10b2b032f107573edc92",
+      "returnsOnlyFmodOk": false
+    },
+    "?release@Sound@FMOD@@QEAA?AW4FMOD_RESULT@@XZ": {
+      "primaryIat": 11331744,
+      "table": 24614,
+      "function": 24957,
+      "bodySha256": "f657f6b4bd169dcfcbd99a58d1af0eda9852fd8aaa47d5cab9dc102bd8fa4c98",
+      "returnsOnlyFmodOk": false
+    },
+    "?getLength@Sound@FMOD@@QEAA?AW4FMOD_RESULT@@PEAII@Z": {
+      "primaryIat": 11331752,
+      "table": 24615,
+      "function": 24936,
+      "bodySha256": "b38323acdac8197b1612f7286595236e1729a0b314adffb690421f57f8b8736b",
+      "returnsOnlyFmodOk": false
+    },
+    "?getOpenState@Sound@FMOD@@QEAA?AW4FMOD_RESULT@@PEAW4FMOD_OPENSTATE@@PEAIPEA_N2@Z": {
+      "primaryIat": 11331760,
+      "table": 24616,
+      "function": 24941,
+      "bodySha256": "4b91ace9e2eea28bb9f72736dcc62fe4d6355a23748fb87ed341d6548432a637",
+      "returnsOnlyFmodOk": false
+    },
+    "?setLoopCount@Sound@FMOD@@QEAA?AW4FMOD_RESULT@@H@Z": {
+      "primaryIat": 11331768,
+      "table": 24617,
+      "function": 24964,
+      "bodySha256": "682d572808e564a691ad86654714d979a4e5477103e4786ba05bea5f90c3966b",
+      "returnsOnlyFmodOk": true
+    }
+  }
+}

@@ -29,6 +29,7 @@ jobs:
       - name: Verify actual adapter and matched native contract
         run: |
           python experiments/fmod-bridge/build.py /tmp/fmod/gd.wasm /tmp/fmod/primary.img /tmp/fmod/test
+          python experiments/fmod-bridge/adapter_catalog.py /tmp/fmod/gd.wasm /tmp/fmod/primary.img --check
           node experiments/fmod-bridge/verify.cjs /tmp/fmod/test
           python experiments/fmod-bridge/verify_native.py /tmp/fmod/test
       - uses: actions/upload-artifact@v4

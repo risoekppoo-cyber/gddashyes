@@ -38,6 +38,16 @@ for(const name of ['alpha','new name 😀']){
 }
 prepare();v.setBigUint64(cpu+8,123n,true);assert.throws(()=>threads.invoke('kernel32.dll!GetThreadDescription',memory,cpu,'main'),/UNMODELED_THREAD_HANDLE/);
 for(const check of report.nativeExportChecks){assert.equal(modules.resolve(memory,check.module,check.name),check.address);assert.equal(modules.resolve(memory,check.module,check.ordinal),check.address);}
+for(const m of expected.modules.filter(m=>m.browserAdapterProvider)){
+ for(const [name,entry] of Object.entries(m.entries)){assert.equal(modules.resolve(memory,m.base,name),entry.address);assert.equal(Buffer.from(memory.buffer,entry.address,entry.codeHex.length/2).toString('hex'),entry.codeHex);}
+ assert.throws(()=>modules.resolve(memory,m.base,'unimplemented_fmod_export'),/UNMODELED_EXPORT/);
+}
+const pathModule=expected.modules.find(m=>m.primary&&m.path);
+if(pathModule){
+ const run=(capacity)=>{prepare();v.setBigUint64(cpu+8,0n,true);v.setBigUint64(cpu+16,24576n,true);v.setBigUint64(cpu+64,BigInt(capacity),true);return modules.invoke('KERNEL32.dll!GetModuleFileNameW',memory,cpu);};
+ error=42;assert.equal(run(pathModule.path.length+1),pathModule.path.length);assert.equal(error,42);assert.equal(Buffer.from(memory.buffer,24576,(pathModule.path.length+1)*2).toString('utf16le'),pathModule.path+'\0');
+ assert.equal(run(1),1);assert.equal(error,122);assert.equal(v.getUint16(24576,true),0);assert.equal(run(0),0);
+}
 const header=v.getUint32(ntdll+0x3c,true);v.setUint32(ntdll+header+24+112,0x10001,true);
 assert.throws(()=>modules.resolve(memory,ntdll,'RtlGetVersion'),/bounds/);
 console.log('PASS: PE export resolution, explicit absence, unknown rejection, callable gateway, UTF-16 thread name ownership');

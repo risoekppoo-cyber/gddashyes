@@ -26,11 +26,11 @@ class CrtRuntime:
    if ch==0xffffffff:return ch
    if ch>255:raise RuntimeError('UNMODELED_CRT_CTYPE_ARGUMENT')
    return ch+32 if 65<=ch<=90 else ch
-  if key=='isspace':
+  if key in ['isspace','isalpha']:
    ch=a&0xffffffff
    if ch==0xffffffff:return 0
    if ch>255:raise RuntimeError('UNMODELED_CRT_CTYPE_ARGUMENT')
-   return int.from_bytes(self.read(self.base+0x900+ch*2,2),'little')&8
+   return int.from_bytes(self.read(self.base+0x900+ch*2,2),'little')&(8 if key=='isspace' else 3)
   if key=='localeconv':self.locale_conv_queries+=1;return self.base+0x400
   if key=='__pctype_func':return self.base+0x900
   if key in ['___lc_codepage_func','___lc_collate_cp_func']:return 0

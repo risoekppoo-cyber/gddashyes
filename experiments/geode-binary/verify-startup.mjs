@@ -1,3 +1,7 @@
+import {ExecutableMemory} from './executable-memory.mjs';
+import {GuestDirectories} from './guest-directories.mjs';
+import {getFullPathNameW} from './windows-paths.mjs';
+import {convertUtf8} from './windows-text.mjs';
 import {systemTimeToFileTime} from './windows-time.mjs';
 import {readFile,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -29,7 +33,8 @@ assert.equal(report.firstTranslationBlocker,null,'Native path contains unsupport
 assert.deepEqual(report.unmodeledTibReads,[],'Native path used an unmodeled TEB field');
 assert.equal(report.originalX64InstructionsExecuted,expected.instructions,'Native report and reference disagree');
 assert.deepEqual(report.hostCalls,expected.hostCalls,'Host call transcript is stale');
-const memory=new WebAssembly.Memory({initial:Math.max(1024,...expected.modules.map(m=>Math.ceil((m.base+m.size)/65536))),maximum:65536});
+const memory=new WebAssembly.Memory({initial:Math.max(1024,report.executableMemory?Math.ceil((report.executableMemory.base+report.executableMemory.size)/65536):0,...expected.modules.map(m=>Math.ceil((m.base+m.size)/65536))),maximum:65536});
+const executableMemory=report.executableMemory?new ExecutableMemory(memory):null;
 const instance=await instantiateStartupLift(wasm,memory),v=new DataView(memory.buffer),cpu=4096;
 new Uint8Array(memory.buffer,expected.base,image.length).set(image);
 for(const m of expected.modules.filter(m=>m.name!=='Geode.dll'))new Uint8Array(memory.buffer,m.base,m.size).set(await readFile(dir+'/module-'+m.base.toString(16)+'.bin'));
@@ -44,6 +49,7 @@ v.setBigUint64(cpu+8,BigInt(expected.base),true);v.setBigUint64(cpu+16,1n,true);
 v.setBigUint64(cpu+32,0x2fff08n,true);v.setBigUint64(0x2fff08,0x1234fedcn,true);
 const threads=new GuestThreads();threads.register('main');
 let currentCall;const services=new StartupServices({counter:()=>BigInt(currentCall.counter),tibBase:expected.tibBase,version:report.windowsCompatibilityProfile});
+const directories=report.guestDirectoryHandles?new GuestDirectories(expected.modules):null;
 const modules=new GuestModules(expected.modules,{setLastError:value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);}});
 const heap=new GuestHeap(memory,report.crtHeap);
 const crtRuntime=new CrtRuntime(memory,report.crtRuntime);
@@ -81,12 +87,16 @@ for(let transfers=0;transfers<transferLimit;transfers++){
  assert.ok(call&&pc===BigInt(call.address),'Unexpected native import');
  if(call.name==='api-ms-win-crt-math-l1-1-0.dll!ceilf')assert.equal(BigInt(ceilf(memory,cpu)),BigInt(call.outputBits));
  else if(/^(api-ms-win-crt-string-.*|VCRUNTIME140.dll)!(strlen|wcslen|memcpy|memmove|memset|memcmp|memchr|strcpy_s|strcmp)$/i.test(call.name))assert.equal(crtString(call.name,memory,cpu),BigInt(call.result));
+ else if(/!virtualalloc$/i.test(call.name))assert.equal(executableMemory.invoke(memory,cpu,value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);}),BigInt(call.result));
+ else if(/!(createfilew|getfinalpathnamebyhandlew|closehandle)$/i.test(call.name))assert.equal(directories.invoke(call.name,memory,cpu,value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);}),BigInt(call.result));
+ else if(/!getfullpathnamew$/i.test(call.name))assert.equal(getFullPathNameW(memory,cpu),call.result);
+ else if(/!(widechartomultibyte|multibytetowidechar)$/i.test(call.name))assert.equal(convertUtf8(call.name,memory,cpu,value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);}),call.result);
  else if(/!(initializeslisthead|interlockedpushentryslist)$/i.test(call.name))slists.invoke(call.name,memory,cpu);
  else if(/!(flsalloc|flsgetvalue|flssetvalue|flsfree)$/i.test(call.name))fls.invoke(call.name,memory,cpu);
  else if(call.action==='initializeDependency')loads.begin(expected.modules.find(m=>m.base===call.base),memory,cpu);
  else if((/^api-ms-win-crt-heap-.*!(malloc|free|calloc|realloc|_msize)$/.test(call.name))||call.name==='api-ms-win-crt-runtime-l1-1-0.dll!_errno'){
   const value=heap.invoke(call.name,cpu);assert.equal(value===undefined?null:'0x'+value.toString(16),call.result);
- }else if(/!(getmodulehandle[aw]|getprocaddress|disablethreadlibrarycalls|rtlpctofileheader|loadlibraryexw)$/i.test(call.name)){
+ }else if(/!(getmodulehandle[aw]|getprocaddress|disablethreadlibrarycalls|rtlpctofileheader|loadlibraryexw|getmodulefilenamew)$/i.test(call.name)){
   const result=modules.invoke(call.name,memory,cpu);assert.equal(BigInt(result),BigInt(call.result));
  }else if(/!(getcurrentthread|setthreaddescription|getthreaddescription|localfree)$/i.test(call.name))threads.invoke(call.name,memory,cpu,'main');
  else if(call.name.toLowerCase()==='kernel32.dll!systemtimetofiletime'){const result=systemTimeToFileTime(memory,cpu,value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);});assert.equal(result===null?null:'0x'+result.toString(16),call.ticks);}
@@ -99,7 +109,7 @@ for(let transfers=0;transfers<transferLimit;transfers++){
  }else if(call.name.endsWith('!_register_onexit_function'))onexit.register(memory,cpu);
  else if(/!((try)?acquire|release|initialize)srwlock/i.test(call.name))locks.invoke(call.name,memory,cpu);
  else if(/!(encodepointer|decodepointer)$/i.test(call.name))pointers.invoke(call.name,memory,cpu);
- else if(/!(__acrt_iob_func|_get_stream_buffer_pointers|_lock_file|_unlock_file|_crt_atexit|_set_new_handler|_lock_locales|_unlock_locales|setlocale|___lc_codepage_func|___lc_collate_cp_func|___mb_cur_max_func|___lc_locale_name_func|__pctype_func|localeconv|isspace|tolower)$/i.test(call.name))crtRuntime.invoke(call.name,cpu);
+ else if(/!(__acrt_iob_func|_get_stream_buffer_pointers|_lock_file|_unlock_file|_crt_atexit|_set_new_handler|_lock_locales|_unlock_locales|setlocale|___lc_codepage_func|___lc_collate_cp_func|___mb_cur_max_func|___lc_locale_name_func|__pctype_func|localeconv|isspace|tolower|isalpha)$/i.test(call.name))crtRuntime.invoke(call.name,cpu);
  else if(/!(initializecriticalsection(ex|andspincount)?|entercriticalsection|tryentercriticalsection|leavecriticalsection|deletecriticalsection)$/i.test(call.name))critical.invoke(call.name,memory,cpu);
  else if(/!(wakeall|wake|initialize)conditionvariable/i.test(call.name))conditions.invoke(call.name,memory,cpu);
  else if(call.name.endsWith('!_initterm_e')||call.name.endsWith('!_initterm'))initializers.begin(call.name,memory,cpu);
@@ -136,6 +146,8 @@ report.dependencyTlsCallbacksCompleted=loads.completedTls;report.dependencyEntri
 for(const m of expected.modules.filter(m=>m.systemContract))assert.equal(m.loadReferences,report.guestModules.find(x=>x.base===m.base).loadReferences);
 if(report.slists)assert.deepEqual(slists.snapshot(),report.slists);
 if(report.fiberLocalStorage)assert.deepEqual(fls.snapshot(),report.fiberLocalStorage);
+if(report.executableMemory){assert.deepEqual(executableMemory.snapshot(),report.executableMemory);assert.deepEqual(Buffer.from(memory.buffer,executableMemory.base,executableMemory.size),await readFile(dir+'/executable-arena-after.bin'));}
+if(report.guestDirectoryHandles)assert.deepEqual(directories.snapshot(),report.guestDirectoryHandles);
 report.moduleLookups=modules.lookups;report.exportResolutions=modules.resolutions;report.shimModuleImagesMatch=true;
 Object.assign(report,{status:'DLL_STARTUP_PREFIX_VERIFIED',wasmStartupExecuted:true,
  wasmStartupInstructions:steps,allGeneralRegistersMatch:true,entireNativeStackMatches:true,

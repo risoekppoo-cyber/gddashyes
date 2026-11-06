@@ -9,6 +9,8 @@ on:
       - 'experiments/geode-binary/cpu-profile.json'
       - 'experiments/geode-binary/windows-profile.json'
       - 'experiments/geode-binary/c-locale-reference.json'
+      - 'experiments/fmod-bridge/adapter-map.json'
+      - 'experiments/fmod-bridge/result.json'
   workflow_dispatch:
 permissions:
   contents: read
@@ -45,6 +47,7 @@ jobs:
           python experiments/geode-binary/fetch_vcruntime.py /tmp/geode-startup/vcruntime140-x64.dll
       - name: Verify actual DLL startup and boundary contracts
         env:
+          GEODE_FMOD_BRIDGE: ${{ matrix.mode == 'combined' && '1' || '' }}
           GEODE_MSVCP_BOOT: '1'
           GEODE_INSTRUCTION_LIMIT: 2000000
           GEODE_DLL: /tmp/geode-startup/Geode.dll

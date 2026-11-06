@@ -24,7 +24,7 @@ export class CrtRuntime {
   const address=(p,n)=>{if(p<=0n||p>0xffffffffn||Number(p)+n>v.byteLength)throw Error('CRT access bounds');return Number(p);};
   const stack=address(sp,8),ret=v.getBigUint64(stack,true);let result;
   if(key==='tolower'){const ch=Number(arg&0xffffffffn);if(ch!==0xffffffff&&ch>255)throw Error('UNMODELED_CRT_CTYPE_ARGUMENT');result=BigInt(ch>=65&&ch<=90?ch+32:ch);}
-  else if(key==='isspace'){const ch=Number(arg&0xffffffffn);if(ch!==0xffffffff&&ch>255)throw Error('UNMODELED_CRT_CTYPE_ARGUMENT');result=ch===0xffffffff?0n:BigInt(v.getUint16(this.base+0x900+ch*2,true)&8);}
+  else if((key==='isspace'||key==='isalpha')){const ch=Number(arg&0xffffffffn);if(ch!==0xffffffff&&ch>255)throw Error('UNMODELED_CRT_CTYPE_ARGUMENT');result=ch===0xffffffff?0n:BigInt(v.getUint16(this.base+0x900+ch*2,true)&(key==='isspace'?8:3));}
   else if(key==='localeconv'){this.localeConvQueries++;result=BigInt(this.base+0x400);}
   else if(key==='__pctype_func')result=BigInt(this.base+0x900);
   else if(key==='___lc_codepage_func'||key==='___lc_collate_cp_func')result=0n;
