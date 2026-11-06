@@ -21,6 +21,16 @@ class CrtRuntime:
   for i,p in enumerate(self.files):self.write(p+32,struct.pack('<I',i))
  def invoke(self,name,a,b=0,c=0,d=0,thread=1):
   key=name.split('!')[-1].lower()
+  if key=='tolower':
+   ch=a&0xffffffff
+   if ch==0xffffffff:return ch
+   if ch>255:raise RuntimeError('UNMODELED_CRT_CTYPE_ARGUMENT')
+   return ch+32 if 65<=ch<=90 else ch
+  if key=='isspace':
+   ch=a&0xffffffff
+   if ch==0xffffffff:return 0
+   if ch>255:raise RuntimeError('UNMODELED_CRT_CTYPE_ARGUMENT')
+   return int.from_bytes(self.read(self.base+0x900+ch*2,2),'little')&8
   if key=='localeconv':self.locale_conv_queries+=1;return self.base+0x400
   if key=='__pctype_func':return self.base+0x900
   if key in ['___lc_codepage_func','___lc_collate_cp_func']:return 0

@@ -275,7 +275,7 @@ def code(uc,pc,length,_):
    else:result=(((value>>17)|(value<<47))&mask)^pointer_key;pointer_decodes+=1
    host_calls.append({'address':hex(pc),'name':imports[pc]});sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
    uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
-  if name.split('!')[-1] in ['__acrt_iob_func','_get_stream_buffer_pointers','_lock_file','_unlock_file','_crt_atexit','_set_new_handler','_lock_locales','_unlock_locales','setlocale','___lc_codepage_func','___lc_collate_cp_func','___mb_cur_max_func','___lc_locale_name_func','__pctype_func','localeconv']:
+  if name.split('!')[-1] in ['__acrt_iob_func','_get_stream_buffer_pointers','_lock_file','_unlock_file','_crt_atexit','_set_new_handler','_lock_locales','_unlock_locales','setlocale','___lc_codepage_func','___lc_collate_cp_func','___mb_cur_max_func','___lc_locale_name_func','__pctype_func','localeconv','isspace','tolower']:
    args=[uc.reg_read(register) for register in [x.UC_X86_REG_RCX,x.UC_X86_REG_RDX,x.UC_X86_REG_R8,x.UC_X86_REG_R9]]
    try:result=crt_runtime.invoke(name,*args)
    except RuntimeError as error:stop.update(reason=str(error),importName=imports[pc]);uc.emu_stop();return
@@ -307,7 +307,7 @@ def code(uc,pc,length,_):
    else:result=1;module['threadCalloutsDisabled']=True
    host_calls.append({'address':hex(pc),'name':imports[pc],'module':hex(handle),'result':hex(result)});sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
    uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
-  if (name.startswith('api-ms-win-crt-string-') or name.startswith('vcruntime140.dll!')) and name.split('!')[-1] in ['strlen','wcslen','memcpy','memmove','memset','memcmp']:
+  if (name.startswith('api-ms-win-crt-string-') or name.startswith('vcruntime140.dll!')) and name.split('!')[-1] in ['strlen','wcslen','memcpy','memmove','memset','memcmp','memchr']:
    symbol=name.split('!')[-1];a=uc.reg_read(x.UC_X86_REG_RCX);b=uc.reg_read(x.UC_X86_REG_RDX);n=uc.reg_read(x.UC_X86_REG_R8)
    if symbol in ['strlen','wcslen']:
     result=0;width=2 if symbol=='wcslen' else 1
@@ -317,6 +317,9 @@ def code(uc,pc,length,_):
     assert n<=0x800000;result=a
     if symbol=='memset':
      if n:uc.mem_write(a,bytes([b&255])*n)
+    elif symbol=='memchr':
+     found=bytes(uc.mem_read(a,n)).find(bytes([b&255])) if n else -1
+     result=a+found if found>=0 else 0
     elif symbol in ['memcpy','memmove']:
      if n:
       if symbol=='memcpy':assert not(a<b+n and b<a+n)

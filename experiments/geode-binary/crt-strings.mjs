@@ -8,7 +8,9 @@ export function crtString(name,memory,cpu){
  else if(symbol==='memcpy'||symbol==='memmove'){
   if(n){const to=range(a,n),from=range(b,n);if(symbol==='memcpy'&&to<from+Number(n)&&from<to+Number(n))throw Error('CRT memcpy overlap');bytes.copyWithin(to,from,from+Number(n));}result=a;
  }else if(symbol==='memset'){if(n)bytes.fill(Number(b&255n),range(a,n),Number(a+n));result=a;}
- else if(symbol==='memcmp'){
+ else if(symbol==='memchr'){
+  result=0n;if(n){const from=range(a,n),found=bytes.subarray(from,from+Number(n)).indexOf(Number(b&255n));if(found>=0)result=a+BigInt(found);}
+ }else if(symbol==='memcmp'){
   result=0n;if(n){const x=range(a,n),y=range(b,n);for(let i=0;i<Number(n);i++)if(bytes[x+i]!==bytes[y+i]){result=BigInt(bytes[x+i]-bytes[y+i]);break;}}
   result=BigInt.asUintN(32,result);
  }else throw Error('Unknown CRT string API');

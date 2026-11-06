@@ -71,7 +71,7 @@ for(let transfers=0;transfers<4096;transfers++){
  currentCall=call;
  assert.ok(call&&pc===BigInt(call.address),'Unexpected native import');
  if(call.name==='api-ms-win-crt-math-l1-1-0.dll!ceilf')assert.equal(BigInt(ceilf(memory,cpu)),BigInt(call.outputBits));
- else if(/^(api-ms-win-crt-string-.*|VCRUNTIME140.dll)!(strlen|wcslen|memcpy|memmove|memset|memcmp)$/i.test(call.name))assert.equal(crtString(call.name,memory,cpu),BigInt(call.result));
+ else if(/^(api-ms-win-crt-string-.*|VCRUNTIME140.dll)!(strlen|wcslen|memcpy|memmove|memset|memcmp|memchr)$/i.test(call.name))assert.equal(crtString(call.name,memory,cpu),BigInt(call.result));
  else if(call.action==='initializeDependency')loads.begin(expected.modules.find(m=>m.base===call.base),memory,cpu);
  else if((/^api-ms-win-crt-heap-.*!(malloc|free|calloc|realloc|_msize)$/.test(call.name))||call.name==='api-ms-win-crt-runtime-l1-1-0.dll!_errno'){
   const value=heap.invoke(call.name,cpu);assert.equal(value===undefined?null:'0x'+value.toString(16),call.result);
@@ -87,7 +87,7 @@ for(let transfers=0;transfers<4096;transfers++){
  }else if(call.name.endsWith('!_register_onexit_function'))onexit.register(memory,cpu);
  else if(/!((try)?acquire|release|initialize)srwlock/i.test(call.name))locks.invoke(call.name,memory,cpu);
  else if(/!(encodepointer|decodepointer)$/i.test(call.name))pointers.invoke(call.name,memory,cpu);
- else if(/!(__acrt_iob_func|_get_stream_buffer_pointers|_lock_file|_unlock_file|_crt_atexit|_set_new_handler|_lock_locales|_unlock_locales|setlocale|___lc_codepage_func|___lc_collate_cp_func|___mb_cur_max_func|___lc_locale_name_func|__pctype_func|localeconv)$/i.test(call.name))crtRuntime.invoke(call.name,cpu);
+ else if(/!(__acrt_iob_func|_get_stream_buffer_pointers|_lock_file|_unlock_file|_crt_atexit|_set_new_handler|_lock_locales|_unlock_locales|setlocale|___lc_codepage_func|___lc_collate_cp_func|___mb_cur_max_func|___lc_locale_name_func|__pctype_func|localeconv|isspace|tolower)$/i.test(call.name))crtRuntime.invoke(call.name,cpu);
  else if(/!(initializecriticalsection(ex|andspincount)?|entercriticalsection|tryentercriticalsection|leavecriticalsection|deletecriticalsection)$/i.test(call.name))critical.invoke(call.name,memory,cpu);
  else if(/!(wakeall|wake|initialize)conditionvariable/i.test(call.name))conditions.invoke(call.name,memory,cpu);
  else if(call.name.endsWith('!_initterm_e')||call.name.endsWith('!_initterm'))initializers.begin(call.name,memory,cpu);

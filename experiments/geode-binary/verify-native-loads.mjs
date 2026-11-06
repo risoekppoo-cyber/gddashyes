@@ -17,5 +17,6 @@ function call(symbol,a,b=0n,n=0n){prepare();v.setBigUint64(cpu+8,a,true);v.setBi
 assert.equal(call('strlen',32768n),2n);assert.equal(call('memcpy',32800n,32768n,4n),32800n);assert.deepEqual([...bytes.slice(32800,32804)],[65,66,0,68]);
 assert.throws(()=>call('memcpy',32769n,32768n,3n),/overlap/);call('memmove',32769n,32768n,3n);assert.deepEqual([...bytes.slice(32768,32772)],[65,65,66,0]);
 assert.equal(call('memcmp',32768n,32800n,2n),0xffffffffn);call('memset',32800n,0x1234n,3n);assert.deepEqual([...bytes.slice(32800,32803)],[0x34,0x34,0x34]);
+bytes.set([0x81,0,0x81,0xff],32900);assert.equal(call('memchr',32900n,0x181n,4n),32900n);assert.equal(call('memchr',32900n,0n,4n),32901n);assert.equal(call('memchr',32900n,0xffn,3n),0n);assert.equal(call('memchr',32900n,0xffn,4n),32903n);assert.equal(call('memchr',0n,0n,0n),0n);assert.throws(()=>call('memchr',BigInt(memory.buffer.byteLength)-1n,1n,2n),/bounds/);
 assert.throws(()=>call('strlen',BigInt(memory.buffer.byteLength)),/bounds/);assert.throws(()=>call('memcpy',32800n,32768n,0x800001n),/bounds/);
 console.log('PASS: TLS-before-attach, real native frame handoff, delayed load completion, failed attach rejection, bounded CRT string/memory operations');
