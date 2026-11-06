@@ -22,6 +22,7 @@ node experiments/geode-binary/verify-native-initializers.mjs
 node experiments/geode-binary/verify-synchronization.mjs
 python experiments/geode-binary/startup-smoke.py "$GEODE_DLL" "$GEODE_OUT" > "$GEODE_OUT/report.json"
 python -c 'import json,sys;d=json.load(open(sys.argv[1]));assert d["firstTranslationBlocker"] is None,d;assert not d["unmodeledTibReads"],d' "$GEODE_OUT/report.json"
+node experiments/geode-binary/verify-guest-modules.mjs "$GEODE_OUT"
 compile "$GEODE_OUT/startup.c" "$GEODE_OUT/startup.wasm" wide
 node experiments/geode-binary/verify-startup.mjs "$GEODE_OUT" "$GEODE_OUT/report.json"
 python experiments/geode-binary/verify-alu.py "$GEODE_OUT"

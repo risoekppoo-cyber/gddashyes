@@ -3,13 +3,14 @@
 
 Unicorn executes original relocated x64 bytes; the reached instructions are
 then checked against the current binary translator. No API success is faked.
-TLS callbacks and actual Windows loader initialization are not provided.
+PE TLS callbacks and a bounded loader model precede the entrypoint.
 """
 import sys,json,hashlib,struct,time,uuid
 from pathlib import Path
 import pefile,pypcode,unicorn
 from unicorn import x86_const as x
 from lift import PIN,Lifter,LiftError
+from guest_modules import build_modules,module_handle,resolve_export
 
 path=Path(sys.argv[1]);assert hashlib.sha256(path.read_bytes()).hexdigest()==PIN
 pe=pefile.PE(str(path));base=0x2000000;preferred=pe.OPTIONAL_HEADER.ImageBase
@@ -30,6 +31,10 @@ for desc in pe.DIRECTORY_ENTRY_IMPORT:
   target=0x70000000+i*16;i+=1
   imports[target]=desc.dll.decode()+'!'+(imp.name.decode() if imp.name else '#'+str(imp.ordinal))
   uc.mem_write(imp.address-preferred+base,target.to_bytes(8,'little'))
+modules,module_images,module_gateways=build_modules(pe,base)
+for module_base,module_image in module_images.items():
+ uc.mem_map(module_base,len(module_image));uc.mem_write(module_base,module_image)
+imports.update(module_gateways)
 uc.reg_write(x.UC_X86_REG_RCX,base);uc.reg_write(x.UC_X86_REG_RDX,1)
 uc.reg_write(x.UC_X86_REG_R8,0);uc.reg_write(x.UC_X86_REG_RSP,0x2fff08)
 uc.mem_write(0x2fff08,(0x1234fedc).to_bytes(8,'little'))
@@ -81,7 +86,8 @@ def advance_initializer():
   initializer_events.append({'kind':'callback','target':hex(target)});return
  finish_initializer(0)
 clock_ms=time.time_ns()//1_000_000
-last_error=0;environment={}
+last_error=0;environment={};thread_description=None
+local_heap=0xa00000;local_heap_size=0x100000;uc.mem_map(local_heap,local_heap_size);local_next=local_heap;local_allocations={}
 srw_states={};tib_reads=[]
 def read_wide(p):
  chars=[]
@@ -90,8 +96,15 @@ def read_wide(p):
   if not ch:return bytes(b''.join(struct.pack('<H',c) for c in chars)).decode('utf-16le')
   chars.append(ch)
  raise RuntimeError('Unterminated environment string')
+def read_ansi(p):
+ text=bytearray()
+ for i in range(32768):
+  value=bytes(uc.mem_read(p+i,1))
+  if value==b'\0':return text.decode('latin1')
+  text+=value
+ raise RuntimeError('Unterminated ANSI string')
 def code(uc,pc,length,_):
- global next_allocation,last_error
+ global next_allocation,last_error,thread_description,local_next
  if pc in callback_returns:completed_tls.append(callback_returns[pc])
  if initializer_frames and pc==initializer_frames[-1]['sentinel']:
   f=initializer_frames[-1];assert uc.reg_read(x.UC_X86_REG_RSP)==f['callbackSp']+8
@@ -117,6 +130,38 @@ def code(uc,pc,length,_):
   uc.emu_stop();return
  if pc in imports:
   name=imports[pc].lower()
+  if name in ['kernel32.dll!getcurrentthread','kernel32.dll!setthreaddescription','kernel32.dll!getthreaddescription','kernel32.dll!localfree']:
+   call={'address':hex(pc),'name':imports[pc]}
+   if name.endswith('getcurrentthread'):result=0xfffffffffffffffe
+   elif name.endswith('localfree'):
+    p=uc.reg_read(x.UC_X86_REG_RCX)
+    if p:assert p in local_allocations;del local_allocations[p]
+    result=0
+   else:
+    handle=uc.reg_read(x.UC_X86_REG_RCX);p=uc.reg_read(x.UC_X86_REG_RDX)
+    if handle!=0xfffffffffffffffe:stop.update(reason='UNMODELED_THREAD_HANDLE',address=hex(pc),handle=hex(handle));uc.emu_stop();return
+    if name.endswith('setthreaddescription'):thread_description=read_wide(p);call['description']=thread_description;result=0
+    else:
+     data=(thread_description or '').encode('utf-16le')+b'\0\0';allocation=local_next;local_next+=(len(data)+15)&~15
+     assert local_next<=local_heap+local_heap_size
+     uc.mem_write(allocation,data);local_allocations[allocation]=len(data);uc.mem_write(p,struct.pack('<Q',allocation));result=0
+   host_calls.append(call);sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+   uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
+  if name in ['kernel32.dll!getmodulehandlea','kernel32.dll!getmodulehandlew','kernel32.dll!getprocaddress']:
+   call={'address':hex(pc),'name':imports[pc]};arg=uc.reg_read(x.UC_X86_REG_RCX)
+   try:
+    if name.endswith('getprocaddress'):
+     p=uc.reg_read(x.UC_X86_REG_RDX);symbol=p if p<=65535 else read_ansi(p);call['symbol']=symbol
+     result=resolve_export(modules,uc.mem_read,arg,symbol)
+     if not result:last_error=127;uc.mem_write(tib+0x68,struct.pack('<I',last_error))
+    else:
+     text=(read_wide(arg) if name.endswith('w') else read_ansi(arg)) if arg else None
+     call['module']=text;result=module_handle(modules,text)
+   except RuntimeError as error:
+    stop.update(reason=str(error).split(':')[0],detail=str(error),importName=imports[pc],address=hex(pc),**{k:v for k,v in call.items() if k not in ['name','address']});uc.emu_stop();return
+   call['result']=hex(result);host_calls.append(call)
+   sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+   uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
   if name in ['kernel32.dll!getsysteminfo','kernel32.dll!getnativesysteminfo']:
    p=uc.reg_read(x.UC_X86_REG_RCX)
    data=struct.pack('<HHIQQQIIIHH',9,0,4096,65536,0xffffffff,1,1,8664,65536,6,0);uc.mem_write(p,data)
@@ -289,6 +334,10 @@ report={'status':'DLL_STARTUP_BLOCKED','generationId':generation_id,'dllSha256':
  'guestThreadModel':'single registered main context','hostCalls':host_calls,'cpuCalls':cpu_calls,'cpuProfile':profile,
  'tibBase':tib,'tlsCallbacksExecuted':False,'fullGeodeLoader':False,'existingGeodePackagesSupported':False}
 report['initializerEvents']=initializer_events
+report['guestModules']=modules
+report['threadDescription']=thread_description
+report['localAllocations']=local_allocations
+report['resolvedExports']=[c for c in host_calls if c['name'].lower().endswith('!getprocaddress')]
 report['windowsCompatibilityProfile']=windows_profile
 report['tibReads']=sorted(set(tib_reads))
 known_tib_fields=[(8,24),(0x30,0x38),(0x58,0x60),(0x68,0x6c),(0x2000,0x2008)]
@@ -299,16 +348,21 @@ report.update(originalDllInstructionsExecuted=sum(base<=pc<base+size for pc in t
  tlsCallbacksExecuted=bool(completed_tls),tibSize=tib_size)
 if len(sys.argv)>2 and not blocked and not unknown_tib:
  out=Path(sys.argv[2]);out.mkdir(parents=True,exist_ok=True)
+ for module_base,module_image in module_images.items():
+  (out/f'module-{module_base:x}.bin').write_bytes(module_image)
+  (out/f'module-{module_base:x}-after.bin').write_bytes(bytes(uc.mem_read(module_base,len(module_image))))
  (out/'startup.c').write_text(lifter.source());(out/'image.bin').write_bytes(initial_image)
  (out/'stack.bin').write_bytes(bytes(uc.mem_read(0x200000,0x100000)))
  (out/'tib.bin').write_bytes(initial_tib)
  (out/'tib-after.bin').write_bytes(bytes(uc.mem_read(tib,tib_size)))
  (out/'tls.bin').write_bytes(initial_tls);(out/'tls-after.bin').write_bytes(bytes(uc.mem_read(tls_block,tls_size)))
  (out/'image-after.bin').write_bytes(bytes(uc.mem_read(base,size)))
+ (out/'local-heap-after.bin').write_bytes(bytes(uc.mem_read(local_heap,local_heap_size)))
  (out/'arena-after.bin').write_bytes(bytes(uc.mem_read(arena,arena_size)))
  names=['RAX','RCX','RDX','RBX','RSP','RBP','RSI','RDI','R8','R9','R10','R11','R12','R13','R14','R15']
  (out/'expected.json').write_text(json.dumps({'generationId':generation_id,'entry':entry,'base':base,'stop':uc.reg_read(x.UC_X86_REG_RIP),
   'instructions':len(trace),'hostCalls':host_calls,'tibBase':tib,'tibSize':tib_size,'tlsBase':tls_block,'tlsSize':tls_size,
+  'modules':modules,'moduleGateways':{hex(k):v for k,v in module_gateways.items()},
   'bootstrap':bootstrap,'loaderHex':loader.hex(),
   'xmm':[hex(uc.reg_read(getattr(x,f'UC_X86_REG_XMM{i}'))) for i in range(16)],
   'flags':{name:{'offset':2048+lifter.ctx.registers[name].offset,'value':(uc.reg_read(x.UC_X86_REG_EFLAGS)>>bit)&1} for name,bit in [('CF',0),('PF',2),('ZF',6),('SF',7),('OF',11)]},

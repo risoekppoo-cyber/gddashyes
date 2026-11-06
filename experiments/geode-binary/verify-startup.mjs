@@ -8,6 +8,7 @@ import {NativeInitializers} from './native-initializers.mjs';
 import {OnExitTables} from './onexit-tables.mjs';
 import {SrwLocks} from './srw-locks.mjs';
 import {ConditionVariables} from './condition-variables.mjs';
+import {GuestModules} from './guest-modules.mjs';
 const dir=process.argv[2],reportPath=process.argv[3];
 const [expected,image,stack,wasm,report]=await Promise.all([
  readFile(dir+'/expected.json').then(JSON.parse),readFile(dir+'/image.bin'),
@@ -20,6 +21,7 @@ assert.deepEqual(report.hostCalls,expected.hostCalls,'Host call transcript is st
 const memory=new WebAssembly.Memory({initial:1024,maximum:65536});
 const instance=await instantiateStartupLift(wasm,memory),v=new DataView(memory.buffer),cpu=4096;
 new Uint8Array(memory.buffer,expected.base,image.length).set(image);
+for(const m of expected.modules.filter(m=>m.shim))new Uint8Array(memory.buffer,m.base,m.size).set(await readFile(dir+'/module-'+m.base.toString(16)+'.bin'));
 if(expected.tibBase){
  new Uint8Array(memory.buffer,expected.tibBase,expected.tibSize).set(await readFile(dir+'/tib.bin'));
  v.setBigUint64(cpu+128,BigInt(expected.tibBase),true);
@@ -29,6 +31,7 @@ v.setBigUint64(cpu+8,BigInt(expected.base),true);v.setBigUint64(cpu+16,1n,true);
 v.setBigUint64(cpu+32,0x2fff08n,true);v.setBigUint64(0x2fff08,0x1234fedcn,true);
 const threads=new GuestThreads();threads.register('main');
 let currentCall;const services=new StartupServices({counter:()=>BigInt(currentCall.counter),tibBase:expected.tibBase,version:report.windowsCompatibilityProfile});
+const modules=new GuestModules(expected.modules,{setLastError:value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);}});
 const initializers=new NativeInitializers();
 const onexit=new OnExitTables();
 const locks=new SrwLocks();
@@ -44,7 +47,10 @@ for(let transfers=0;transfers<4096;transfers++){
  const call=expected.hostCalls[handled];
  currentCall=call;
  assert.ok(call&&pc===BigInt(call.address),'Unexpected native import');
- if(call.name.toLowerCase()==='kernel32.dll!getsystemtimeasfiletime')
+ if(/!(getmodulehandle[aw]|getprocaddress)$/i.test(call.name)){
+  const result=modules.invoke(call.name,memory,cpu);assert.equal(BigInt(result),BigInt(call.result));
+ }else if(/!(getcurrentthread|setthreaddescription|getthreaddescription|localfree)$/i.test(call.name))threads.invoke(call.name,memory,cpu,'main');
+ else if(call.name.toLowerCase()==='kernel32.dll!getsystemtimeasfiletime')
   getSystemTimeAsFileTime(memory,cpu,()=>call.unixMilliseconds);
  else if(call.name.toLowerCase()==='kernel32.dll!getcurrentthreadid'){
   assert.equal(threads.id('main'),call.threadId);
@@ -68,6 +74,11 @@ assert.deepEqual(Buffer.from(memory.buffer,expected.base,image.length),await rea
 assert.deepEqual(Buffer.from(memory.buffer,0x500000,0x100000),await readFile(dir+'/arena-after.bin'));
 assert.deepEqual(Buffer.from(memory.buffer,expected.tibBase,expected.tibSize),await readFile(dir+'/tib-after.bin'));
 assert.deepEqual(Buffer.from(memory.buffer,expected.tlsBase,expected.tlsSize),await readFile(dir+'/tls-after.bin'));
+for(const m of expected.modules.filter(m=>m.shim))assert.deepEqual(Buffer.from(memory.buffer,m.base,m.size),await readFile(dir+'/module-'+m.base.toString(16)+'-after.bin'));
+assert.deepEqual(Buffer.from(memory.buffer,0xa00000,0x100000),await readFile(dir+'/local-heap-after.bin'));
+assert.deepEqual(Object.fromEntries(threads.localAllocations),report.localAllocations);
+assert.equal(threads.descriptions.get('main')??null,report.threadDescription);
+report.moduleLookups=modules.lookups;report.exportResolutions=modules.resolutions;report.shimModuleImagesMatch=true;
 Object.assign(report,{status:'DLL_STARTUP_PREFIX_VERIFIED',wasmStartupExecuted:true,
  wasmStartupInstructions:steps,allGeneralRegistersMatch:true,entireNativeStackMatches:true,
  dllInitializationCompleted:false,windowsImportsExecuted:handled>0,implementedWindowsCalls:handled,
