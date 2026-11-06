@@ -1,0 +1,10 @@
+{
+  "scope": "Inspected loader metadata; not proof of a fully initialized game",
+  "loaderSha256": "251bf547c35eb5e6eaf2027fd56603506bad04a37c9076a0456918055afa3a91",
+  "nativeImages": [
+    "/Resources/bin/GeometryDash.exe.img",
+    "/Resources/bin/libExtensions.dll.img",
+    "/Resources/bin/libcocos2d.dll.img"
+  ],
+  "fmodDllListed": false
+}

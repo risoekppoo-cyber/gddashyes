@@ -4,7 +4,7 @@ This experiment executes instructions from the **official Windows Geode.dll**, n
 
 ## Current startup work
 
-The active branch verifies 1,051,993 combined startup instructions and separately completes both original Microsoft runtime DLL entrypoints. The corrected next boundary stops before a native code read from the unmapped FMOD audio dependency; its guarded comparison passes locally. Full Geode and downloaded mods remain unsupported. See [CHECKPOINT.md](CHECKPOINT.md) for evidence and the exact resume point.
+The active branch verifies 1,051,993 combined startup instructions and separately completes both original Microsoft runtime DLL entrypoints. The corrected next boundary stops before a native code read from the unmapped FMOD audio dependency; its guarded comparison passes locally and in all three clean CI profiles. Full Geode and downloaded mods remain unsupported. See [CHECKPOINT.md](CHECKPOINT.md) for evidence and the exact resume point.
 
 ## Try the earlier browser canary
 

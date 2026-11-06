@@ -6786,5 +6786,72 @@
     "crtHeap.freeBlocks",
     "nativeFloatingReference.byPc"
   ],
-  "verificationScope": "Local complete guarded startup script passed, including 118 partitioned CPU fixtures and 200 scalar cases; fresh CI pending"
+  "verificationScope": "Complete local guarded startup script and matching boundary on clean GitHub CI",
+  "ciVerification": {
+    "sourceCommit": "7ed37af12e84a375a0b4e73abb143a9237451b05",
+    "run": 42245751604,
+    "url": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42245751604",
+    "profiles": {
+      "startup (vcruntime)": {
+        "instructions": 410,
+        "testedComponent": "vcruntime-dll-attach",
+        "msvcDllAttachCompleted": false,
+        "vcruntimeDllAttachCompleted": true,
+        "unresolvedImportMemoryReads": [],
+        "stoppedBeforeUnresolvedImportRead": false,
+        "stop": {
+          "reason": "ENTRYPOINT_RETURNED"
+        },
+        "validation": {
+          "cpuCases": 118,
+          "scalarCases": 200
+        }
+      },
+      "startup (geode)": {
+        "instructions": 864774,
+        "testedComponent": "geode-startup",
+        "msvcDllAttachCompleted": true,
+        "vcruntimeDllAttachCompleted": false,
+        "unresolvedImportMemoryReads": [],
+        "stoppedBeforeUnresolvedImportRead": false,
+        "stop": {
+          "reason": "WINDOWS_IMPORT_REQUIRED",
+          "importName": "VCRUNTIME140.dll!__std_type_info_name",
+          "address": "0x70001fa0"
+        },
+        "validation": {
+          "cpuCases": 118,
+          "scalarCases": 200
+        }
+      },
+      "startup (combined)": {
+        "instructions": 1051993,
+        "testedComponent": "geode-startup",
+        "msvcDllAttachCompleted": true,
+        "vcruntimeDllAttachCompleted": true,
+        "unresolvedImportMemoryReads": [],
+        "stoppedBeforeUnresolvedImportRead": true,
+        "stop": {
+          "reason": "UNRESOLVED_IMPORT_MEMORY_REQUIRED",
+          "readAddress": "0x70001020",
+          "readSize": 1,
+          "instructionPc": "0x21a6dad",
+          "occurrence": 33,
+          "importName": "fmod.dll!?init@System@FMOD@@QEAA?AW4FMOD_RESULT@@HIPEAX@Z",
+          "stoppedBeforeInstruction": true
+        },
+        "validation": {
+          "cpuCases": 118,
+          "scalarCases": 200
+        }
+      }
+    }
+  },
+  "validation": {
+    "cpuCases": 118,
+    "realX64FloatingCases": 107,
+    "emulatorMxcsrDiscrepancies": 36,
+    "scalarCases": 200,
+    "cpuPartitionSize": 1
+  }
 }

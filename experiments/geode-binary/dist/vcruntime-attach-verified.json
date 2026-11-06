@@ -313,5 +313,25 @@
     "crtHeap.freeBlocks",
     "nativeFloatingReference.byPc"
   ],
-  "verificationScope": "Local complete startup script; fresh CI pending"
+  "verificationScope": "Local complete startup script; fresh CI pending",
+  "ciVerification": {
+    "sourceCommit": "7ed37af12e84a375a0b4e73abb143a9237451b05",
+    "run": 42245751604,
+    "url": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42245751604",
+    "profile": {
+      "instructions": 410,
+      "testedComponent": "vcruntime-dll-attach",
+      "msvcDllAttachCompleted": false,
+      "vcruntimeDllAttachCompleted": true,
+      "unresolvedImportMemoryReads": [],
+      "stoppedBeforeUnresolvedImportRead": false,
+      "stop": {
+        "reason": "ENTRYPOINT_RETURNED"
+      },
+      "validation": {
+        "cpuCases": 118,
+        "scalarCases": 200
+      }
+    }
+  }
 }
