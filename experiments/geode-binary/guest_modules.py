@@ -1,7 +1,7 @@
 """Declared PE shim modules. Gateways dispatch only explicitly implemented APIs."""
 import struct
 import pefile
-KERNEL_EXPORTS='DisableThreadLibraryCalls GetCurrentProcess GetCurrentThread SetThreadDescription GetThreadDescription LocalFree GetModuleHandleA GetModuleHandleW GetProcAddress GetSystemTimeAsFileTime GetCurrentThreadId GetCurrentProcessId QueryPerformanceCounter QueryPerformanceFrequency GetSystemInfo GetNativeSystemInfo InitializeSListHead GetEnvironmentVariableW GetLastError SetLastError InitializeSRWLock AcquireSRWLockExclusive ReleaseSRWLockExclusive TryAcquireSRWLockExclusive AcquireSRWLockShared ReleaseSRWLockShared TryAcquireSRWLockShared InitializeConditionVariable WakeConditionVariable WakeAllConditionVariable'.split()
+KERNEL_EXPORTS='RtlPcToFileHeader EncodePointer DecodePointer InitializeCriticalSection InitializeCriticalSectionEx InitializeCriticalSectionAndSpinCount EnterCriticalSection TryEnterCriticalSection LeaveCriticalSection DeleteCriticalSection GetTempPathW GetTempPath2W DisableThreadLibraryCalls GetCurrentProcess GetCurrentThread SetThreadDescription GetThreadDescription LocalFree GetModuleHandleA GetModuleHandleW GetProcAddress GetSystemTimeAsFileTime GetSystemTimePreciseAsFileTime GetCurrentThreadId GetCurrentProcessId QueryPerformanceCounter QueryPerformanceFrequency GetSystemInfo GetNativeSystemInfo InitializeSListHead GetEnvironmentVariableW GetLastError SetLastError InitializeSRWLock AcquireSRWLockExclusive ReleaseSRWLockExclusive TryAcquireSRWLockExclusive AcquireSRWLockShared ReleaseSRWLockShared TryAcquireSRWLockShared InitializeConditionVariable WakeConditionVariable WakeAllConditionVariable'.split()
 
 def mapped_pe(data):
  pe=pefile.PE(data=bytes(data),fast_load=True)
@@ -42,7 +42,7 @@ def shim(name,base,exports):
 
 def build_modules(pe,base):
  modules=[{'name':'Geode.dll','base':base,'size':pe.OPTIONAL_HEADER.SizeOfImage,'complete':True,'shim':False,'staticTls':bool(pe.OPTIONAL_HEADER.DATA_DIRECTORY[9].VirtualAddress)}];images={};gates={}
- for index,(name,exports) in enumerate([('kernel32.dll',KERNEL_EXPORTS),('ntdll.dll',['RtlGetVersion'])]):
+ for index,(name,exports) in enumerate([('kernel32.dll',KERNEL_EXPORTS),('ntdll.dll',['RtlGetVersion','RtlPcToFileHeader'])]):
   item,image,targets=shim(name,0x1000000+index*65536,exports);modules.append(item);images[item['base']]=image;gates.update(targets)
  return modules,images,gates
 

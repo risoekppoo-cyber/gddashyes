@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {filetimeFromUnixMilliseconds,getSystemTimeAsFileTime} from './windows-time.mjs';
+import {filetimeFromUnixMilliseconds,getSystemTimeAsFileTime,filetimeFromUnixNanoseconds,getSystemTimePreciseAsFileTime} from './windows-time.mjs';
 assert.equal(filetimeFromUnixMilliseconds(-11644473600000),0n);
 assert.equal(filetimeFromUnixMilliseconds(0),116444736000000000n);
 assert.equal(filetimeFromUnixMilliseconds(1),116444736000010000n);
@@ -16,3 +16,13 @@ assert.equal(v.getBigUint64(cpu+32,true),16392n);assert.equal(v.getBigUint64(cpu
 v.setBigUint64(cpu+8,131071n,true);
 assert.throws(()=>getSystemTimeAsFileTime(memory,cpu,()=>0),/outside memory/);
 console.log('PASS: FILETIME epoch, units, bounds and native return');
+
+assert.equal(filetimeFromUnixNanoseconds(-11644473600000000000n),0n);
+assert.equal(filetimeFromUnixNanoseconds(-1n),116444735999999999n);
+assert.equal(filetimeFromUnixNanoseconds(199n),116444736000000001n);
+assert.throws(()=>filetimeFromUnixNanoseconds(123),/integer nanoseconds/);
+v.setBigUint64(cpu+8,8192n,true);v.setBigUint64(cpu+32,16384n,true);v.setBigUint64(cpu,789n,true);
+getSystemTimePreciseAsFileTime(memory,cpu,()=>123456789n);
+assert.equal(v.getBigUint64(8192,true),116444736001234567n);assert.equal(v.getBigUint64(cpu,true),789n);
+assert.equal(v.getBigUint64(cpu+192,true),0x12345678n);
+console.log('PASS: nanosecond wall clock, exact 100ns FILETIME truncation and void native return');

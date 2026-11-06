@@ -31,6 +31,13 @@ export class StartupServices {
     result=0n;
    }
   }
+  else if(key==='kernel32.dll!gettemppathw'||key==='kernel32.dll!gettemppath2w'){
+   // Declared non-SYSTEM guest; empty environment falls back to its Windows directory.
+   let path=this.environment.get('TMP')||this.environment.get('TEMP')||this.environment.get('USERPROFILE')||'C:\\Windows\\';
+   if(!path.endsWith('\\'))path+='\\';
+   const capacity=Number(v.getBigUint64(cpu+8,true)&0xffffffffn);result=BigInt(path.length+1);
+   if(capacity>=path.length+1){const out=linear(v.getBigUint64(cpu+16,true),(path.length+1)*2);for(let i=0;i<path.length;i++)v.setUint16(out+i*2,path.charCodeAt(i),true);v.setUint16(out+path.length*2,0,true);result=BigInt(path.length);}
+  }
   else if(key==='kernel32.dll!getlasterror')result=BigInt(this.lastError);
   else if(key==='kernel32.dll!setlasterror')setError(Number(v.getBigUint64(cpu+8,true)&0xffffffffn));
   else if(key==='kernel32.dll!getenvironmentvariablew') {

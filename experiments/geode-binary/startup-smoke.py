@@ -5,13 +5,15 @@ Unicorn executes original relocated x64 bytes; the reached instructions are
 then checked against the current binary translator. No API success is faked.
 PE TLS callbacks and a bounded loader model precede the entrypoint.
 """
-import sys,json,hashlib,struct,time,uuid,os,math
+import sys,json,hashlib,struct,time,uuid,os,math,secrets
 from pathlib import Path
 import pefile,pypcode,unicorn
 from unicorn import x86_const as x
 from lift import PIN,Lifter,LiftError
 from guest_modules import build_modules,module_handle,resolve_export,mapped_pe
 from guest_heap import GuestHeap
+from guest_critical_sections import CriticalSections
+from guest_crt_runtime import CrtRuntime
 from native_fp_reference import NativeFpReference
 
 trace_limit=int(os.environ.get('GEODE_INSTRUCTION_LIMIT','20000'));assert 1<=trace_limit<=1000000
@@ -89,7 +91,7 @@ if primary_path:
   uc.mem_map(0xe00000,65536);uc.mem_write(0xe00000,template);uc.mem_write(t.AddressOfIndex,struct.pack('<I',2))
   primary['primaryTls']={'base':0xe00000,'size':65536,'index':2,'templateBytes':len(template),'callbacksExecuted':False}
  modules.append(primary);module_images[primary_base]=bytes(uc.mem_read(primary_base,len(raw)))
-msvc=None;msvc_path=os.environ.get('GEODE_MSVCP_DLL')
+msvc=None;msvc_path=os.environ.get('GEODE_MSVCP_DLL');msvc_boot=os.environ.get('GEODE_MSVCP_BOOT','');assert msvc_boot in ['', '1','only']
 if msvc_path:
  from fetch_msvc_slice import PIN as msvc_pin
  msvc_bytes=Path(msvc_path).read_bytes();assert hashlib.sha256(msvc_bytes).hexdigest()==msvc_pin
@@ -102,6 +104,13 @@ if msvc_path:
    assert relocation.type==10;value=struct.unpack_from('<Q',mapped,relocation.rva)[0]
    assert msvc_preferred<=value<msvc_preferred+msvc_size
    struct.pack_into('<Q',mapped,relocation.rva,value+msvc_base-msvc_preferred)
+ if msvc_boot:
+  for desc in msvc_pe.DIRECTORY_ENTRY_IMPORT:
+   for imp in desc.imports:
+    name=desc.dll.decode()+'!'+(imp.name.decode() if imp.name else '#'+str(imp.ordinal))
+    target=next((address for address,existing in imports.items() if existing.lower()==name.lower()),None)
+    if target is None:target=0x70000000+i*16;i+=1;assert target<0x70010000;imports[target]=name
+    struct.pack_into('<Q',mapped,imp.address-msvc_preferred,target)
  ctor_name='??0ios_base@std@@IEAA@XZ';symbol=next(s for s in msvc_pe.DIRECTORY_ENTRY_EXPORT.symbols if s.name==ctor_name.encode())
  assert symbol.address==0x4930 and mapped[0x495e]==0xc3
  uc.mem_map(msvc_base,msvc_size);uc.mem_write(msvc_base,bytes(mapped))
@@ -109,10 +118,11 @@ if msvc_path:
  for desc in pe.DIRECTORY_ENTRY_IMPORT:
   if desc.dll.decode().lower()!='msvcp140.dll':continue
   for imp in desc.imports:
-   if imp.name==ctor_name.encode():uc.mem_write(imp.address-preferred+base,struct.pack('<Q',msvc_base+symbol.address));bound+=1
+   target_symbol=next((s for s in msvc_pe.DIRECTORY_ENTRY_EXPORT.symbols if s.name==imp.name and not s.forwarder),None) if msvc_boot else symbol if imp.name==ctor_name.encode() else None
+   if target_symbol:uc.mem_write(imp.address-preferred+base,struct.pack('<Q',msvc_base+target_symbol.address));bound+=int(imp.name==ctor_name.encode())
  assert bound==1
- msvc={'name':'MSVCP140.dll','base':msvc_base,'size':msvc_size,'complete':True,'shim':False,'sliceOnly':True,
-  'runtimeInitialized':False,'sha256':msvc_pin,'constructor':msvc_base+0x4930,'constructorEnd':msvc_base+0x495f,
+ msvc={'name':'MSVCP140.dll','base':msvc_base,'size':msvc_size,'complete':True,'shim':False,'sliceOnly':not bool(msvc_boot),'initializing':bool(msvc_boot),
+  'runtimeInitialized':False,'entry':msvc_base+msvc_pe.OPTIONAL_HEADER.AddressOfEntryPoint,'sha256':msvc_pin,'constructor':msvc_base+0x4930,'constructorEnd':msvc_base+0x495f,
   'constructorExport':ctor_name,'constructorOrdinal':symbol.ordinal,'constructorBytesSha256':hashlib.sha256(mapped[0x4930:0x495f]).hexdigest()}
  modules.append(msvc);module_images[msvc_base]=bytes(mapped)
 uc.reg_write(x.UC_X86_REG_RCX,base);uc.reg_write(x.UC_X86_REG_RDX,1)
@@ -139,11 +149,16 @@ for i in range(64):
  callbacks.append(target)
 else:raise RuntimeError('TLS callback table limit')
 bootstrap=0x72000000;uc.mem_map(bootstrap,4096);loader=bytearray(bytes.fromhex('4883ec28'))
-callback_returns={}
-for target in callbacks+[base+pe.OPTIONAL_HEADER.AddressOfEntryPoint]:
- loader+=b'\x48\xb9'+struct.pack('<Q',base)+bytes.fromhex('ba010000004531c0')
+callback_returns={};module_boot_returns={};completed_boots=[]
+run_callbacks=[] if msvc_boot=='only' else callbacks
+boot_targets=([msvc['entry']] if msvc_boot and msvc else [])+run_callbacks+([] if msvc_boot=='only' else [base+pe.OPTIONAL_HEADER.AddressOfEntryPoint])
+for target in boot_targets:
+ loader+=b'\x48\xb9'+struct.pack('<Q',msvc['base'] if msvc_boot and msvc and target==msvc['entry'] else base)+bytes.fromhex('ba010000004531c0')
  loader+=b'\x48\xb8'+struct.pack('<Q',target)+bytes.fromhex('ffd0')
- if target in callbacks:callback_returns[bootstrap+len(loader)]=target
+ if msvc_boot and msvc and target==msvc['entry']:
+  module_boot_returns[bootstrap+len(loader)]=msvc
+ # Each DLL entrypoint receives its own module base.
+ if target in run_callbacks:callback_returns[bootstrap+len(loader)]=target
 loader+=bytes.fromhex('4883c428c3');uc.mem_write(bootstrap,bytes(loader))
 initial_image=bytes(uc.mem_read(base,size));initial_tib=bytes(uc.mem_read(tib,tib_size));initial_tls=bytes(uc.mem_read(tls_block,tls_size))
 initial_primary_tls=bytes(uc.mem_read(primary['primaryTls']['base'],65536)) if primary and primary.get('primaryTls') else None
@@ -159,6 +174,7 @@ if cocos:
  template=cocos_data[t.StartAddressOfRawData-cocos['base']:t.EndAddressOfRawData-cocos['base']]
  cocos['tls']={'base':0xd00000,'size':0x10000,'indexAddress':t.AddressOfIndex,'index':1,'templateHex':template.hex(),'callbacks':targets}
  uc.mem_map(0xd00000,0x10000)
+initial_modules=json.loads(json.dumps(modules))
 trace=[];stop={};host_calls=[];cpu_calls=[]
 native_fp=NativeFpReference();native_disasm=pypcode.Context('x86:LE:64:default');fp_instructions={}
 uc.mem_map(0x71000000,4096)
@@ -166,6 +182,9 @@ arena=0x500000;arena_size=0x100000;uc.mem_map(arena,arena_size);next_allocation=
 initializer_frames=[];initializer_events=[];control_events=[]
 uc.mem_map(0x3400000,0x800000);uc.mem_map(0xc00000,0x10000)
 heap=GuestHeap(uc.mem_read,uc.mem_write)
+critical=CriticalSections(uc.mem_write)
+uc.mem_map(0xf00000,65536);crt_runtime=CrtRuntime(uc.mem_write,uc.mem_read)
+initial_crt_runtime=bytes(uc.mem_read(0xf00000,65536))
 def advance_load():
  global load_frame
  f=load_frame
@@ -193,6 +212,7 @@ def advance_initializer():
  finish_initializer(0)
 clock_ms=time.time_ns()//1_000_000
 last_error=0;environment={};thread_description=None
+pointer_key=secrets.randbits(64) or 1;pointer_encodes=0;pointer_decodes=0
 local_heap=0xa00000;local_heap_size=0x100000;uc.mem_map(local_heap,local_heap_size);local_next=local_heap;local_allocations={}
 srw_states={};tib_reads=[]
 def read_wide(p):
@@ -210,8 +230,13 @@ def read_ansi(p):
   text+=value
  raise RuntimeError('Unterminated ANSI string')
 def code(uc,pc,length,_):
- global next_allocation,last_error,thread_description,local_next,load_frame
- if msvc and msvc['base']<=pc<msvc['base']+msvc['size'] and not msvc['constructor']<=pc<msvc['constructorEnd']:
+ global next_allocation,last_error,thread_description,local_next,load_frame,pointer_encodes,pointer_decodes
+ if pc in module_boot_returns and pc not in completed_boots:
+  module=module_boot_returns[pc]
+  if uc.reg_read(x.UC_X86_REG_RAX)&0xffffffff==0:stop.update(reason='MODULE_ATTACH_FAILED_DETACH_REQUIRED',module=module['name']);uc.emu_stop();return
+  assert uc.reg_read(x.UC_X86_REG_RSP)==0x2ffee0
+  module['runtimeInitialized']=True;module['initializing']=False;completed_boots.append(pc);control_events.append(pc);uc.emu_stop();return
+ if msvc and not msvc_boot and msvc['base']<=pc<msvc['base']+msvc['size'] and not msvc['constructor']<=pc<msvc['constructorEnd']:
   stop.update(reason='MSVCP_RUNTIME_INITIALIZATION_REQUIRED',address=hex(pc));uc.emu_stop();return
  if pc in callback_returns:completed_tls.append(callback_returns[pc])
  if load_frame and pc==0x73000000:
@@ -225,12 +250,13 @@ def code(uc,pc,length,_):
   if f['error'] and result:finish_initializer(result)
   else:advance_initializer()
   control_events.append(pc);uc.emu_stop();return
- if pc in imports and imports[pc].lower()=='kernel32.dll!getsystemtimeasfiletime':
+ if pc in imports and imports[pc].lower() in ['kernel32.dll!getsystemtimeasfiletime','kernel32.dll!getsystemtimepreciseasfiletime']:
   output=uc.reg_read(x.UC_X86_REG_RCX)
-  timestamp=(clock_ms+11644473600000)*10000
+  precise=imports[pc].lower().endswith('preciseasfiletime');nanoseconds=time.time_ns() if precise else None
+  timestamp=(nanoseconds+11644473600000000000)//100 if precise else (clock_ms+11644473600000)*10000
   uc.mem_write(output,struct.pack('<Q',timestamp))
   sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
-  host_calls.append({'address':hex(pc),'name':imports[pc],'unixMilliseconds':clock_ms,'output':hex(output)})
+  host_calls.append({'address':hex(pc),'name':imports[pc],**({'unixNanoseconds':str(nanoseconds)} if precise else {'unixMilliseconds':clock_ms}),'output':hex(output)})
   uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret)
   uc.emu_stop();return
  if pc in imports and imports[pc].lower()=='kernel32.dll!getcurrentthreadid':
@@ -243,6 +269,31 @@ def code(uc,pc,length,_):
   uc.emu_stop();return
  if pc in imports:
   name=imports[pc].lower()
+  if name in ['kernel32.dll!encodepointer','kernel32.dll!decodepointer']:
+   value=uc.reg_read(x.UC_X86_REG_RCX);mask=0xffffffffffffffff
+   if name.endswith('encodepointer'):bits=value^pointer_key;result=((bits<<17)|(bits>>47))&mask;pointer_encodes+=1
+   else:result=(((value>>17)|(value<<47))&mask)^pointer_key;pointer_decodes+=1
+   host_calls.append({'address':hex(pc),'name':imports[pc]});sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+   uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
+  if name.split('!')[-1] in ['__acrt_iob_func','_get_stream_buffer_pointers','_lock_file','_unlock_file','_crt_atexit','_set_new_handler','_lock_locales','_unlock_locales','setlocale','___lc_codepage_func','___lc_collate_cp_func','___mb_cur_max_func','___lc_locale_name_func','__pctype_func','localeconv']:
+   args=[uc.reg_read(register) for register in [x.UC_X86_REG_RCX,x.UC_X86_REG_RDX,x.UC_X86_REG_R8,x.UC_X86_REG_R9]]
+   try:result=crt_runtime.invoke(name,*args)
+   except RuntimeError as error:stop.update(reason=str(error),importName=imports[pc]);uc.emu_stop();return
+   host_calls.append({'address':hex(pc),'name':imports[pc]});sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+   if result is not None:uc.reg_write(x.UC_X86_REG_RAX,result)
+   uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
+  if name.startswith('kernel32.dll!') and name.split('!')[-1] in ['initializecriticalsection','initializecriticalsectionex','initializecriticalsectionandspincount','entercriticalsection','tryentercriticalsection','leavecriticalsection','deletecriticalsection']:
+   p=uc.reg_read(x.UC_X86_REG_RCX);result=critical.invoke(name,p,uc.reg_read(x.UC_X86_REG_RDX)&0xffffffff,uc.reg_read(x.UC_X86_REG_R8)&0xffffffff)
+   host_calls.append({'address':hex(pc),'name':imports[pc],'criticalSection':hex(p)});sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+   if result is not None:uc.reg_write(x.UC_X86_REG_RAX,result)
+   uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
+  if name in ['kernel32.dll!gettemppathw','kernel32.dll!gettemppath2w']:
+   path=environment.get('TMP') or environment.get('TEMP') or environment.get('USERPROFILE') or 'C:\\Windows\\'
+   if not path.endswith('\\'):path+='\\'
+   capacity=uc.reg_read(x.UC_X86_REG_RCX)&0xffffffff;data=path.encode('utf-16le');result=len(data)//2+1
+   if capacity>=result:uc.mem_write(uc.reg_read(x.UC_X86_REG_RDX),data+b'\0\0');result-=1
+   host_calls.append({'address':hex(pc),'name':imports[pc],'path':path});sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+   uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
   if name=='api-ms-win-crt-math-l1-1-0.dll!ceilf':
    xmm=uc.reg_read(x.UC_X86_REG_XMM0);bits=xmm&0xffffffff;value=struct.unpack('<f',struct.pack('<I',bits))[0]
    if not math.isfinite(value):stop.update(reason='UNMODELED_CRT_NONFINITE');uc.emu_stop();return
@@ -312,13 +363,16 @@ def code(uc,pc,length,_):
      uc.mem_write(allocation,data);local_allocations[allocation]=len(data);uc.mem_write(p,struct.pack('<Q',allocation));result=0
    host_calls.append(call);sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
    uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
-  if name in ['kernel32.dll!getmodulehandlea','kernel32.dll!getmodulehandlew','kernel32.dll!getprocaddress']:
+  if name in ['kernel32.dll!getmodulehandlea','kernel32.dll!getmodulehandlew','kernel32.dll!getprocaddress','kernel32.dll!rtlpctofileheader','ntdll.dll!rtlpctofileheader']:
    call={'address':hex(pc),'name':imports[pc]};arg=uc.reg_read(x.UC_X86_REG_RCX)
    try:
     if name.endswith('getprocaddress'):
      p=uc.reg_read(x.UC_X86_REG_RDX);symbol=p if p<=65535 else read_ansi(p);call['symbol']=symbol
      result=resolve_export(modules,uc.mem_read,arg,symbol)
      if not result:last_error=127;uc.mem_write(tib+0x68,struct.pack('<I',last_error))
+    elif name.endswith('rtlpctofileheader'):
+     module=next((m for m in modules if m['base']<=arg<m['base']+m['size']),None);result=module['base'] if module else 0
+     uc.mem_write(uc.reg_read(x.UC_X86_REG_RDX),struct.pack('<Q',result))
     else:
      text=(read_wide(arg) if name.endswith('w') else read_ansi(arg)) if arg else None
      call['module']=text;result=module_handle(modules,text)
@@ -520,6 +574,14 @@ report['guestModules']=modules
 report['instructionBudget']=trace_limit
 report['nativeFloatingReference']={'kind':'real host x64 SSE with normalized registers and checked memory-source decoding; MXCSR saved/restored','instructions':native_fp.count,'byPc':native_fp.by_pc}
 report['primaryMappingPhase']='mapped at declared ASLR base before EXE TLS callbacks and entrypoint' if primary else 'not supplied'
+report['pointerEncoding']={'key':str(pointer_key),'encodes':pointer_encodes,'decodes':pointer_decodes}
+report['crtRuntime']=crt_runtime.snapshot()
+report['criticalSections']={'states':critical.states,'acquisitions':critical.acquisitions}
+report['testedComponent']='msvc-dll-attach' if msvc_boot=='only' else 'geode-startup'
+report['msvcImageInstructions']=sum(msvc['base']<=pc<msvc['base']+msvc['size'] for pc in trace) if msvc else 0
+report['msvcBootMode']=msvc_boot
+report['msvcDllAttachCompleted']=bool(msvc and msvc['runtimeInitialized'])
+report['msvcCtorFixtureScheduled']=bool(msvc and msvc['constructor'] in trace)
 report['msvcSliceInstructions']=sum(msvc['base']<=pc<msvc['base']+msvc['size'] for pc in trace) if msvc else 0
 report['primaryImageInstructions']=sum(primary['base']<=pc<primary['base']+primary['size'] for pc in trace) if primary else 0
 report['dependencyImageInstructions']=sum(cocos['base']<=pc<cocos['base']+cocos['size'] for pc in trace) if cocos else 0
@@ -538,13 +600,14 @@ known_tib_fields=[(8,24),(0x30,0x38),(0x58,0x60),(0x68,0x6c),(0x2000,0x2018)]
 unknown_tib=[(offset,n) for offset,n in report['tibReads'] if not any(start<=offset and offset+n<=end for start,end in known_tib_fields)]
 report['unmodeledTibReads']=unknown_tib
 report.update(originalDllInstructionsExecuted=sum(base<=pc<base+size for pc in trace),loaderBootstrapInstructions=sum(bootstrap<=pc<bootstrap+4096 for pc in trace),
- tlsTemplateBytes=tls_end-tls_start,tlsZeroFillBytes=tls_zero,tlsCallbacksScheduled=len(callbacks),tlsCallbacksCompleted=len(completed_tls),
+ tlsTemplateBytes=tls_end-tls_start,tlsZeroFillBytes=tls_zero,tlsCallbacksScheduled=len(run_callbacks),tlsCallbacksCompleted=len(completed_tls),
  tlsCallbacksExecuted=bool(completed_tls),tibSize=tib_size)
 if len(sys.argv)>2 and not blocked and not unknown_tib:
  out=Path(sys.argv[2]);out.mkdir(parents=True,exist_ok=True)
  for module_base,module_image in module_images.items():
   (out/f'module-{module_base:x}.bin').write_bytes(module_image)
   (out/f'module-{module_base:x}-after.bin').write_bytes(bytes(uc.mem_read(module_base,len(module_image))))
+ (out/'crt-runtime.bin').write_bytes(initial_crt_runtime);(out/'crt-runtime-after.bin').write_bytes(bytes(uc.mem_read(0xf00000,65536)))
  (out/'startup.c').write_text(lifter.source());(out/'image.bin').write_bytes(initial_image)
  (out/'stack.bin').write_bytes(bytes(uc.mem_read(0x200000,0x100000)))
  (out/'tib.bin').write_bytes(initial_tib)
@@ -560,7 +623,7 @@ if len(sys.argv)>2 and not blocked and not unknown_tib:
  (out/'local-heap-after.bin').write_bytes(bytes(uc.mem_read(local_heap,local_heap_size)))
  (out/'arena-after.bin').write_bytes(bytes(uc.mem_read(arena,arena_size)))
  names=['RAX','RCX','RDX','RBX','RSP','RBP','RSI','RDI','R8','R9','R10','R11','R12','R13','R14','R15']
- if msvc:
+ if report['msvcCtorFixtureScheduled']:
   fixture=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64);fixture.mem_map(msvc['base'],msvc['size']);fixture.mem_write(msvc['base'],module_images[msvc['base']])
   fixture.mem_map(0x10000,0x1000);fixture.mem_map(0x100000,0x1000);fixture.mem_write(0x10000,bytes([0xa5])*128)
   initial=[(index+1)*0x101 for index in range(16)];initial[1]=0x10000;initial[4]=0x100f08
@@ -572,7 +635,7 @@ if len(sys.argv)>2 and not blocked and not unknown_tib:
 
  (out/'expected.json').write_text(json.dumps({'generationId':generation_id,'entry':entry,'base':base,'stop':uc.reg_read(x.UC_X86_REG_RIP),
   'instructions':len(trace),'hostCalls':host_calls,'tibBase':tib,'tibSize':tib_size,'tlsBase':tls_block,'tlsSize':tls_size,
-  'modules':[{**m,'initialized':False} if m.get('tls') else m for m in modules],'moduleGateways':{hex(k):v for k,v in module_gateways.items()},
+  'modules':initial_modules,'moduleBootReturns':[{'pc':pc,'base':module['base'],'stack':0x2ffee0} for pc,module in module_boot_returns.items()],'moduleGateways':{hex(k):v for k,v in module_gateways.items()},
   'bootstrap':bootstrap,'loaderHex':loader.hex(),
   'mxcsr':{'offset':lifter.reg_offset(lifter.ctx.registers['MXCSR']),'value':uc.reg_read(x.UC_X86_REG_MXCSR)},
   'xmm':[hex(uc.reg_read(getattr(x,f'UC_X86_REG_XMM{i}'))) for i in range(16)],

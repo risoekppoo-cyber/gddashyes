@@ -1,0 +1,10 @@
+{
+  "kind": "Microsoft UCRT C-locale classification table",
+  "entries": 384,
+  "bias": 128,
+  "sha256": "e7304be1d56c85907c3c409a5252fba8b5b51fa74aeb8fa4703b67e8427d7d3f",
+  "sourceSha256": "0f3c9f9e2d89abea79a4234d915d47381400f86533a8025846aa7e473b27cabb",
+  "source": "https://github.com/reactos/reactos/blob/ffd69754f9d6d37fcd01fe1ec58a9e7f9365e5e6/sdk/lib/ucrt/locale/ctype.cpp",
+  "attribution": "Original source copyright Microsoft Corporation; only a digest of functional classification data is retained.",
+  "sourceRevision": "ffd69754f9d6d37fcd01fe1ec58a9e7f9365e5e6"
+}

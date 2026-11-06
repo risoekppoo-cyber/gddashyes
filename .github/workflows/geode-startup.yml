@@ -8,6 +8,7 @@ on:
       - 'experiments/geode-binary/*.sh'
       - 'experiments/geode-binary/cpu-profile.json'
       - 'experiments/geode-binary/windows-profile.json'
+      - 'experiments/geode-binary/c-locale-reference.json'
   workflow_dispatch:
 permissions:
   contents: read
@@ -39,6 +40,7 @@ jobs:
           python experiments/geode-binary/fetch_msvc_slice.py /tmp/geode-startup/msvcp140-x64.dll
       - name: Verify actual DLL startup and boundary contracts
         env:
+          GEODE_MSVCP_BOOT: '1'
           GEODE_INSTRUCTION_LIMIT: 1000000
           GEODE_DLL: /tmp/geode-startup/Geode.dll
           GEODE_COCOS_IMG: /tmp/geode-startup/libcocos2d.dll.img

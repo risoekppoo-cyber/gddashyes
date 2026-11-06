@@ -1,0 +1,2096 @@
+{
+  "status": "DLL_STARTUP_PREFIX_VERIFIED",
+  "generationId": "91f37c9a-cef1-40db-8e5a-a2acea45dcf5",
+  "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
+  "entry": "0x72000000",
+  "originalX64InstructionsExecuted": 9278,
+  "uniqueInstructionsReached": 2530,
+  "firstRuntimeDependency": {
+    "reason": "ENTRYPOINT_RETURNED"
+  },
+  "reachedInstructionsSupportedBeforeBlock": 2530,
+  "firstTranslationBlocker": null,
+  "wasmStartupExecuted": true,
+  "windowsImportsExecuted": true,
+  "guestThreadModel": "single registered main context",
+  "hostCalls": [
+    {
+      "address": "0x700007c0",
+      "name": "KERNEL32.dll!GetSystemTimeAsFileTime",
+      "unixMilliseconds": 1793976568142,
+      "output": "0x2ffeb0"
+    },
+    {
+      "address": "0x70000600",
+      "name": "KERNEL32.dll!GetCurrentThreadId",
+      "threadId": 1
+    },
+    {
+      "address": "0x700005e0",
+      "name": "KERNEL32.dll!GetCurrentProcessId",
+      "processId": 1
+    },
+    {
+      "address": "0x700009e0",
+      "name": "KERNEL32.dll!QueryPerformanceCounter",
+      "counter": "5046012417640",
+      "output": "0x2ffeb8"
+    },
+    {
+      "address": "0x700023e0",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_initialize_onexit_table",
+      "table": "0x12082298"
+    },
+    {
+      "address": "0x700023e0",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_initialize_onexit_table",
+      "table": "0x120822b0"
+    },
+    {
+      "address": "0x70000880",
+      "name": "KERNEL32.dll!InitializeSListHead",
+      "head": "0x12082850"
+    },
+    {
+      "address": "0x70002400",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_initterm_e",
+      "first": "0x120518a8",
+      "end": "0x120518b8"
+    },
+    {
+      "address": "0x70000730",
+      "name": "KERNEL32.dll!GetModuleHandleW",
+      "module": "kernel32.dll",
+      "result": "0x1000000"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "GetSystemTimePreciseAsFileTime",
+      "result": "0x1001130"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "GetTempPath2W",
+      "result": "0x1001140"
+    },
+    {
+      "address": "0x700023f0",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_initterm",
+      "first": "0x120516d8",
+      "end": "0x120518a0"
+    },
+    {
+      "address": "0x70000870",
+      "name": "KERNEL32.dll!InitializeCriticalSectionEx",
+      "criticalSection": "0x12082130"
+    },
+    {
+      "address": "0x70000870",
+      "name": "KERNEL32.dll!InitializeCriticalSectionEx",
+      "criticalSection": "0x12082158"
+    },
+    {
+      "address": "0x70000870",
+      "name": "KERNEL32.dll!InitializeCriticalSectionEx",
+      "criticalSection": "0x12082180"
+    },
+    {
+      "address": "0x70000870",
+      "name": "KERNEL32.dll!InitializeCriticalSectionEx",
+      "criticalSection": "0x120821a8"
+    },
+    {
+      "address": "0x70000870",
+      "name": "KERNEL32.dll!InitializeCriticalSectionEx",
+      "criticalSection": "0x120821d0"
+    },
+    {
+      "address": "0x70000870",
+      "name": "KERNEL32.dll!InitializeCriticalSectionEx",
+      "criticalSection": "0x120821f8"
+    },
+    {
+      "address": "0x70000870",
+      "name": "KERNEL32.dll!InitializeCriticalSectionEx",
+      "criticalSection": "0x12082220"
+    },
+    {
+      "address": "0x70000870",
+      "name": "KERNEL32.dll!InitializeCriticalSectionEx",
+      "criticalSection": "0x12082248"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fa30"
+    },
+    {
+      "address": "0x700020d0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x1204fa30",
+      "result": "0x3400000"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x38",
+      "b": "0x0",
+      "result": "0x3400010"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x2",
+      "b": "0x120538c8",
+      "result": "0x3400050"
+    },
+    {
+      "address": "0x70001fe0",
+      "name": "VCRUNTIME140.dll!memcpy",
+      "result": "0x3400050"
+    },
+    {
+      "address": "0x1001050",
+      "name": "kernel32.dll!EncodePointer"
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x3400050",
+      "b": "0x12053880",
+      "result": null
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x2",
+      "b": "0x12053880",
+      "result": "0x3400050"
+    },
+    {
+      "address": "0x70001fe0",
+      "name": "VCRUNTIME140.dll!memcpy",
+      "result": "0x3400050"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70003cc0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!_get_stream_buffer_pointers"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fa20"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x0",
+      "result": "0x3400060"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x30",
+      "b": "0x2ffd30",
+      "result": "0x3400070"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x70004580",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!setlocale"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x2",
+      "b": "0xf00100",
+      "result": "0x34000a0"
+    },
+    {
+      "address": "0x70001fe0",
+      "name": "VCRUNTIME140.dll!memcpy",
+      "result": "0x34000a0"
+    },
+    {
+      "address": "0x70004580",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!setlocale"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x2",
+      "b": "0xf00100",
+      "result": "0x34000b0"
+    },
+    {
+      "address": "0x70001fe0",
+      "name": "VCRUNTIME140.dll!memcpy",
+      "result": "0x34000b0"
+    },
+    {
+      "address": "0x700045c0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!___lc_codepage_func"
+    },
+    {
+      "address": "0x70002890",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!calloc",
+      "a": "0x100",
+      "b": "0x2",
+      "result": "0x34000c0"
+    },
+    {
+      "address": "0x700045d0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!__pctype_func"
+    },
+    {
+      "address": "0x700045f0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!___lc_locale_name_func"
+    },
+    {
+      "address": "0x70004580",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!setlocale"
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x34000b0",
+      "b": "0x34000a0",
+      "result": null
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x34000a0",
+      "b": "0x34000a0",
+      "result": null
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x34000a0",
+      "result": "0x34000a0"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204f9c0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fab0"
+    },
+    {
+      "address": "0x700020d0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x1204fab0",
+      "result": "0x34000b0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70003cc0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!_get_stream_buffer_pointers"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204faa0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x0",
+      "result": "0x34002c0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fa40"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fb30"
+    },
+    {
+      "address": "0x700020d0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x1204fb30",
+      "result": "0x34002d0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70003cc0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!_get_stream_buffer_pointers"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fb20"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x0",
+      "result": "0x34002e0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fac0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fbb0"
+    },
+    {
+      "address": "0x700020d0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x1204fbb0",
+      "result": "0x34002f0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70003cc0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!_get_stream_buffer_pointers"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fba0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x0",
+      "result": "0x3400300"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fb40"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fc00"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fbc0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fcb0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fcc0"
+    },
+    {
+      "address": "0x700020d0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0xf01080",
+      "result": "0x3400310"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fd30"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x0",
+      "result": "0x3400320"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x60",
+      "b": "0x2ffd30",
+      "result": "0x3400330"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x70004580",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!setlocale"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x2",
+      "b": "0xf00100",
+      "result": "0x3400390"
+    },
+    {
+      "address": "0x70001fe0",
+      "name": "VCRUNTIME140.dll!memcpy",
+      "result": "0x3400390"
+    },
+    {
+      "address": "0x70004580",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!setlocale"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x2",
+      "b": "0xf00100",
+      "result": "0x34003a0"
+    },
+    {
+      "address": "0x70001fe0",
+      "name": "VCRUNTIME140.dll!memcpy",
+      "result": "0x34003a0"
+    },
+    {
+      "address": "0x700045c0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!___lc_codepage_func"
+    },
+    {
+      "address": "0x70002890",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!calloc",
+      "a": "0x100",
+      "b": "0x2",
+      "result": "0x34003b0"
+    },
+    {
+      "address": "0x700045d0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!__pctype_func"
+    },
+    {
+      "address": "0x700045f0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!___lc_locale_name_func"
+    },
+    {
+      "address": "0x700045c0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!___lc_codepage_func"
+    },
+    {
+      "address": "0x70004590",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!___mb_cur_max_func"
+    },
+    {
+      "address": "0x700045f0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!___lc_locale_name_func"
+    },
+    {
+      "address": "0x70004580",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!setlocale"
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x34003a0",
+      "b": "0x3400390",
+      "result": null
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x3400390",
+      "b": "0x3400390",
+      "result": null
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x3400390",
+      "result": "0x3400390"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fcd0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fd40"
+    },
+    {
+      "address": "0x700020d0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0xf01000",
+      "result": "0x34003a0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fdb0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x0",
+      "result": "0x34005b0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fd50"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fdc0"
+    },
+    {
+      "address": "0x700020d0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0xf01080",
+      "result": "0x34005c0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fe30"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x0",
+      "result": "0x34005d0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fdd0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fe40"
+    },
+    {
+      "address": "0x700020d0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0xf01040",
+      "result": "0x34005e0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204feb0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x0",
+      "result": "0x34005f0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fe50"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fec0"
+    },
+    {
+      "address": "0x700020d0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0xf01080",
+      "result": "0x3400600"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204ff30"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x0",
+      "result": "0x3400610"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x60",
+      "b": "0x2ffd30",
+      "result": "0x3400620"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x70004580",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!setlocale"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x2",
+      "b": "0xf00100",
+      "result": "0x3400680"
+    },
+    {
+      "address": "0x70001fe0",
+      "name": "VCRUNTIME140.dll!memcpy",
+      "result": "0x3400680"
+    },
+    {
+      "address": "0x70004580",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!setlocale"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x2",
+      "b": "0xf00100",
+      "result": "0x3400690"
+    },
+    {
+      "address": "0x70001fe0",
+      "name": "VCRUNTIME140.dll!memcpy",
+      "result": "0x3400690"
+    },
+    {
+      "address": "0x700045c0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!___lc_codepage_func"
+    },
+    {
+      "address": "0x70002890",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!calloc",
+      "a": "0x100",
+      "b": "0x2",
+      "result": "0x34006a0"
+    },
+    {
+      "address": "0x700045d0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!__pctype_func"
+    },
+    {
+      "address": "0x700045f0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!___lc_locale_name_func"
+    },
+    {
+      "address": "0x700045c0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!___lc_codepage_func"
+    },
+    {
+      "address": "0x70004590",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!___mb_cur_max_func"
+    },
+    {
+      "address": "0x700045f0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!___lc_locale_name_func"
+    },
+    {
+      "address": "0x70004580",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!setlocale"
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x3400690",
+      "b": "0x3400680",
+      "result": null
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x3400680",
+      "b": "0x3400680",
+      "result": null
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x3400680",
+      "result": "0x3400680"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fed0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204ff40"
+    },
+    {
+      "address": "0x700020d0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0xf01000",
+      "result": "0x3400690"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204ffb0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x0",
+      "result": "0x34008a0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204ff50"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204ffc0"
+    },
+    {
+      "address": "0x700020d0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0xf01080",
+      "result": "0x34008b0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x12050030"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x0",
+      "result": "0x34008c0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204ffd0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x12050040"
+    },
+    {
+      "address": "0x700020d0",
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0xf01040",
+      "result": "0x34008d0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x120500b0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x0",
+      "result": "0x34008e0"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x700045a0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales"
+    },
+    {
+      "address": "0x700045b0",
+      "name": "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x12050050"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x120500c0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fc10"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204fc70"
+    },
+    {
+      "address": "0x1001230",
+      "name": "kernel32.dll!RtlPcToFileHeader",
+      "result": "0x12000000"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204f9b0"
+    },
+    {
+      "address": "0x1001230",
+      "name": "kernel32.dll!RtlPcToFileHeader",
+      "result": "0x12000000"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x12082298",
+      "function": "0x1204f9a0"
+    }
+  ],
+  "cpuCalls": [
+    {
+      "pc": "0x1204db10",
+      "leaf": 0,
+      "subleaf": 0,
+      "results": [
+        1,
+        1970169159,
+        1818588270,
+        1231384169
+      ]
+    },
+    {
+      "pc": "0x1204db32",
+      "leaf": 1,
+      "subleaf": 0,
+      "results": [
+        1536,
+        0,
+        0,
+        125861905
+      ]
+    },
+    {
+      "pc": "0x1204db10",
+      "leaf": 0,
+      "subleaf": 0,
+      "results": [
+        1,
+        1970169159,
+        1818588270,
+        1231384169
+      ]
+    },
+    {
+      "pc": "0x1204db32",
+      "leaf": 1,
+      "subleaf": 0,
+      "results": [
+        1536,
+        0,
+        0,
+        125861905
+      ]
+    }
+  ],
+  "cpuProfile": {
+    "description": "Virtual x64 baseline: SSE2, no AVX/XSAVE; unlisted CPUID leaves return zero",
+    "leaves": {
+      "0": [
+        1,
+        1970169159,
+        1818588270,
+        1231384169
+      ],
+      "1": [
+        1536,
+        0,
+        0,
+        125861905
+      ],
+      "2147483648": [
+        2147483649,
+        0,
+        0,
+        0
+      ],
+      "2147483649": [
+        0,
+        0,
+        0,
+        537919488
+      ]
+    }
+  },
+  "tibBase": 4194304,
+  "tlsCallbacksExecuted": false,
+  "fullGeodeLoader": false,
+  "existingGeodePackagesSupported": false,
+  "initializerEvents": [
+    {
+      "kind": "callback",
+      "target": "0x12035f80"
+    },
+    {
+      "kind": "complete",
+      "result": 0
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001170"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120010d0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120010a0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001130"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001240"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120011c0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001190"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001210"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001300"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001290"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001260"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120012f0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001400"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001350"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001320"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120013b0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001430"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001420"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001470"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120014d0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001520"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120014f0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001490"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001580"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120015d0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120015a0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001550"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001610"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001660"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001630"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001600"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120016e0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001730"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001700"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001690"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120017a0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120017f0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120017c0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001760"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001850"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120018a0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001870"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001820"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120018e0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001930"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001900"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120018d0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120019b0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001a00"
+    },
+    {
+      "kind": "callback",
+      "target": "0x120019d0"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001960"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001a30"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001450"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001460"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001050"
+    },
+    {
+      "kind": "callback",
+      "target": "0x12001000"
+    },
+    {
+      "kind": "complete",
+      "result": 0
+    }
+  ],
+  "guestModules": [
+    {
+      "name": "Geode.dll",
+      "base": 33554432,
+      "size": 17035264,
+      "complete": true,
+      "shim": false,
+      "staticTls": true
+    },
+    {
+      "name": "kernel32.dll",
+      "base": 16777216,
+      "size": 65536,
+      "complete": false,
+      "shim": true,
+      "knownAbsent": []
+    },
+    {
+      "name": "ntdll.dll",
+      "base": 16842752,
+      "size": 65536,
+      "complete": false,
+      "shim": true,
+      "knownAbsent": [
+        "wine_get_version"
+      ]
+    },
+    {
+      "name": "libcocos2d.dll",
+      "base": 268435456,
+      "size": 1900544,
+      "complete": true,
+      "shim": false,
+      "initialized": false,
+      "sha256": "1ade9d1b9603d82a41f2211348ec98516098b6d012114f785a763b8762512257",
+      "entry": 269375308,
+      "staticTls": true,
+      "exportCount": 5917,
+      "tls": {
+        "base": 13631488,
+        "size": 65536,
+        "indexAddress": 270231344,
+        "index": 1,
+        "templateHex": "0000000000000080",
+        "callbacks": []
+      }
+    },
+    {
+      "name": "GeometryDash.exe",
+      "base": 134217728,
+      "size": 13225984,
+      "complete": true,
+      "shim": false,
+      "primary": true,
+      "sha256": "dab65e0527e343f03ea08614b2967f5a20cdb481b1622aadde76cde648803c2a",
+      "sourceGuestBase": 4194304,
+      "relocationsApplied": 99581,
+      "cocosImportsBound": 856,
+      "staticTls": true,
+      "primaryEntrypointExecuted": false,
+      "primaryTls": {
+        "base": 14680064,
+        "size": 65536,
+        "index": 2,
+        "templateBytes": 8,
+        "callbacksExecuted": false
+      }
+    },
+    {
+      "name": "MSVCP140.dll",
+      "base": 301989888,
+      "size": 561152,
+      "complete": true,
+      "shim": false,
+      "sliceOnly": false,
+      "initializing": false,
+      "runtimeInitialized": true,
+      "entry": 302308016,
+      "sha256": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9",
+      "constructor": 302008624,
+      "constructorEnd": 302008671,
+      "constructorExport": "??0ios_base@std@@IEAA@XZ",
+      "constructorOrdinal": 120,
+      "constructorBytesSha256": "69d10a8eefc88d0c6d75ef444aaf1c2b1e8a4a47e0ff411d42d658577cc986fc"
+    }
+  ],
+  "instructionBudget": 1000000,
+  "nativeFloatingReference": {
+    "kind": "real host x64 SSE with normalized registers and checked memory-source decoding; MXCSR saved/restored",
+    "instructions": 0,
+    "byPc": {}
+  },
+  "primaryMappingPhase": "mapped at declared ASLR base before EXE TLS callbacks and entrypoint",
+  "pointerEncoding": {
+    "key": "2146965868384341019",
+    "encodes": 1,
+    "decodes": 0
+  },
+  "crtRuntime": {
+    "base": 15728640,
+    "size": 65536,
+    "callbacks": [],
+    "fileLocks": {},
+    "newHandler": "0",
+    "localeLock": {
+      "owner": null,
+      "depth": 0
+    },
+    "localeQueries": 9
+  },
+  "criticalSections": {
+    "states": {
+      "302522672": {
+        "owner": null,
+        "depth": 0,
+        "spin": 4000
+      },
+      "302522712": {
+        "owner": null,
+        "depth": 0,
+        "spin": 4000
+      },
+      "302522752": {
+        "owner": null,
+        "depth": 0,
+        "spin": 4000
+      },
+      "302522792": {
+        "owner": null,
+        "depth": 0,
+        "spin": 4000
+      },
+      "302522832": {
+        "owner": null,
+        "depth": 0,
+        "spin": 4000
+      },
+      "302522872": {
+        "owner": null,
+        "depth": 0,
+        "spin": 4000
+      },
+      "302522912": {
+        "owner": null,
+        "depth": 0,
+        "spin": 4000
+      },
+      "302522952": {
+        "owner": null,
+        "depth": 0,
+        "spin": 4000
+      }
+    },
+    "acquisitions": 0
+  },
+  "testedComponent": "msvc-dll-attach",
+  "msvcImageInstructions": 9270,
+  "msvcBootMode": "only",
+  "msvcDllAttachCompleted": true,
+  "msvcCtorFixtureScheduled": false,
+  "msvcSliceInstructions": 9270,
+  "primaryImageInstructions": 0,
+  "dependencyImageInstructions": 0,
+  "dependencyLoadEvents": [],
+  "dependencyLoadInProgress": false,
+  "nativeExportChecks": [
+    {
+      "name": "??0?$Pollable@UWebFuture@web@utils@geode@@VWebResponse@234@$0A@@arc@@QEAA@$$QEAU01@@Z",
+      "ordinal": 1,
+      "address": 34663136,
+      "module": 33554432
+    },
+    {
+      "name": "??_7PopupManager@geode@@6B@",
+      "ordinal": 601,
+      "address": 45096600,
+      "module": 33554432
+    },
+    {
+      "name": "?getDevelopers@ModMetadata@geode@@QEBAAEBV?$vector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@XZ",
+      "ordinal": 1201,
+      "address": 36488768,
+      "module": 33554432
+    },
+    {
+      "name": "?onDescription@SettingNodeV3@geode@@IEAAXPEAVCCObject@cocos2d@@@Z",
+      "ordinal": 1801,
+      "address": 35755232,
+      "module": 33554432
+    },
+    {
+      "name": "?unselected@Button@geode@@UEAAXXZ",
+      "ordinal": 2401,
+      "address": 35855856,
+      "module": 33554432
+    },
+    {
+      "module": 301989888,
+      "name": "??0ios_base@std@@IEAA@XZ",
+      "ordinal": 120,
+      "address": 302008624
+    },
+    {
+      "name": "?$TSS0@?1??getClassTypeInfo@CCCallFuncN@cocos2d@@UEAAJXZ@4HA",
+      "ordinal": 1,
+      "address": 270214060,
+      "module": 268435456
+    },
+    {
+      "name": "??1CCStandardTouchDelegate@cocos2d@@UEAA@XZ",
+      "ordinal": 1001,
+      "address": 268766720,
+      "module": 268435456
+    },
+    {
+      "name": "??_7CCTransitionProgress@cocos2d@@6B@",
+      "ordinal": 2001,
+      "address": 269465552,
+      "module": 268435456
+    },
+    {
+      "name": "?create@CCProgressTo@cocos2d@@SAPEAV12@MM@Z",
+      "ordinal": 3001,
+      "address": 268671808,
+      "module": 268435456
+    },
+    {
+      "name": "?initWithAction@CCEaseRateAction@cocos2d@@QEAA_NPEAVCCActionInterval@2@M@Z",
+      "ordinal": 4001,
+      "address": 268607904,
+      "module": 268435456
+    },
+    {
+      "name": "?setLayerName@CCTMXLayer@cocos2d@@QEAAXPEBD@Z",
+      "ordinal": 5001,
+      "address": 269314336,
+      "module": 268435456
+    }
+  ],
+  "threadDescription": null,
+  "localAllocations": {},
+  "crtHeap": {
+    "base": 54525952,
+    "size": 8388608,
+    "errno": 12582912,
+    "allocations": {
+      "54525952": [
+        16,
+        16
+      ],
+      "54525968": [
+        56,
+        64
+      ],
+      "54526032": [
+        2,
+        16
+      ],
+      "54526048": [
+        16,
+        16
+      ],
+      "54526064": [
+        48,
+        48
+      ],
+      "54526112": [
+        16,
+        16
+      ],
+      "54526128": [
+        16,
+        16
+      ],
+      "54526144": [
+        512,
+        512
+      ],
+      "54526656": [
+        16,
+        16
+      ],
+      "54526672": [
+        16,
+        16
+      ],
+      "54526688": [
+        16,
+        16
+      ],
+      "54526704": [
+        16,
+        16
+      ],
+      "54526720": [
+        16,
+        16
+      ],
+      "54526736": [
+        16,
+        16
+      ],
+      "54526752": [
+        16,
+        16
+      ],
+      "54526768": [
+        96,
+        96
+      ],
+      "54526864": [
+        16,
+        16
+      ],
+      "54526880": [
+        16,
+        16
+      ],
+      "54526896": [
+        512,
+        512
+      ],
+      "54527408": [
+        16,
+        16
+      ],
+      "54527424": [
+        16,
+        16
+      ],
+      "54527440": [
+        16,
+        16
+      ],
+      "54527456": [
+        16,
+        16
+      ],
+      "54527472": [
+        16,
+        16
+      ],
+      "54527488": [
+        16,
+        16
+      ],
+      "54527504": [
+        16,
+        16
+      ],
+      "54527520": [
+        96,
+        96
+      ],
+      "54527616": [
+        16,
+        16
+      ],
+      "54527632": [
+        16,
+        16
+      ],
+      "54527648": [
+        512,
+        512
+      ],
+      "54528160": [
+        16,
+        16
+      ],
+      "54528176": [
+        16,
+        16
+      ],
+      "54528192": [
+        16,
+        16
+      ],
+      "54528208": [
+        16,
+        16
+      ],
+      "54528224": [
+        16,
+        16
+      ]
+    },
+    "freeBlocks": [
+      [
+        54528240,
+        8386320
+      ]
+    ],
+    "calls": 49
+  },
+  "resolvedExports": [
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "GetSystemTimePreciseAsFileTime",
+      "result": "0x1001130"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "GetTempPath2W",
+      "result": "0x1001140"
+    }
+  ],
+  "windowsCompatibilityProfile": {
+    "description": "Declared compatibility target; does not describe the host OS or guarantee Windows API coverage",
+    "major": 10,
+    "minor": 0,
+    "build": 19045,
+    "platform": 2,
+    "productType": 1
+  },
+  "tibReads": [
+    [
+      8,
+      8
+    ],
+    [
+      48,
+      8
+    ]
+  ],
+  "unmodeledTibReads": [],
+  "originalDllInstructionsExecuted": 0,
+  "loaderBootstrapInstructions": 8,
+  "tlsTemplateBytes": 784,
+  "tlsZeroFillBytes": 0,
+  "tlsCallbacksScheduled": 0,
+  "tlsCallbacksCompleted": 0,
+  "tibSize": 65536,
+  "mxcsrMatches": true,
+  "crtHeapMemoryMatches": true,
+  "dependencyTlsCallbacksCompleted": 0,
+  "dependencyEntriesCompleted": 0,
+  "dependencyLoadsCompleted": 0,
+  "moduleLookups": 1,
+  "exportResolutions": 2,
+  "shimModuleImagesMatch": true,
+  "wasmStartupInstructions": 9278,
+  "allGeneralRegistersMatch": true,
+  "entireNativeStackMatches": true,
+  "dllInitializationCompleted": false,
+  "implementedWindowsCalls": 248,
+  "initializerCallbacksExecuted": 57,
+  "completedInitializerTables": 2,
+  "entireDllImageMatches": true,
+  "allXmmRegistersMatch": true,
+  "arithmeticFlagsMatch": true,
+  "tlsMemoryMatches": true,
+  "onexitRegistrations": 44,
+  "srwAcquisitions": 0,
+  "emptyQueueConditionWakes": 0,
+  "initializerCallbacksStarted": 57,
+  "initializerCallbacksCompleted": 57,
+  "initializerTablesInProgress": 0,
+  "executedImportCalls": 248,
+  "implementedImports": [
+    "KERNEL32.dll!GetCurrentProcessId",
+    "KERNEL32.dll!GetCurrentThreadId",
+    "KERNEL32.dll!GetModuleHandleW",
+    "KERNEL32.dll!GetProcAddress",
+    "KERNEL32.dll!GetSystemTimeAsFileTime",
+    "KERNEL32.dll!InitializeCriticalSectionEx",
+    "KERNEL32.dll!InitializeSListHead",
+    "KERNEL32.dll!QueryPerformanceCounter",
+    "VCRUNTIME140.dll!memcpy",
+    "api-ms-win-crt-heap-l1-1-0.dll!calloc",
+    "api-ms-win-crt-heap-l1-1-0.dll!free",
+    "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+    "api-ms-win-crt-locale-l1-1-0.dll!___lc_codepage_func",
+    "api-ms-win-crt-locale-l1-1-0.dll!___lc_locale_name_func",
+    "api-ms-win-crt-locale-l1-1-0.dll!___mb_cur_max_func",
+    "api-ms-win-crt-locale-l1-1-0.dll!__pctype_func",
+    "api-ms-win-crt-locale-l1-1-0.dll!_lock_locales",
+    "api-ms-win-crt-locale-l1-1-0.dll!_unlock_locales",
+    "api-ms-win-crt-locale-l1-1-0.dll!setlocale",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_initialize_onexit_table",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_initterm",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_initterm_e",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+    "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func",
+    "api-ms-win-crt-stdio-l1-1-0.dll!_get_stream_buffer_pointers",
+    "kernel32.dll!EncodePointer",
+    "kernel32.dll!RtlPcToFileHeader"
+  ],
+  "verificationScope": "local complete startup script; fresh CI pending",
+  "validation": {
+    "cpuCases": 118,
+    "realX64FloatingCases": 107,
+    "emulatorMxcsrDiscrepancies": 36,
+    "scalarCases": 200
+  }
+}

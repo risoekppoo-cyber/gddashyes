@@ -33,7 +33,10 @@ export class GuestModules {
  invoke(name,memory,cpu){
   const v=new DataView(memory.buffer),read=(p,wide)=>{let s='';for(let i=0;i<32768;i++){const at=Number(p)+i*(wide?2:1);if(p<=0n||p>0xffffffffn||at+(wide?2:1)>memory.buffer.byteLength)throw Error('Guest string bounds');const c=wide?v.getUint16(at,true):v.getUint8(at);if(!c)return s;s+=String.fromCharCode(c);}throw Error('Unterminated guest string');};
   const key=name.toLowerCase(),arg=v.getBigUint64(cpu+8,true);let result;
-  if(key.endsWith('!disablethreadlibrarycalls')){
+  if(key.endsWith('!rtlpctofileheader')){
+   const m=this.modules.find(m=>arg>=BigInt(m.base)&&arg<BigInt(m.base+m.size)),out=v.getBigUint64(cpu+16,true);result=m?.base??0;
+   if(out<=0n||out>0xffffffffn||Number(out)+8>v.byteLength)throw Error('Module header output bounds');v.setBigUint64(Number(out),BigInt(result),true);
+  }else if(key.endsWith('!disablethreadlibrarycalls')){
    const m=this.modules.find(m=>BigInt(m.base)===arg);if(!m)throw Error('UNMODELED_MODULE_HANDLE');
    if(m.staticTls){this.setLastError(126);result=0;}else{m.threadCalloutsDisabled=true;result=1;}
   }else if(key.endsWith('!getmodulehandlea')||key.endsWith('!getmodulehandlew'))result=this.handle(arg===0n?null:read(arg,key.endsWith('w')));
