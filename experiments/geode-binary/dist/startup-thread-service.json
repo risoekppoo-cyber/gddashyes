@@ -1,0 +1,40 @@
+{
+  "status": "DLL_STARTUP_REACHED_WINDOWS_IMPORT",
+  "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
+  "entry": "0x2a52528",
+  "originalX64InstructionsExecuted": 27,
+  "uniqueInstructionsReached": 27,
+  "firstRuntimeDependency": {
+    "reason": "WINDOWS_IMPORT_REQUIRED",
+    "importName": "KERNEL32.dll!GetCurrentProcessId",
+    "address": "0x700005e0"
+  },
+  "reachedInstructionsSupportedBeforeBlock": 27,
+  "firstTranslationBlocker": null,
+  "wasmStartupExecuted": true,
+  "windowsImportsExecuted": true,
+  "guestThreadModel": "single registered main context",
+  "hostCalls": [
+    {
+      "address": "0x700007c0",
+      "name": "KERNEL32.dll!GetSystemTimeAsFileTime",
+      "unixMilliseconds": 1793949610532,
+      "output": "0x2ffee0"
+    },
+    {
+      "address": "0x70000600",
+      "name": "KERNEL32.dll!GetCurrentThreadId",
+      "threadId": 1
+    }
+  ],
+  "tlsCallbacksExecuted": false,
+  "fullGeodeLoader": false,
+  "existingGeodePackagesSupported": false,
+  "wasmStartupInstructions": 27,
+  "allGeneralRegistersMatch": true,
+  "entireNativeStackMatches": true,
+  "dllInitializationCompleted": false,
+  "implementedWindowsCalls": 2,
+  "testedCommit": "c6900250f936a6fcf303596e501352f85c242fb8",
+  "verificationRun": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42180134376"
+}
