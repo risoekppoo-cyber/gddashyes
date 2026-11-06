@@ -1,0 +1,334 @@
+{
+  "status": "DLL_STARTUP_PREFIX_VERIFIED",
+  "generationId": "0e2bc500-ef76-4a39-8805-7530301fe5e9",
+  "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
+  "entry": "0x72000000",
+  "originalX64InstructionsExecuted": 1063053,
+  "uniqueInstructionsReached": 40922,
+  "originalDllInstructionsExecuted": 1021682,
+  "msvcImageInstructions": 33753,
+  "vcruntimeImageInstructions": 6150,
+  "dependencyImageInstructions": 1442,
+  "primaryImageInstructions": 0,
+  "loaderBootstrapInstructions": 26,
+  "firstRuntimeDependency": {
+    "reason": "NATIVE_CODE_WRITE_REQUIRES_ROUTING",
+    "ownerModule": "VirtualAlloc executable allocation",
+    "instructionPc": "0x212f63e",
+    "occurrence": 1,
+    "writeAddress": "0x15000000",
+    "writeSize": 8,
+    "writeValueHex": "0x74894808245c8948",
+    "stoppedBeforeInstruction": true
+  },
+  "firstTranslationBlocker": null,
+  "wasmStartupExecuted": true,
+  "wasmStartupInstructions": 1063053,
+  "windowsImportsExecuted": true,
+  "implementedWindowsCalls": 9622,
+  "initializerCallbacksExecuted": 157,
+  "initializerCallbacksCompleted": 157,
+  "initializerTablesInProgress": 0,
+  "completedInitializerTables": 6,
+  "tlsCallbacksExecuted": true,
+  "tlsCallbacksCompleted": 2,
+  "msvcDllAttachCompleted": true,
+  "vcruntimeDllAttachCompleted": true,
+  "dllInitializationCompleted": false,
+  "fullGeodeLoader": false,
+  "existingGeodePackagesSupported": false,
+  "guestThreadModel": "single registered main context",
+  "primaryMappingPhase": "mapped at declared ASLR base before EXE TLS callbacks and entrypoint",
+  "fmodInspectionBoundaryPassed": true,
+  "fmodNativeCodeReadCount": 2,
+  "fmodNativeCodeReadSites": [
+    "0x21a6dad"
+  ],
+  "nativePatchToLiveWasmLinked": false,
+  "stoppedBeforeNativePatch": true,
+  "unresolvedImportMemoryReads": [],
+  "protectedExecutableRegions": [
+    {
+      "start": 335544320,
+      "end": 335609856,
+      "module": "fmod.dll"
+    },
+    {
+      "start": 33558528,
+      "end": 44429312,
+      "module": "Geode.dll"
+    },
+    {
+      "start": 16781312,
+      "end": 16785408,
+      "module": "kernel32.dll"
+    },
+    {
+      "start": 16846848,
+      "end": 16850944,
+      "module": "ntdll.dll"
+    },
+    {
+      "start": 16912384,
+      "end": 16916480,
+      "module": "api-ms-win-core-synch-l1-2-0.dll"
+    },
+    {
+      "start": 16977920,
+      "end": 16982016,
+      "module": "api-ms-win-core-fibers-l1-1-1.dll"
+    },
+    {
+      "start": 268439552,
+      "end": 269393920,
+      "module": "libcocos2d.dll"
+    },
+    {
+      "start": 134221824,
+      "end": 141352960,
+      "module": "GeometryDash.exe"
+    },
+    {
+      "start": 301993984,
+      "end": 302321664,
+      "module": "MSVCP140.dll"
+    },
+    {
+      "start": 318771200,
+      "end": 318844928,
+      "module": "VCRUNTIME140.dll"
+    },
+    {
+      "start": 318844928,
+      "end": 318849024,
+      "module": "VCRUNTIME140.dll"
+    },
+    {
+      "start": 1879048192,
+      "end": 1879113728,
+      "module": "unresolved import gateways"
+    },
+    {
+      "start": 352321536,
+      "end": 352325632,
+      "module": "VirtualAlloc executable allocation"
+    }
+  ],
+  "executableMemory": {
+    "base": 352321536,
+    "size": 2097152,
+    "cursor": 352387072,
+    "allocations": [
+      {
+        "base": 352321536,
+        "requested": 32,
+        "committed": 4096,
+        "reserved": 65536,
+        "protection": 64,
+        "writeRoutingPending": true
+      }
+    ]
+  },
+  "guestDirectoryHandles": {
+    "directories": {
+      "c:\\westminsterdash": "C:\\WestminsterDash",
+      "c:\\": "C:\\",
+      "c:\\windows\\system32": "C:\\Windows\\System32",
+      "c:\\windows": "C:\\Windows"
+    },
+    "images": [
+      "c:\\westminsterdash\\fmod.dll",
+      "c:\\westminsterdash\\geode.dll",
+      "c:\\westminsterdash\\geometrydash.exe",
+      "c:\\westminsterdash\\libcocos2d.dll",
+      "c:\\windows\\system32\\api-ms-win-core-fibers-l1-1-1.dll",
+      "c:\\windows\\system32\\api-ms-win-core-synch-l1-2-0.dll",
+      "c:\\windows\\system32\\kernel32.dll",
+      "c:\\windows\\system32\\msvcp140.dll",
+      "c:\\windows\\system32\\ntdll.dll",
+      "c:\\windows\\system32\\vcruntime140.dll"
+    ],
+    "handles": {},
+    "next": 1342177288
+  },
+  "allGeneralRegistersMatch": true,
+  "allXmmRegistersMatch": true,
+  "arithmeticFlagsMatch": true,
+  "mxcsrMatches": true,
+  "entireNativeStackMatches": true,
+  "entireDllImageMatches": true,
+  "shimModuleImagesMatch": true,
+  "tlsMemoryMatches": true,
+  "crtHeapMemoryMatches": true,
+  "unmodeledTibReads": [],
+  "msvcConstructorPoisonFixture": true,
+  "guestModules": [
+    {
+      "name": "Geode.dll",
+      "base": 33554432,
+      "size": 17035264,
+      "complete": true,
+      "shim": false,
+      "staticTls": true,
+      "path": "C:\\WestminsterDash\\Geode.dll"
+    },
+    {
+      "name": "kernel32.dll",
+      "base": 16777216,
+      "size": 65536,
+      "complete": false,
+      "shim": true,
+      "knownAbsent": [],
+      "path": "C:\\Windows\\System32\\kernel32.dll"
+    },
+    {
+      "name": "ntdll.dll",
+      "base": 16842752,
+      "size": 65536,
+      "complete": false,
+      "shim": true,
+      "knownAbsent": [
+        "wine_get_version"
+      ],
+      "path": "C:\\Windows\\System32\\ntdll.dll"
+    },
+    {
+      "name": "api-ms-win-core-synch-l1-2-0.dll",
+      "base": 16908288,
+      "size": 65536,
+      "complete": false,
+      "shim": true,
+      "knownAbsent": [],
+      "systemContract": true,
+      "loadReferences": 1,
+      "path": "C:\\Windows\\System32\\api-ms-win-core-synch-l1-2-0.dll"
+    },
+    {
+      "name": "api-ms-win-core-fibers-l1-1-1.dll",
+      "base": 16973824,
+      "size": 65536,
+      "complete": false,
+      "shim": true,
+      "knownAbsent": [],
+      "systemContract": true,
+      "loadReferences": 1,
+      "path": "C:\\Windows\\System32\\api-ms-win-core-fibers-l1-1-1.dll"
+    },
+    {
+      "name": "libcocos2d.dll",
+      "base": 268435456,
+      "size": 1900544,
+      "complete": true,
+      "shim": false,
+      "initialized": true,
+      "sha256": "1ade9d1b9603d82a41f2211348ec98516098b6d012114f785a763b8762512257",
+      "entry": 269375308,
+      "staticTls": true,
+      "exportCount": 5917,
+      "path": "C:\\WestminsterDash\\libcocos2d.dll",
+      "tls": {
+        "base": 13631488,
+        "size": 65536,
+        "indexAddress": 270231344,
+        "index": 1,
+        "templateHex": "0000000000000080",
+        "callbacks": []
+      }
+    },
+    {
+      "name": "GeometryDash.exe",
+      "base": 134217728,
+      "size": 13225984,
+      "complete": true,
+      "shim": false,
+      "primary": true,
+      "sha256": "dab65e0527e343f03ea08614b2967f5a20cdb481b1622aadde76cde648803c2a",
+      "sourceGuestBase": 4194304,
+      "relocationsApplied": 99581,
+      "cocosImportsBound": 856,
+      "staticTls": true,
+      "primaryEntrypointExecuted": false,
+      "primaryTls": {
+        "base": 14680064,
+        "size": 65536,
+        "index": 2,
+        "templateBytes": 8,
+        "callbacksExecuted": false
+      },
+      "path": "C:\\WestminsterDash\\GeometryDash.exe"
+    },
+    {
+      "name": "MSVCP140.dll",
+      "base": 301989888,
+      "size": 561152,
+      "complete": true,
+      "shim": false,
+      "sliceOnly": false,
+      "initializing": false,
+      "runtimeInitialized": true,
+      "entry": 302308016,
+      "sha256": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9",
+      "constructor": 302008624,
+      "constructorEnd": 302008671,
+      "constructorExport": "??0ios_base@std@@IEAA@XZ",
+      "constructorOrdinal": 120,
+      "constructorBytesSha256": "69d10a8eefc88d0c6d75ef444aaf1c2b1e8a4a47e0ff411d42d658577cc986fc",
+      "path": "C:\\Windows\\System32\\MSVCP140.dll"
+    },
+    {
+      "name": "VCRUNTIME140.dll",
+      "base": 318767104,
+      "size": 122880,
+      "complete": true,
+      "shim": false,
+      "initializing": false,
+      "runtimeInitialized": true,
+      "entry": 318833552,
+      "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+      "typeInfoAddress": 318787872,
+      "typeInfoBindings": 1,
+      "staticTls": false,
+      "path": "C:\\Windows\\System32\\VCRUNTIME140.dll"
+    },
+    {
+      "name": "fmod.dll",
+      "base": 335544320,
+      "size": 65536,
+      "complete": false,
+      "shim": true,
+      "knownAbsent": [],
+      "browserAdapterProvider": true,
+      "staticTls": false,
+      "entryAddress": 335550144,
+      "originalFmodDll": false,
+      "bindings": 74,
+      "path": "C:\\WestminsterDash\\fmod.dll"
+    }
+  ],
+  "fmodBrowserAdapterProvider": {
+    "base": 335544320,
+    "bindings": 74,
+    "originalFmodDll": false,
+    "mappings": 64,
+    "returnOnlyEntries": 26,
+    "catalog": "experiments/fmod-bridge/adapter-map.json",
+    "statefulAudioExecutionSupported": false
+  },
+  "testedCommit": "0788184683c0d905211b08261ca5a2e8700deeed",
+  "verificationRun": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42287771449",
+  "validation": {
+    "startupProfiles": {
+      "geode": "PASS",
+      "vcruntime": "PASS",
+      "combined": "PASS"
+    },
+    "cpuFixtures": 118,
+    "realX64FloatingFixtures": 107,
+    "scalarCases": 200,
+    "fmodBridgeRun": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42287771297",
+    "fmodMappingsChecked": 64,
+    "fmodNativeExecutions": 192
+  },
+  "reportFormat": "summary-v2",
+  "summaryScope": "Extracted from the passing combined CI log. Complete report.json is attached to the verification run; no full-report digest claimed."
+}

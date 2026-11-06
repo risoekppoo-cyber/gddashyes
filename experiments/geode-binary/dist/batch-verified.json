@@ -1,52 +1,84 @@
 {
   "status": "DLL_STARTUP_PREFIX_VERIFIED",
-  "generationId": "0e2bc500-ef76-4a39-8805-7530301fe5e9",
+  "generationId": "a9b9b277-a009-4315-9706-1853ffe3bb2f",
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
   "entry": "0x72000000",
-  "originalX64InstructionsExecuted": 1063053,
-  "uniqueInstructionsReached": 40922,
-  "originalDllInstructionsExecuted": 1021682,
-  "msvcImageInstructions": 33753,
-  "vcruntimeImageInstructions": 6150,
-  "dependencyImageInstructions": 1442,
-  "primaryImageInstructions": 0,
-  "loaderBootstrapInstructions": 26,
-  "firstRuntimeDependency": {
-    "reason": "NATIVE_CODE_WRITE_REQUIRES_ROUTING",
-    "ownerModule": "VirtualAlloc executable allocation",
-    "instructionPc": "0x212f63e",
-    "occurrence": 1,
-    "writeAddress": "0x15000000",
-    "writeSize": 8,
-    "writeValueHex": "0x74894808245c8948",
-    "stoppedBeforeInstruction": true
-  },
+  "originalX64InstructionsExecuted": 1063171,
+  "uniqueInstructionsReached": 41037,
+  "reachedInstructionsSupportedBeforeBlock": 41037,
   "firstTranslationBlocker": null,
   "wasmStartupExecuted": true,
-  "wasmStartupInstructions": 1063053,
   "windowsImportsExecuted": true,
-  "implementedWindowsCalls": 9622,
-  "initializerCallbacksExecuted": 157,
-  "initializerCallbacksCompleted": 157,
-  "initializerTablesInProgress": 0,
-  "completedInitializerTables": 6,
+  "guestThreadModel": "single registered main context",
+  "tibBase": 4194304,
   "tlsCallbacksExecuted": true,
-  "tlsCallbacksCompleted": 2,
-  "msvcDllAttachCompleted": true,
-  "vcruntimeDllAttachCompleted": true,
-  "dllInitializationCompleted": false,
   "fullGeodeLoader": false,
   "existingGeodePackagesSupported": false,
-  "guestThreadModel": "single registered main context",
+  "instructionBudget": 2000000,
   "primaryMappingPhase": "mapped at declared ASLR base before EXE TLS callbacks and entrypoint",
+  "stoppedBeforeUnresolvedImportRead": false,
+  "stoppedBeforeOwnedBridgeWrite": false,
   "fmodInspectionBoundaryPassed": true,
   "fmodNativeCodeReadCount": 2,
-  "fmodNativeCodeReadSites": [
-    "0x21a6dad"
-  ],
   "nativePatchToLiveWasmLinked": false,
-  "stoppedBeforeNativePatch": true,
+  "stoppedBeforeNativePatch": false,
+  "instructionByteGuards": 41009,
+  "dllProcessAttachCompleted": true,
+  "dllAttachResult": 1,
+  "testedComponent": "geode-startup",
+  "vcruntimeDllAttachCompleted": true,
+  "translationPartitionSize": 128,
+  "vcruntimeImageInstructions": 6150,
+  "msvcImageInstructions": 33753,
+  "msvcBootMode": "1",
+  "msvcDllAttachCompleted": true,
+  "msvcCtorFixtureScheduled": true,
+  "msvcSliceInstructions": 33753,
+  "primaryImageInstructions": 0,
+  "dependencyImageInstructions": 1442,
+  "dependencyLoadInProgress": false,
+  "threadDescription": null,
+  "originalDllInstructionsExecuted": 1021798,
+  "loaderBootstrapInstructions": 28,
+  "tlsTemplateBytes": 784,
+  "tlsZeroFillBytes": 0,
+  "tlsCallbacksScheduled": 2,
+  "tlsCallbacksCompleted": 2,
+  "tibSize": 65536,
+  "mxcsrMatches": true,
+  "crtHeapMemoryMatches": true,
+  "dependencyTlsCallbacksCompleted": 0,
+  "dependencyEntriesCompleted": 1,
+  "dependencyLoadsCompleted": 1,
+  "codeProtectionMatches": true,
+  "generatedArenaMemoryMatches": true,
+  "moduleLookups": 9,
+  "exportResolutions": 41,
+  "shimModuleImagesMatch": true,
+  "wasmStartupInstructions": 1063171,
+  "allGeneralRegistersMatch": true,
+  "entireNativeStackMatches": true,
+  "dllInitializationCompleted": true,
+  "implementedWindowsCalls": 9625,
+  "initializerCallbacksExecuted": 157,
+  "completedInitializerTables": 6,
+  "entireDllImageMatches": true,
+  "allXmmRegistersMatch": true,
+  "arithmeticFlagsMatch": true,
+  "tlsMemoryMatches": true,
+  "onexitRegistrations": 118,
+  "srwAcquisitions": 184,
+  "emptyQueueConditionWakes": 77,
+  "initializerCallbacksStarted": 157,
+  "initializerCallbacksCompleted": 157,
+  "initializerTablesInProgress": 0,
+  "executedImportCalls": 9625,
+  "msvcConstructorPoisonFixture": true,
+  "firstRuntimeDependency": {
+    "reason": "ENTRYPOINT_RETURNED"
+  },
   "unresolvedImportMemoryReads": [],
+  "unmodeledTibReads": [],
   "protectedExecutableRegions": [
     {
       "start": 335544320,
@@ -107,11 +139,165 @@
       "start": 1879048192,
       "end": 1879113728,
       "module": "unresolved import gateways"
+    }
+  ],
+  "codeProtection": {
+    "pages": {
+      "140984320": 32
+    },
+    "calls": [
+      {
+        "address": 140987024,
+        "size": 15,
+        "protection": 64,
+        "old": 32
+      },
+      {
+        "address": 140987024,
+        "size": 15,
+        "protection": 32,
+        "old": 64
+      }
+    ]
+  },
+  "generatedCode": {
+    "enabled": true,
+    "writeEvents": [
+      {
+        "pc": "0x212f63e",
+        "address": 352321536,
+        "size": 8
+      },
+      {
+        "pc": "0x212f63e",
+        "address": 352321544,
+        "size": 8
+      },
+      {
+        "pc": "0x212f641",
+        "address": 352321552,
+        "size": 1
+      },
+      {
+        "pc": "0x212f645",
+        "address": 352321553,
+        "size": 4
+      },
+      {
+        "pc": "0x212f64c",
+        "address": 352321557,
+        "size": 1
+      },
+      {
+        "pc": "0x212f64f",
+        "address": 352321558,
+        "size": 1
+      },
+      {
+        "pc": "0x212f668",
+        "address": 352321559,
+        "size": 1
+      },
+      {
+        "pc": "0x212f66b",
+        "address": 352321560,
+        "size": 1
+      },
+      {
+        "pc": "0x212f66e",
+        "address": 352321561,
+        "size": 1
+      },
+      {
+        "pc": "0x212f672",
+        "address": 352321562,
+        "size": 1
+      },
+      {
+        "pc": "0x212f676",
+        "address": 352321563,
+        "size": 1
+      },
+      {
+        "pc": "0x212f67a",
+        "address": 352321564,
+        "size": 1
+      },
+      {
+        "pc": "0x212f67e",
+        "address": 352321565,
+        "size": 2
+      },
+      {
+        "pc": "0x212f684",
+        "address": 352321567,
+        "size": 1
+      }
+    ],
+    "instructionBytes": {},
+    "sealedAllocations": [],
+    "allocations": [
+      {
+        "base": 352321536,
+        "bytesHex": "48895c2408488974241048897c2418ff25000000009f4a670800000000909090"
+      }
+    ]
+  },
+  "nativeCodeWrites": [
+    {
+      "pc": "0x212f6ce",
+      "address": 140987024,
+      "size": 2
     },
     {
-      "start": 352321536,
-      "end": 352325632,
-      "module": "VirtualAlloc executable allocation"
+      "pc": "0x212f6d3",
+      "address": 140987026,
+      "size": 4
+    },
+    {
+      "pc": "0x212f6da",
+      "address": 140987030,
+      "size": 1
+    },
+    {
+      "pc": "0x212f6dd",
+      "address": 140987031,
+      "size": 1
+    },
+    {
+      "pc": "0x212f6f8",
+      "address": 140987032,
+      "size": 1
+    },
+    {
+      "pc": "0x212f6fc",
+      "address": 140987033,
+      "size": 1
+    },
+    {
+      "pc": "0x212f700",
+      "address": 140987034,
+      "size": 1
+    },
+    {
+      "pc": "0x212f704",
+      "address": 140987035,
+      "size": 1
+    },
+    {
+      "pc": "0x212f707",
+      "address": 140987036,
+      "size": 1
+    },
+    {
+      "pc": "0x212f70a",
+      "address": 140987037,
+      "size": 1
+    },
+    {
+      "pc": "0x212f70d",
+      "address": 140987038,
+      "size": 1
     }
   ],
   "executableMemory": {
@@ -129,39 +315,6 @@
       }
     ]
   },
-  "guestDirectoryHandles": {
-    "directories": {
-      "c:\\westminsterdash": "C:\\WestminsterDash",
-      "c:\\": "C:\\",
-      "c:\\windows\\system32": "C:\\Windows\\System32",
-      "c:\\windows": "C:\\Windows"
-    },
-    "images": [
-      "c:\\westminsterdash\\fmod.dll",
-      "c:\\westminsterdash\\geode.dll",
-      "c:\\westminsterdash\\geometrydash.exe",
-      "c:\\westminsterdash\\libcocos2d.dll",
-      "c:\\windows\\system32\\api-ms-win-core-fibers-l1-1-1.dll",
-      "c:\\windows\\system32\\api-ms-win-core-synch-l1-2-0.dll",
-      "c:\\windows\\system32\\kernel32.dll",
-      "c:\\windows\\system32\\msvcp140.dll",
-      "c:\\windows\\system32\\ntdll.dll",
-      "c:\\windows\\system32\\vcruntime140.dll"
-    ],
-    "handles": {},
-    "next": 1342177288
-  },
-  "allGeneralRegistersMatch": true,
-  "allXmmRegistersMatch": true,
-  "arithmeticFlagsMatch": true,
-  "mxcsrMatches": true,
-  "entireNativeStackMatches": true,
-  "entireDllImageMatches": true,
-  "shimModuleImagesMatch": true,
-  "tlsMemoryMatches": true,
-  "crtHeapMemoryMatches": true,
-  "unmodeledTibReads": [],
-  "msvcConstructorPoisonFixture": true,
   "guestModules": [
     {
       "name": "Geode.dll",
@@ -225,15 +378,7 @@
       "entry": 269375308,
       "staticTls": true,
       "exportCount": 5917,
-      "path": "C:\\WestminsterDash\\libcocos2d.dll",
-      "tls": {
-        "base": 13631488,
-        "size": 65536,
-        "indexAddress": 270231344,
-        "index": 1,
-        "templateHex": "0000000000000080",
-        "callbacks": []
-      }
+      "path": "C:\\WestminsterDash\\libcocos2d.dll"
     },
     {
       "name": "GeometryDash.exe",
@@ -305,30 +450,16 @@
       "path": "C:\\WestminsterDash\\fmod.dll"
     }
   ],
-  "fmodBrowserAdapterProvider": {
-    "base": 335544320,
-    "bindings": 74,
-    "originalFmodDll": false,
-    "mappings": 64,
-    "returnOnlyEntries": 26,
-    "catalog": "experiments/fmod-bridge/adapter-map.json",
-    "statefulAudioExecutionSupported": false
-  },
-  "testedCommit": "0788184683c0d905211b08261ca5a2e8700deeed",
-  "verificationRun": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42287771449",
+  "testedCommit": "95e864f60a2d5de5a879550b8653b00e2433cbab",
+  "verificationRun": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42290998928",
   "validation": {
-    "startupProfiles": {
-      "geode": "PASS",
-      "vcruntime": "PASS",
-      "combined": "PASS"
-    },
+    "allThreeStartupProfiles": "PASS",
     "cpuFixtures": 118,
     "realX64FloatingFixtures": 107,
     "scalarCases": 200,
-    "fmodBridgeRun": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42287771297",
-    "fmodMappingsChecked": 64,
-    "fmodNativeExecutions": 192
+    "generatedCodeReferenceCases": 24,
+    "committedComponentWasmMatchesCleanRebuild": true
   },
   "reportFormat": "summary-v2",
-  "summaryScope": "Extracted from the passing combined CI log. Complete report.json is attached to the verification run; no full-report digest claimed."
+  "summaryScope": "Extracted from the passing combined CI log. Full report.json is attached to the run. DLL process attachment completed; deferred Geode startup, live-game integration and package loading remain untested."
 }

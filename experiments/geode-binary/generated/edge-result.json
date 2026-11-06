@@ -1,0 +1,23 @@
+{
+  "status": "GEODE_GENERATED_CODE_ROUTING_PASS",
+  "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
+  "startupInstructions": 1063171,
+  "nativeReference": "Unicorn 2.1.4",
+  "cases": 24,
+  "actualGeodeInstalledPatch": true,
+  "actualGeodeGeneratedTrampoline": true,
+  "patchedEntryTarget": "0x212f200",
+  "patchAndRestoreRouting": true,
+  "allGeneralRegistersMatch": true,
+  "allXmmRegistersMatch": true,
+  "arithmeticFlagsMatch": true,
+  "nativeStackMatches": true,
+  "unknownCodeRejected": true,
+  "staleTranslationRejected": true,
+  "fullGeodeLoader": false,
+  "existingGeodePackagesSupported": false,
+  "fullGameBootTested": false,
+  "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+  "evidence": "User-submitted browser report from the deployed generated-code component.",
+  "publishedCommit": "7b5b839b3b008969600fcfe9aef3e7e7327db2de"
+}
