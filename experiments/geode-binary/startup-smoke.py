@@ -753,7 +753,9 @@ if fmod:lifter.allowed_images.append((fmod['base'],fmod['base']+fmod['size']))
 if executable_memory:
  lifter.allowed_images.append((EXECUTABLE_BASE,EXECUTABLE_BASE+EXECUTABLE_SIZE))
  lifter.code_guards.update(executable_memory.instructions)
-if generated_mode:lifter.code_guards.update(instruction_bytes);lifter.checked_code_writes=True
+if generated_mode:
+ # The immutable host-owned bootstrap is compiled control flow, not mapped guest bytes.
+ lifter.code_guards.update({pc:data for pc,data in instruction_bytes.items() if not bootstrap<=pc<bootstrap+4096});lifter.checked_code_writes=True
 for pc in dict.fromkeys(trace):
  data=instruction_bytes.get(pc,bytes(uc.mem_read(pc,32)));ins=lifter.ctx.disassemble(data,base_address=pc,max_instructions=1).instructions[0]
  ops=lifter.ctx.translate(data[:ins.length],base_address=pc,max_instructions=1).ops
@@ -807,7 +809,7 @@ report['executableMemory']=executable_memory.snapshot() if executable_memory els
 report['generatedCode']=executable_memory.generated_snapshot() if executable_memory and generated_mode else None
 report['codeProtection']=code_protection.snapshot() if code_protection else None
 report['nativeCodeWrites']=code_protection.writes if code_protection else []
-report['instructionByteGuards']=len(instruction_bytes)
+report['instructionByteGuards']=len(lifter.code_guards)
 report['dllProcessAttachCompleted']=bool(stop['reason']=='ENTRYPOINT_RETURNED' and uc.reg_read(x.UC_X86_REG_RIP)==0x1234fedc and uc.reg_read(x.UC_X86_REG_RAX)&0xffffffff==1 and not vcruntime_only and msvc_boot!='only')
 report['dllAttachResult']=uc.reg_read(x.UC_X86_REG_RAX)&0xffffffff if stop['reason']=='ENTRYPOINT_RETURNED' else None
 report['criticalSections']={'states':critical.states,'acquisitions':critical.acquisitions}
