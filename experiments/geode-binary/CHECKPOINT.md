@@ -4,17 +4,23 @@ User goal: keep progressing in batches and save durable checkpoints. Do not equa
 
 ## Latest verified milestone
 
-`dist/batch-verified.json`: **535,140 total instructions** verified in translated WASM: **533,682 original Geode.dll**, **1,442 real Cocos**, **16 initial-loader instructions**. The real primary GeometryDash.exe image is now mapped at declared ASLR base `0x08000000`; 99,581 DIR64 relocations were applied from its supplied `0x00400000` guest base. 856 primary-image imports bind to real Cocos exports. The primary executable's entrypoint and TLS callbacks have NOT run. This is a pre-entrypoint loader model, not a game boot.
+`dist/batch-verified.json`: **535,183 total instructions** verified in translated WASM: **533,712 original Geode.dll**, **1,442 real Cocos**, **13 real MSVCP**, **16 initial-loader instructions**. The real primary GeometryDash.exe image is now mapped at declared ASLR base `0x08000000`; 99,581 DIR64 relocations were applied from its supplied `0x00400000` guest base. 856 primary-image imports bind to real Cocos exports. The primary executable's entrypoint and TLS callbacks have NOT run. This is a pre-entrypoint loader model, not a game boot.
 
-Full state matches: all GPRs/XMMs, five arithmetic flags, MXCSR, native stack, complete Geode/Cocos/primary/shim images, three static TLS areas, TIB, CRT heap and ownership metadata, errno and callback/local arenas. The real Cocos entrypoint completed; Geode initialization remains in progress. This run used 2,499 supported host calls and 660 hardware-referenced floating instructions. Both Geode TLS callbacks completed.
+Full state matches: all GPRs/XMMs, five arithmetic flags, MXCSR, native stack, complete Geode/Cocos/primary/MSVCP/shim images, three static TLS areas, TIB, CRT heap and ownership metadata, errno and callback/local arenas. The real Cocos entrypoint completed; Geode initialization remains in progress. This run used 2,499 supported host calls and 660 hardware-referenced floating instructions. Both Geode TLS callbacks completed.
 
-Complete local script passed: runtime contracts, 535,140-instruction comparison, **118 CPU fixtures including 107 real-x64 floating cases**, and **200 regenerated original scalar cases**. Unicorn omitted MXCSR precision flags in 36 fixture cases; the expected status comes from real hardware, not the emulator bug. Fresh-runner CI for this newest revision is pending below.
+Complete local script passed: runtime contracts, 535,183-instruction comparison, **118 CPU fixtures including 107 real-x64 floating cases**, and **200 regenerated original scalar cases**. Unicorn omitted MXCSR precision flags in 36 fixture cases; the expected status comes from real hardware, not the emulator bug. Fresh-runner CI for this newest revision is pending below.
 
 ## Exact resume point
 
-The current exact stop is **MSVCP140.dll!??0ios_base@std@@IEAA@XZ** at `0x70001140`, the protected Microsoft C++ ios_base constructor. This is a genuine missing C++ runtime operation, not an instruction-budget stop. All 7,936 reached unique instructions are supported in this trace.
+The exact current stop is **MSVCP140.dll!basic_ios<char>::init**, import gateway `0x70001580`, full mangled name:
 
-The original web-port WASM contains several ios_base methods but does not contain this exact constructor's import name. Do not assume that rerouting to the existing runtime supplies it. Microsoft STL source separates construction from `_Init`, locale ownership and stream state. The next stage must preserve that native MSVC object representation and vtable behavior, rather than return success without constructing the object.
+```
+?init@?$basic_ios@DU?$char_traits@D@std@@@std@@IEAAXPEAV?$basic_streambuf@DU?$char_traits@D@std@@@2@_N@Z
+```
+
+The ios_base constructor blocker was cleared by translating its exact 13 instructions from the official DLL. The DLL is mapped at `0x12000000`, but only this stateless constructor is permitted to execute. Full MSVCP initialization is **false**. GetModuleHandle on the slice-only provider and any attempt to execute another MSVCP body stop explicitly. Other MSVCP IAT imports remain unresolved. A separate fixture poisons a 128-byte object, executes the native constructor and compares all GPRs, return state and all object bytes, including untouched padding at offsets 0x1c–0x1f. It passed.
+
+The next export is RVA **0x8690** in the same pinned MSVCP DLL. Its first instructions call internal RVA **0x6830**, then store the stream buffer and call RVA **0x9590**. This begins nontrivial stream/locale initialization; do not return success or fabricate zero-valued locale/vtable objects. Analyze the dependency closure and mutable-runtime preconditions, or provide real MSVCP DLL initialization before executing it. The pinned game WASM does not contain the exact constructor or this exact init import name, so direct reuse is not established.
 
 1. Continue the bounded native probe with `GEODE_INSTRUCTION_LIMIT`, up to 1,000,000. Inspect the next actual dependency, translation gap or budget stop. Use an output directory to generate a fresh proof; a native-only discovery report is not a verified WASM result.
 2. Prefer batches. A larger unique-instruction graph can strain the C compiler and V8 tier-up; do not equate a higher instruction total with compatibility/completion percentage.
@@ -50,7 +56,8 @@ Floating point is deliberately bounded: finite normal/zero comparisons and predi
 | d708353b8abc6c864776c5a85c9ee87bdbdc4696 | 1,607 | `dist/crt-heap-verified.json`; https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42197100197 |
 | d23ee69fcb9b7a5056449539bf2df1b0b66fdf31 | 8,416 | `dist/cocos-verified.json`; https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42200279670 |
 | bb4781a367084ede9c86b9db4557767abfcb2eca | 20,000 | `dist/primary-image-verified.json`; https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42227445945 |
-| Current pre-iostream checkpoint | 535,140 | `dist/batch-verified.json`; complete local script passed, CI pending |
+| 0295f6b13356c11664bcab1bcd6723e968f14292 | 535,140 | `dist/pre-iostream-verified.json`; https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42229062319 |
+| Current MSVCP-constructor checkpoint | 535,183 | `dist/batch-verified.json`; full local script passed, fresh CI pending |
 
 Older `dist/batch-native-next.json`, startup-smoke/time/thread reports and README original-canary tables are historical, not the current result. Always prefer this file plus `dist/batch-verified.json`. Each generation has a fresh ID; stale generated C/WASM or mismatched report/reference outputs are rejected. Exact step budgets and the complete host-call transcript distinguish earlier visits to repeated terminal PCs from the actual reference endpoint.
 
@@ -59,20 +66,26 @@ Older `dist/batch-native-next.json`, startup-smoke/time/thread reports and READM
 Worktree: `/workspace/scratch/d6c02ef02c38/geode-startup-batch`.
 
 ```bash
+sudo apt-get install -y libarchive-tools
 python -m pip install -r experiments/geode-binary/requirements.txt ziglang==0.14.1
 npm install --prefix /tmp/geode-wasm-tools binaryen@123.0.0
 python experiments/geode-binary/fetch-startup-dll.py /tmp/Geode.dll
 python experiments/geode-binary/fetch_cocos_image.py /tmp/libcocos2d.dll.img
 python experiments/geode-binary/fetch_primary_image.py /tmp/GeometryDash.exe.img
-GEODE_INSTRUCTION_LIMIT=1000000 GEODE_PRIMARY_IMG=/tmp/GeometryDash.exe.img GEODE_DLL=/tmp/Geode.dll GEODE_COCOS_IMG=/tmp/libcocos2d.dll.img GEODE_OUT=/tmp/geode-resume-run GEODE_WASM_OPT=/tmp/geode-wasm-tools/node_modules/.bin/wasm-opt bash experiments/geode-binary/run-startup-tests.sh
+python experiments/geode-binary/fetch_msvc_slice.py /tmp/msvcp140-x64.dll
+GEODE_MSVCP_DLL=/tmp/msvcp140-x64.dll GEODE_INSTRUCTION_LIMIT=1000000 GEODE_PRIMARY_IMG=/tmp/GeometryDash.exe.img GEODE_DLL=/tmp/Geode.dll GEODE_COCOS_IMG=/tmp/libcocos2d.dll.img GEODE_OUT=/tmp/geode-resume-run GEODE_WASM_OPT=/tmp/geode-wasm-tools/node_modules/.bin/wasm-opt bash experiments/geode-binary/run-startup-tests.sh
 ```
 
 Local tools if present: Python dependencies `/tmp/geode-batch-tools` (set PYTHONPATH), Zig `/tmp/geode-batch-tools/ziglang/zig` (set GEODE_ZIG), Binaryen `/tmp/geode-wasm-tools/node_modules/.bin/wasm-opt`. Official DLL SHA-256 remains `ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499`; its release ZIP is also checked. CI runs the same script, uses pinned dependencies and read-only repository permissions, and uploads only the JSON report.
 
-Current guest regions: native stack 2–3 MiB; TIB/vector 4 MiB; on-exit arena 5–6 MiB; Geode static TLS 7 MiB; private compiler stack 8–9 MiB; local description heap 10–11 MiB; errno 12 MiB; Cocos static TLS 13 MiB; primary static TLS 14 MiB; shim PE images 16 MiB onward; Geode DLL 32 MiB; CRT heap 52–60 MiB; primary executable 128 MiB; Cocos DLL 256 MiB. All images/helper regions are disjoint in this ASLR model.
+Current guest regions: native stack 2–3 MiB; TIB/vector 4 MiB; on-exit arena 5–6 MiB; Geode static TLS 7 MiB; private compiler stack 8–9 MiB; local description heap 10–11 MiB; errno 12 MiB; Cocos static TLS 13 MiB; primary static TLS 14 MiB; shim PE images 16 MiB onward; Geode DLL 32 MiB; CRT heap 52–60 MiB; primary executable 128 MiB; Cocos DLL 256 MiB; slice-only MSVCP image 288 MiB. All images/helper regions are disjoint in this ASLR model.
 
 ## C++ runtime investigation in progress
 
 Official VS17 x64 Redistributable downloaded from Microsoft's immutable URL `https://download.visualstudio.microsoft.com/download/pr/990c720a-46ce-4dc7-87b9-c2eb615d34b9/CC0FF0EB1DC3F5188AE6300FAEF32BF5BEEBA4BDD6E8E445A9184072096B713B/VC_redist.x64.exe`. EXE SHA-256: `cc0ff0eb1dc3f5188ae6300faef32bf5beeba4bdd6e8e445a9184072096b713b`. Its attached CAB at offset 0xa7848 contains `a12`, a CAB containing `msvcp140.dll_amd64`. Extracted DLL SHA-256: `0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9`, 557,728 bytes. Local path if present: `/tmp/msvcp140-x64.dll`. Pure Python libarchive-c 5.3 uses system libarchive to read these containers; the installer is never run.
 
-The exact missing export is at RVA 0x4930. Disassembly shows a pure 13-instruction constructor: write the actual vtable pointer at offset 0, zero fields at offsets 8, 16, 24 (DWORD), 32, 40, 48, 56 and 64, return `this`. It reads no mutable DLL globals and calls no imports. A tightly gated translation of only this function could advance one real ABI operation without claiming full MSVCP initialization. Any other MSVCP body must remain blocked until its initialization/runtime requirements are handled. The DLL and redistributable must not be committed; use hash-checked fetching.
+The exact missing export is at RVA 0x4930. Disassembly shows a pure 13-instruction constructor: write the actual vtable pointer at offset 0, zero fields at offsets 8, 16, 24 (DWORD), 32, 40, 48, 56 and 64, return `this`. It reads no mutable DLL globals and calls no imports. This tightly gated translation now advances one real ABI operation without claiming full MSVCP initialization. Any other MSVCP body must remain blocked until its initialization/runtime requirements are handled. The DLL and redistributable must not be committed; use hash-checked fetching.
+
+## Current source and evidence scope
+
+The complete local MSVCP slice test passed at 535,183 instructions, including 13 actual Microsoft constructor instructions and the poisoned-object ABI fixture. This does not initialize the Microsoft C++ DLL, complete Geode's entrypoint, boot the game or load .geode packages. No new browser/live-game behavior has been claimed. The game's existing SDK/canary remains separate from this standalone startup work.

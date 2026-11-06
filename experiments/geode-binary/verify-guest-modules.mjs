@@ -17,6 +17,7 @@ assert.throws(()=>modules.resolve(memory,ntdll,'rtlgetversion'),/UNMODELED_EXPOR
 assert.throws(()=>modules.resolve(memory,ntdll,1),/UNMODELED_SHIM_ORDINAL/);
 assert.equal(modules.resolve(memory,ntdll,'wine_get_version'),0);assert.equal(error,127);
 assert.equal(modules.resolve(memory,modules.handle('Geode'),'clearly_not_a_geode_export'),0);
+if(expected.modules.some(m=>m.sliceOnly))assert.throws(()=>modules.handle('MSVCP140.dll'),/MSVCP_RUNTIME_INITIALIZATION_REQUIRED/);
 const primary=expected.modules.find(m=>m.primary);if(primary)assert.equal(modules.resolve(memory,primary.base,'absent_export'),0);
 const address=modules.resolve(memory,ntdll,'RtlGetVersion');
 assert.equal(expected.moduleGateways['0x'+address.toString(16)],'ntdll.dll!RtlGetVersion');

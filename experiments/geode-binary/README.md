@@ -4,7 +4,7 @@ This experiment executes instructions from the **official Windows Geode.dll**, n
 
 ## Current startup work
 
-The original browser canary below is historical. The active `geode-startup-batch` branch now verifies 535,140 startup instructions (533,682 Geode, 1,442 real Cocos and 16 loader instructions), with the hash-pinned primary executable mapped at a declared ASLR address, including completion of the real Cocos DLL entrypoint under the declared standalone guest model. Geode initialization and existing mod packages remain unsupported. See [CHECKPOINT.md](CHECKPOINT.md) for the exact runtime stop, evidence, limitations and reproducible resume commands.
+The original browser canary below is historical. The active `geode-startup-batch` branch now verifies 535,183 startup instructions (533,712 Geode, 1,442 real Cocos, 13 actual Microsoft C++ constructor instructions and 16 loader instructions), with the hash-pinned primary executable mapped at a declared ASLR address, including completion of the real Cocos DLL entrypoint under the declared standalone guest model. Geode initialization and existing mod packages remain unsupported. See [CHECKPOINT.md](CHECKPOINT.md) for the exact runtime stop, evidence, limitations and reproducible resume commands.
 
 ## Try the earlier browser canary
 

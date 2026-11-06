@@ -58,7 +58,9 @@ def module_handle(modules,name):
  if key.endswith('.'):key=key[:-1]
  elif '.' not in key:key+='.dll'
  for module in modules:
-  if module['name'].lower()==key:return module['base']
+  if module['name'].lower()==key:
+   if module.get('sliceOnly'):raise RuntimeError('MSVCP_RUNTIME_INITIALIZATION_REQUIRED')
+   return module['base']
  raise RuntimeError('UNMODELED_MODULE: '+name)
 
 def resolve_export(modules,read,handle,symbol):

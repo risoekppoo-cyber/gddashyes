@@ -25,6 +25,8 @@ jobs:
           node-version: '24'
       - name: Install focused test dependencies
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libarchive-tools
           python -m pip install -r experiments/geode-binary/requirements.txt
           python -m pip install ziglang==0.14.1
           npm install --prefix /tmp/geode-wasm-tools binaryen@123.0.0
@@ -34,12 +36,14 @@ jobs:
           python experiments/geode-binary/fetch-startup-dll.py /tmp/geode-startup/Geode.dll
           python experiments/geode-binary/fetch_cocos_image.py /tmp/geode-startup/libcocos2d.dll.img
           python experiments/geode-binary/fetch_primary_image.py /tmp/geode-startup/GeometryDash.exe.img
+          python experiments/geode-binary/fetch_msvc_slice.py /tmp/geode-startup/msvcp140-x64.dll
       - name: Verify actual DLL startup and boundary contracts
         env:
           GEODE_INSTRUCTION_LIMIT: 1000000
           GEODE_DLL: /tmp/geode-startup/Geode.dll
           GEODE_COCOS_IMG: /tmp/geode-startup/libcocos2d.dll.img
           GEODE_PRIMARY_IMG: /tmp/geode-startup/GeometryDash.exe.img
+          GEODE_MSVCP_DLL: /tmp/geode-startup/msvcp140-x64.dll
           GEODE_OUT: /tmp/geode-startup
           GEODE_WASM_OPT: /tmp/geode-wasm-tools/node_modules/.bin/wasm-opt
         run: bash experiments/geode-binary/run-startup-tests.sh

@@ -7,6 +7,7 @@ export class GuestModules {
   if(key.includes('/')){if(!key.startsWith('c:/windows/system32/'))throw Error('UNMODELED_MODULE_PATH: '+name);key=key.slice(key.lastIndexOf('/')+1);}
   if(key.endsWith('.'))key=key.slice(0,-1);else if(!key.includes('.'))key+='.dll';
   const m=this.modules.find(m=>m.name.toLowerCase()===key);if(!m)throw Error('UNMODELED_MODULE: '+name);
+  if(m.sliceOnly)throw Error('MSVCP_RUNTIME_INITIALIZATION_REQUIRED');
   this.lookups++;return m.base;
  }
  resolve(memory,handle,symbol){

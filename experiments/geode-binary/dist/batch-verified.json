@@ -1,16 +1,16 @@
 {
   "status": "DLL_STARTUP_PREFIX_VERIFIED",
-  "generationId": "1744fe88-7254-4adc-904c-3758f86d172a",
+  "generationId": "2907464b-fb2c-463e-a77d-de5758aa30f4",
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
   "entry": "0x72000000",
-  "originalX64InstructionsExecuted": 535140,
-  "uniqueInstructionsReached": 7936,
+  "originalX64InstructionsExecuted": 535183,
+  "uniqueInstructionsReached": 7979,
   "firstRuntimeDependency": {
     "reason": "WINDOWS_IMPORT_REQUIRED",
-    "importName": "MSVCP140.dll!??0ios_base@std@@IEAA@XZ",
-    "address": "0x70001140"
+    "importName": "MSVCP140.dll!?init@?$basic_ios@DU?$char_traits@D@std@@@std@@IEAAXPEAV?$basic_streambuf@DU?$char_traits@D@std@@@2@_N@Z",
+    "address": "0x70001580"
   },
-  "reachedInstructionsSupportedBeforeBlock": 7936,
+  "reachedInstructionsSupportedBeforeBlock": 7979,
   "firstTranslationBlocker": null,
   "wasmStartupExecuted": true,
   "windowsImportsExecuted": true,
@@ -19,7 +19,7 @@
     {
       "address": "0x700007c0",
       "name": "KERNEL32.dll!GetSystemTimeAsFileTime",
-      "unixMilliseconds": 1793972591431,
+      "unixMilliseconds": 1793973464734,
       "output": "0x2ffeb0"
     },
     {
@@ -35,7 +35,7 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "1069301701391",
+      "counter": "1942605304168",
       "output": "0x2ffeb8"
     },
     {
@@ -110,13 +110,13 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "1069309863955",
+      "counter": "1942613301907",
       "output": "0x2ffdc0"
     },
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "1069310428252",
+      "counter": "1942613768540",
       "output": "0x2ffd70"
     },
     {
@@ -296,7 +296,7 @@
     {
       "address": "0x700007c0",
       "name": "KERNEL32.dll!GetSystemTimeAsFileTime",
-      "unixMilliseconds": 1793972591431,
+      "unixMilliseconds": 1793973464734,
       "output": "0x2ff9e0"
     },
     {
@@ -312,7 +312,7 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "1069321463190",
+      "counter": "1942624528350",
       "output": "0x2ff9e8"
     },
     {
@@ -17169,6 +17169,21 @@
         "templateBytes": 8,
         "callbacksExecuted": false
       }
+    },
+    {
+      "name": "MSVCP140.dll",
+      "base": 301989888,
+      "size": 561152,
+      "complete": true,
+      "shim": false,
+      "sliceOnly": true,
+      "runtimeInitialized": false,
+      "sha256": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9",
+      "constructor": 302008624,
+      "constructorEnd": 302008671,
+      "constructorExport": "??0ios_base@std@@IEAA@XZ",
+      "constructorOrdinal": 120,
+      "constructorBytesSha256": "69d10a8eefc88d0c6d75ef444aaf1c2b1e8a4a47e0ff411d42d658577cc986fc"
     }
   ],
   "instructionBudget": 1000000,
@@ -17387,6 +17402,7 @@
     }
   },
   "primaryMappingPhase": "mapped at declared ASLR base before EXE TLS callbacks and entrypoint",
+  "msvcSliceInstructions": 13,
   "primaryImageInstructions": 0,
   "dependencyImageInstructions": 1442,
   "dependencyLoadEvents": [
@@ -17433,6 +17449,12 @@
       "ordinal": 2401,
       "address": 35855856,
       "module": 33554432
+    },
+    {
+      "module": 301989888,
+      "name": "??0ios_base@std@@IEAA@XZ",
+      "ordinal": 120,
+      "address": 302008624
     },
     {
       "name": "?$TSS0@?1??getClassTypeInfo@CCCallFuncN@cocos2d@@UEAAJXZ@4HA",
@@ -20576,7 +20598,7 @@
     ]
   ],
   "unmodeledTibReads": [],
-  "originalDllInstructionsExecuted": 533682,
+  "originalDllInstructionsExecuted": 533712,
   "loaderBootstrapInstructions": 16,
   "tlsTemplateBytes": 784,
   "tlsZeroFillBytes": 0,
@@ -20591,7 +20613,7 @@
   "moduleLookups": 4,
   "exportResolutions": 5,
   "shimModuleImagesMatch": true,
-  "wasmStartupInstructions": 535140,
+  "wasmStartupInstructions": 535183,
   "allGeneralRegistersMatch": true,
   "entireNativeStackMatches": true,
   "dllInitializationCompleted": false,
@@ -20641,7 +20663,8 @@
     "api-ms-win-crt-string-l1-1-0.dll!strlen",
     "ntdll.dll!RtlGetVersion"
   ],
-  "verificationRun": "local complete script passed; new CI confirmation pending",
+  "msvcConstructorPoisonFixture": true,
+  "verificationRun": "local complete script passed; MSVC slice fresh-runner confirmation pending",
   "validation": {
     "aluCases": 118,
     "realX64FloatingCases": 107,

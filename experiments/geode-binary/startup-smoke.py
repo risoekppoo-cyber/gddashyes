@@ -89,6 +89,32 @@ if primary_path:
   uc.mem_map(0xe00000,65536);uc.mem_write(0xe00000,template);uc.mem_write(t.AddressOfIndex,struct.pack('<I',2))
   primary['primaryTls']={'base':0xe00000,'size':65536,'index':2,'templateBytes':len(template),'callbacksExecuted':False}
  modules.append(primary);module_images[primary_base]=bytes(uc.mem_read(primary_base,len(raw)))
+msvc=None;msvc_path=os.environ.get('GEODE_MSVCP_DLL')
+if msvc_path:
+ from fetch_msvc_slice import PIN as msvc_pin
+ msvc_bytes=Path(msvc_path).read_bytes();assert hashlib.sha256(msvc_bytes).hexdigest()==msvc_pin
+ msvc_pe=pefile.PE(data=msvc_bytes);msvc_base=0x12000000;msvc_preferred=msvc_pe.OPTIONAL_HEADER.ImageBase
+ mapped=bytearray(msvc_pe.get_memory_mapped_image());msvc_size=msvc_pe.OPTIONAL_HEADER.SizeOfImage
+ assert len(mapped)<=msvc_size;mapped.extend(bytes(msvc_size-len(mapped)))
+ for block in msvc_pe.DIRECTORY_ENTRY_BASERELOC:
+  for relocation in block.entries:
+   if relocation.type==0:continue
+   assert relocation.type==10;value=struct.unpack_from('<Q',mapped,relocation.rva)[0]
+   assert msvc_preferred<=value<msvc_preferred+msvc_size
+   struct.pack_into('<Q',mapped,relocation.rva,value+msvc_base-msvc_preferred)
+ ctor_name='??0ios_base@std@@IEAA@XZ';symbol=next(s for s in msvc_pe.DIRECTORY_ENTRY_EXPORT.symbols if s.name==ctor_name.encode())
+ assert symbol.address==0x4930 and mapped[0x495e]==0xc3
+ uc.mem_map(msvc_base,msvc_size);uc.mem_write(msvc_base,bytes(mapped))
+ bound=0
+ for desc in pe.DIRECTORY_ENTRY_IMPORT:
+  if desc.dll.decode().lower()!='msvcp140.dll':continue
+  for imp in desc.imports:
+   if imp.name==ctor_name.encode():uc.mem_write(imp.address-preferred+base,struct.pack('<Q',msvc_base+symbol.address));bound+=1
+ assert bound==1
+ msvc={'name':'MSVCP140.dll','base':msvc_base,'size':msvc_size,'complete':True,'shim':False,'sliceOnly':True,
+  'runtimeInitialized':False,'sha256':msvc_pin,'constructor':msvc_base+0x4930,'constructorEnd':msvc_base+0x495f,
+  'constructorExport':ctor_name,'constructorOrdinal':symbol.ordinal,'constructorBytesSha256':hashlib.sha256(mapped[0x4930:0x495f]).hexdigest()}
+ modules.append(msvc);module_images[msvc_base]=bytes(mapped)
 uc.reg_write(x.UC_X86_REG_RCX,base);uc.reg_write(x.UC_X86_REG_RDX,1)
 uc.reg_write(x.UC_X86_REG_R8,0);uc.reg_write(x.UC_X86_REG_RSP,0x2fff08)
 uc.mem_write(0x2fff08,(0x1234fedc).to_bytes(8,'little'))
@@ -185,6 +211,8 @@ def read_ansi(p):
  raise RuntimeError('Unterminated ANSI string')
 def code(uc,pc,length,_):
  global next_allocation,last_error,thread_description,local_next,load_frame
+ if msvc and msvc['base']<=pc<msvc['base']+msvc['size'] and not msvc['constructor']<=pc<msvc['constructorEnd']:
+  stop.update(reason='MSVCP_RUNTIME_INITIALIZATION_REQUIRED',address=hex(pc));uc.emu_stop();return
  if pc in callback_returns:completed_tls.append(callback_returns[pc])
  if load_frame and pc==0x73000000:
   f=load_frame;assert uc.reg_read(x.UC_X86_REG_RSP)==f['callbackSp']+8
@@ -457,6 +485,7 @@ if stop.get('reason')=='UNMAPPED_MEMORY' and trace and trace[-1]==uc.reg_read(x.
 lifter=Lifter(pe,trace_limit,allow_indirect=True,yield_unknown=True,single_threaded=True,wide_mode=True,yield_on_budget=True);blocked=None;translated=0
 if cocos:lifter.allowed_images.append((cocos['base'],cocos['base']+cocos['size']))
 if primary:lifter.allowed_images.append((primary['base'],primary['base']+primary['size']))
+if msvc:lifter.allowed_images.append((msvc['base'],msvc['base']+msvc['size']))
 for pc in dict.fromkeys(trace):
  data=bytes(uc.mem_read(pc,32));ins=lifter.ctx.disassemble(data,base_address=pc,max_instructions=1).instructions[0]
  ops=lifter.ctx.translate(data[:ins.length],base_address=pc,max_instructions=1).ops
@@ -491,11 +520,13 @@ report['guestModules']=modules
 report['instructionBudget']=trace_limit
 report['nativeFloatingReference']={'kind':'real host x64 SSE with normalized registers and checked memory-source decoding; MXCSR saved/restored','instructions':native_fp.count,'byPc':native_fp.by_pc}
 report['primaryMappingPhase']='mapped at declared ASLR base before EXE TLS callbacks and entrypoint' if primary else 'not supplied'
+report['msvcSliceInstructions']=sum(msvc['base']<=pc<msvc['base']+msvc['size'] for pc in trace) if msvc else 0
 report['primaryImageInstructions']=sum(primary['base']<=pc<primary['base']+primary['size'] for pc in trace) if primary else 0
 report['dependencyImageInstructions']=sum(cocos['base']<=pc<cocos['base']+cocos['size'] for pc in trace) if cocos else 0
 report['dependencyLoadEvents']=load_events
 report['dependencyLoadInProgress']=load_frame is not None
 report['nativeExportChecks']=[{'name':symbol.name.decode(),'ordinal':symbol.ordinal,'address':base+symbol.address,'module':base} for symbol in pe.DIRECTORY_ENTRY_EXPORT.symbols[::600] if symbol.name and not symbol.forwarder]
+if msvc:report['nativeExportChecks'].append({'module':msvc['base'],'name':msvc['constructorExport'],'ordinal':msvc['constructorOrdinal'],'address':msvc['constructor']})
 if cocos:report['nativeExportChecks'] += [{'name':symbol.name.decode(),'ordinal':symbol.ordinal,'address':cocos['base']+symbol.address,'module':cocos['base']} for symbol in cocos_pe.DIRECTORY_ENTRY_EXPORT.symbols[::1000] if symbol.name and not symbol.forwarder]
 report['threadDescription']=thread_description
 report['localAllocations']=local_allocations
@@ -529,6 +560,16 @@ if len(sys.argv)>2 and not blocked and not unknown_tib:
  (out/'local-heap-after.bin').write_bytes(bytes(uc.mem_read(local_heap,local_heap_size)))
  (out/'arena-after.bin').write_bytes(bytes(uc.mem_read(arena,arena_size)))
  names=['RAX','RCX','RDX','RBX','RSP','RBP','RSI','RDI','R8','R9','R10','R11','R12','R13','R14','R15']
+ if msvc:
+  fixture=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64);fixture.mem_map(msvc['base'],msvc['size']);fixture.mem_write(msvc['base'],module_images[msvc['base']])
+  fixture.mem_map(0x10000,0x1000);fixture.mem_map(0x100000,0x1000);fixture.mem_write(0x10000,bytes([0xa5])*128)
+  initial=[(index+1)*0x101 for index in range(16)];initial[1]=0x10000;initial[4]=0x100f08
+  for name,value in zip(names,initial):fixture.reg_write(getattr(x,'UC_X86_REG_'+name),value)
+  fixture.mem_write(0x100f08,struct.pack('<Q',0x1234fedc));fixture.emu_start(msvc['constructor'],0x1234fedc,count=32)
+  (out/'msvc-ctor-fixture.json').write_text(json.dumps({'entry':msvc['constructor'],'initial':[hex(v) for v in initial],
+   'expected':[hex(fixture.reg_read(getattr(x,'UC_X86_REG_'+name))) for name in names],
+   'pc':fixture.reg_read(x.UC_X86_REG_RIP),'object':bytes(fixture.mem_read(0x10000,128)).hex()}))
+
  (out/'expected.json').write_text(json.dumps({'generationId':generation_id,'entry':entry,'base':base,'stop':uc.reg_read(x.UC_X86_REG_RIP),
   'instructions':len(trace),'hostCalls':host_calls,'tibBase':tib,'tibSize':tib_size,'tlsBase':tls_block,'tlsSize':tls_size,
   'modules':[{**m,'initialized':False} if m.get('tls') else m for m in modules],'moduleGateways':{hex(k):v for k,v in module_gateways.items()},

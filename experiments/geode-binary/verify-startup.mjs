@@ -116,4 +116,13 @@ report.initializerCallbacksCompleted=initializers.completedCallbacks;
 report.initializerTablesInProgress=initializers.frames.length;
 report.executedImportCalls=handled;
 report.implementedImports=[...new Set(report.hostCalls.map(call=>call.name))].sort();
+if(expected.modules.some(m=>m.sliceOnly)){
+ const fixture=JSON.parse(await readFile(dir+'/msvc-ctor-fixture.json'));new Uint8Array(memory.buffer,cpu,4096).fill(0);
+ for(let i=0;i<16;i++)v.setBigUint64(cpu+i*8,BigInt(fixture.initial[i]),true);
+ new Uint8Array(memory.buffer,0x10000,128).fill(0xa5);v.setBigUint64(0x100f08,0x1234fedcn,true);
+ instance.exports.lift_run(cpu,BigInt(fixture.entry),BigInt(expected.base),0,0x1234fedcn,32);
+ for(let i=0;i<16;i++)assert.equal(v.getBigUint64(cpu+i*8,true),BigInt(fixture.expected[i]),'MSVC constructor GPR '+i);
+ assert.equal(v.getBigUint64(cpu+192,true),BigInt(fixture.pc));assert.equal(Buffer.from(memory.buffer,0x10000,128).toString('hex'),fixture.object);
+ assert.equal(v.getUint32(0x1001c,true),0xa5a5a5a5,'MSVC object padding was overwritten');report.msvcConstructorPoisonFixture=true;
+}
 await writeFile(reportPath,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
