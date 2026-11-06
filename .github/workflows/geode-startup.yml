@@ -25,7 +25,7 @@ jobs:
         run: |
           python -m pip install -r experiments/geode-binary/requirements.txt
           sudo apt-get update -qq
-          sudo apt-get install -y -qq clang lld
+          sudo apt-get install -y -qq clang lld binaryen wabt
       - name: Test the time-service contract
         run: node experiments/geode-binary/verify-windows-time.mjs
       - name: Fetch hash-pinned official DLL
@@ -38,6 +38,9 @@ jobs:
           cat /tmp/geode-startup/report.json
           test -f /tmp/geode-startup/startup.c
           clang --target=wasm32 -O2 -nostdlib /tmp/geode-startup/startup.c -Wl,--no-entry -Wl,--import-memory -Wl,--export=lift_run -Wl,-z,stack-size=0 -Wl,--initial-memory=131072 -Wl,--max-memory=4294967296 -o /tmp/geode-startup/startup.wasm
+          wasm-objdump -h /tmp/geode-startup/startup.wasm
+          wasm-opt /tmp/geode-startup/startup.wasm --remove-unused-module-elements -o /tmp/geode-startup/clean.wasm
+          mv /tmp/geode-startup/clean.wasm /tmp/geode-startup/startup.wasm
           node experiments/geode-binary/verify-startup.mjs /tmp/geode-startup /tmp/geode-startup/report.json
       - uses: actions/upload-artifact@v4
         if: always()
