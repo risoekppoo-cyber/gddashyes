@@ -1,15 +1,17 @@
 {
   "status": "DLL_STARTUP_PREFIX_VERIFIED",
+  "generationId": "43b9e15e-c829-457e-8fe4-0de2e1428dc6",
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
   "entry": "0x72000000",
-  "originalX64InstructionsExecuted": 575,
-  "uniqueInstructionsReached": 510,
+  "originalX64InstructionsExecuted": 865,
+  "uniqueInstructionsReached": 626,
   "firstRuntimeDependency": {
     "reason": "WINDOWS_IMPORT_REQUIRED",
-    "importName": "KERNEL32.dll!WakeAllConditionVariable",
-    "address": "0x70000d30"
+    "importName": "KERNEL32.dll!GetModuleHandleA",
+    "address": "0x70000700",
+    "requestedModule": "ntdll.dll"
   },
-  "reachedInstructionsSupportedBeforeBlock": 510,
+  "reachedInstructionsSupportedBeforeBlock": 626,
   "firstTranslationBlocker": null,
   "wasmStartupExecuted": true,
   "windowsImportsExecuted": true,
@@ -18,7 +20,7 @@
     {
       "address": "0x700007c0",
       "name": "KERNEL32.dll!GetSystemTimeAsFileTime",
-      "unixMilliseconds": 1793951672686,
+      "unixMilliseconds": 1793953307825,
       "output": "0x2ffeb0"
     },
     {
@@ -34,7 +36,7 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "2908829807604",
+      "counter": "4543962838312",
       "output": "0x2ffeb8"
     },
     {
@@ -100,6 +102,63 @@
       "address": "0x70000a30",
       "name": "KERNEL32.dll!ReleaseSRWLockExclusive",
       "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000d30",
+      "name": "KERNEL32.dll!WakeAllConditionVariable",
+      "condition": "0x2fb1930"
+    },
+    {
+      "address": "0x700009e0",
+      "name": "KERNEL32.dll!QueryPerformanceCounter",
+      "counter": "4543982018726",
+      "output": "0x2ffdc0"
+    },
+    {
+      "address": "0x700009e0",
+      "name": "KERNEL32.dll!QueryPerformanceCounter",
+      "counter": "4543982341051",
+      "output": "0x2ffd70"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x2fb1960",
+      "function": "0x2118f70"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x2fb1960",
+      "function": "0x21271e0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x2fb1960",
+      "function": "0x2127270"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x2fb1960",
+      "function": "0x212a9e0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x2fb1960",
+      "function": "0x212aa70"
+    },
+    {
+      "address": "0x700018a0",
+      "name": "ntdll.dll!RtlGetVersion",
+      "structureSize": 284
+    },
+    {
+      "address": "0x700007a0",
+      "name": "KERNEL32.dll!GetSystemInfo",
+      "output": "0x2ffc98"
     }
   ],
   "cpuCalls": [
@@ -219,8 +278,20 @@
     {
       "kind": "callback",
       "target": "0x2118f60"
+    },
+    {
+      "kind": "callback",
+      "target": "0x2179750"
     }
   ],
+  "windowsCompatibilityProfile": {
+    "description": "Declared compatibility target; does not describe the host OS or guarantee Windows API coverage",
+    "major": 10,
+    "minor": 0,
+    "build": 19045,
+    "platform": 2,
+    "productType": 1
+  },
   "tibReads": [
     [
       8,
@@ -239,24 +310,48 @@
       8
     ]
   ],
-  "originalDllInstructionsExecuted": 559,
+  "unmodeledTibReads": [],
+  "originalDllInstructionsExecuted": 849,
   "loaderBootstrapInstructions": 16,
   "tlsTemplateBytes": 784,
   "tlsZeroFillBytes": 0,
   "tlsCallbacksScheduled": 2,
   "tlsCallbacksCompleted": 2,
   "tibSize": 65536,
-  "wasmStartupInstructions": 575,
+  "wasmStartupInstructions": 865,
   "allGeneralRegistersMatch": true,
   "entireNativeStackMatches": true,
   "dllInitializationCompleted": false,
-  "implementedWindowsCalls": 16,
-  "initializerCallbacksExecuted": 3,
+  "implementedWindowsCalls": 26,
+  "initializerCallbacksExecuted": 4,
   "completedInitializerTables": 1,
   "entireDllImageMatches": true,
   "allXmmRegistersMatch": true,
   "arithmeticFlagsMatch": true,
   "tlsMemoryMatches": true,
-  "onexitRegistrations": 1,
-  "srwAcquisitions": 2
+  "onexitRegistrations": 6,
+  "srwAcquisitions": 2,
+  "emptyQueueConditionWakes": 1,
+  "initializerCallbacksStarted": 4,
+  "initializerCallbacksCompleted": 3,
+  "initializerTablesInProgress": 1,
+  "executedImportCalls": 26,
+  "implementedImports": [
+    "KERNEL32.dll!AcquireSRWLockExclusive",
+    "KERNEL32.dll!GetCurrentProcessId",
+    "KERNEL32.dll!GetCurrentThreadId",
+    "KERNEL32.dll!GetEnvironmentVariableW",
+    "KERNEL32.dll!GetSystemInfo",
+    "KERNEL32.dll!GetSystemTimeAsFileTime",
+    "KERNEL32.dll!InitializeSListHead",
+    "KERNEL32.dll!QueryPerformanceCounter",
+    "KERNEL32.dll!QueryPerformanceFrequency",
+    "KERNEL32.dll!ReleaseSRWLockExclusive",
+    "KERNEL32.dll!WakeAllConditionVariable",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_initialize_onexit_table",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_initterm",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_initterm_e",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+    "ntdll.dll!RtlGetVersion"
+  ]
 }

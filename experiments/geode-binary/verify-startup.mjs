@@ -12,6 +12,11 @@ const dir=process.argv[2],reportPath=process.argv[3];
 const [expected,image,stack,wasm,report]=await Promise.all([
  readFile(dir+'/expected.json').then(JSON.parse),readFile(dir+'/image.bin'),
  readFile(dir+'/stack.bin'),readFile(dir+'/startup.wasm'),readFile(reportPath).then(JSON.parse)]);
+assert.ok(expected.generationId&&expected.generationId===report.generationId,'Stale startup output from another run');
+assert.equal(report.firstTranslationBlocker,null,'Native path contains unsupported IR');
+assert.deepEqual(report.unmodeledTibReads,[],'Native path used an unmodeled TEB field');
+assert.equal(report.originalX64InstructionsExecuted,expected.instructions,'Native report and reference disagree');
+assert.deepEqual(report.hostCalls,expected.hostCalls,'Host call transcript is stale');
 const memory=new WebAssembly.Memory({initial:1024,maximum:65536});
 const instance=await instantiateStartupLift(wasm,memory),v=new DataView(memory.buffer),cpu=4096;
 new Uint8Array(memory.buffer,expected.base,image.length).set(image);
@@ -23,7 +28,7 @@ if(expected.tlsBase)new Uint8Array(memory.buffer,expected.tlsBase,expected.tlsSi
 v.setBigUint64(cpu+8,BigInt(expected.base),true);v.setBigUint64(cpu+16,1n,true);
 v.setBigUint64(cpu+32,0x2fff08n,true);v.setBigUint64(0x2fff08,0x1234fedcn,true);
 const threads=new GuestThreads();threads.register('main');
-let currentCall;const services=new StartupServices({counter:()=>BigInt(currentCall.counter),tibBase:expected.tibBase});
+let currentCall;const services=new StartupServices({counter:()=>BigInt(currentCall.counter),tibBase:expected.tibBase,version:report.windowsCompatibilityProfile});
 const initializers=new NativeInitializers();
 const onexit=new OnExitTables();
 const locks=new SrwLocks();
@@ -71,4 +76,9 @@ Object.assign(report,{status:'DLL_STARTUP_PREFIX_VERIFIED',wasmStartupExecuted:t
 report.onexitRegistrations=onexit.registrations;
 report.srwAcquisitions=locks.acquisitions;
 report.emptyQueueConditionWakes=conditions.wakes;
+report.initializerCallbacksStarted=initializers.callbackCount;
+report.initializerCallbacksCompleted=initializers.completedCallbacks;
+report.initializerTablesInProgress=initializers.frames.length;
+report.executedImportCalls=handled;
+report.implementedImports=[...new Set(report.hostCalls.map(call=>call.name))].sort();
 await writeFile(reportPath,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));

@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {SrwLocks} from './srw-locks.mjs';
+import {ConditionVariables} from './condition-variables.mjs';
+const memory=new WebAssembly.Memory({initial:2}),v=new DataView(memory.buffer),cpu=4096,locks=new SrwLocks(),conditions=new ConditionVariables();
+function call(name,thread=1,p=8192n){v.setBigUint64(cpu,42n,true);v.setBigUint64(cpu+8,p,true);v.setBigUint64(cpu+32,16384n,true);v.setBigUint64(16384,0x1234fedcn,true);
+ locks.invoke('KERNEL32.dll!'+name,memory,cpu,thread);assert.equal(v.getBigUint64(cpu+192,true),0x1234fedcn);return v.getBigUint64(cpu,true);}
+call('InitializeSRWLock');call('AcquireSRWLockExclusive');assert.equal(v.getBigUint64(8192,true),1n);
+assert.equal(call('TryAcquireSRWLockExclusive',2),0n);
+assert.throws(()=>call('AcquireSRWLockExclusive',2),/scheduler/);
+assert.throws(()=>call('ReleaseSRWLockExclusive',2),/non-owner/);
+call('ReleaseSRWLockExclusive');assert.equal(v.getBigUint64(8192,true),0n);
+call('AcquireSRWLockShared');call('AcquireSRWLockShared',2);assert.equal(v.getBigUint64(8192,true),33n);
+assert.equal(call('TryAcquireSRWLockExclusive',3),0n);call('ReleaseSRWLockShared',2);call('ReleaseSRWLockShared');
+assert.equal(call('TryAcquireSRWLockExclusive'),1n);call('ReleaseSRWLockExclusive');
+assert.throws(()=>call('AcquireSRWLockExclusive',1,0n),/outside memory/);
+v.setBigUint64(cpu+8,8192n,true);v.setBigUint64(cpu+32,16384n,true);v.setBigUint64(16384,0x1234fedcn,true);v.setBigUint64(cpu,55n,true);
+conditions.invoke('KERNEL32.dll!WakeAllConditionVariable',memory,cpu);assert.equal(v.getBigUint64(cpu,true),55n);
+v.setBigUint64(8192,1n,true);v.setBigUint64(cpu+32,16384n,true);
+assert.throws(()=>conditions.invoke('KERNEL32.dll!WakeAllConditionVariable',memory,cpu),/scheduler/);
+v.setBigUint64(8192,0n,true);assert.throws(()=>conditions.invoke('KERNEL32.dll!SleepConditionVariableSRW',memory,cpu),/scheduler/);
+console.log('PASS: SRW ownership, shared readers, try-acquire, contention rejection and empty-queue condition wakes');

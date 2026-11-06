@@ -1,9 +1,10 @@
 // Small services used during CRT startup. No unknown API returns success.
 export class StartupServices {
- constructor({processId=1,counter=()=>BigInt(Math.floor(performance.now()*1e6)),environment={},tibBase=0}={}) {
+ constructor({processId=1,counter=()=>BigInt(Math.floor(performance.now()*1e6)),environment={},tibBase=0,version={major:10,minor:0,build:19045,platform:2,productType:1}}={}) {
   if(!Number.isInteger(processId)||processId<=0||processId>0xffffffff)throw Error('Invalid guest process ID');
   this.processId=processId;this.counter=counter;this.frequency=1000000000n;this.lastCounter=-1n;
   this.environment=new Map(Object.entries(environment).map(([k,v])=>[k.toUpperCase(),String(v)]));this.lastError=0;this.tibBase=tibBase;
+  this.version=Object.freeze({...version});
  }
  invoke(name,memory,cpu,guestBase=0) {
   const key=name.toLowerCase(),v=new DataView(memory.buffer);
@@ -13,6 +14,22 @@ export class StartupServices {
   let result;
   const setError=value=>{this.lastError=value;if(this.tibBase)v.setUint32(this.tibBase+0x68,value,true);};
   if(key==='kernel32.dll!getcurrentprocessid')result=BigInt(this.processId);
+  else if(key==='kernel32.dll!getsysteminfo'||key==='kernel32.dll!getnativesysteminfo') {
+   const at=linear(v.getBigUint64(cpu+8,true),48);new Uint8Array(memory.buffer,at,48).fill(0);
+   v.setUint16(at,9,true);v.setUint32(at+4,4096,true);
+   v.setBigUint64(at+8,65536n,true);v.setBigUint64(at+16,0xffffffffn,true);v.setBigUint64(at+24,1n,true);
+   v.setUint32(at+32,1,true);v.setUint32(at+36,8664,true);v.setUint32(at+40,65536,true);v.setUint16(at+44,6,true);
+  }
+  else if(key==='ntdll.dll!rtlgetversion') {
+   const at=linear(v.getBigUint64(cpu+8,true),4),size=v.getUint32(at,true);
+   if(size!==276&&size!==284)result=0xc000000dn;
+   else {
+    linear(BigInt(at-guestBase),size);new Uint8Array(memory.buffer,at+4,size-4).fill(0);
+    for(const [offset,field] of [[4,'major'],[8,'minor'],[12,'build'],[16,'platform']])v.setUint32(at+offset,this.version[field],true);
+    if(size===284)v.setUint8(at+282,this.version.productType);
+    result=0n;
+   }
+  }
   else if(key==='kernel32.dll!getlasterror')result=BigInt(this.lastError);
   else if(key==='kernel32.dll!setlasterror')setError(Number(v.getBigUint64(cpu+8,true)&0xffffffffn));
   else if(key==='kernel32.dll!getenvironmentvariablew') {

@@ -14,10 +14,11 @@ REGS = ['RAX','RCX','RDX','RBX','RSP','RBP','RSI','RDI','R8','R9','R10','R11','R
 class LiftError(Exception): pass
 
 class Lifter:
-    def __init__(self, pe, limit, allow_indirect=False, yield_unknown=False, single_threaded=False):
+    def __init__(self, pe, limit, allow_indirect=False, yield_unknown=False, single_threaded=False, wide_mode=False):
         self.pe, self.limit = pe, limit
         self.allow_indirect, self.yield_unknown = allow_indirect, yield_unknown
         self.single_threaded=single_threaded
+        self.wide_mode=wide_mode
         self.base = pe.OPTIONAL_HEADER.ImageBase
         self.ctx = pypcode.Context('x86:LE:64:default')
         self.reg_roots = [(self.ctx.registers[n].offset, i*8, 8) for i,n in enumerate(REGS)]
@@ -28,13 +29,14 @@ class Lifter:
         self.reg_roots.append((self.ctx.registers['GS_OFFSET'].offset,128,8))
         self.reg_roots += [(self.ctx.registers[f'XMM{i}'].offset,256+i*16,16) for i in range(16)]
         self.unique_groups={}
+        self.current_instruction=None
     def prepare_uniques(self,ops):
         intervals=sorted({(v.offset,v.offset+v.size) for op in ops for v in ([op.output] if op.output else [])+list(op.inputs) if v.space.name=='unique'})
         groups=[]
         for start,end in intervals:
             if groups and start<groups[-1][1]:groups[-1]=(groups[-1][0],max(end,groups[-1][1]))
             else:groups.append((start,end))
-        if any(end-start>16 for start,end in groups):raise LiftError('Unique overlap group wider than 128 bits')
+        if any(end-start>(16 if self.wide_mode else 8) for start,end in groups):raise LiftError('Unique overlap group wider than configured word size')
         self.unique_groups={start:(lo,(start-lo)*8) for start,end in intervals for lo,hi in groups if lo<=start and end<=hi}
         return sorted({lo for lo,shift in self.unique_groups.values()})
     def reg_offset(self, v):
@@ -46,7 +48,7 @@ class Lifter:
         if v.offset < 1024: return 2048+v.offset
         raise LiftError(f'Unmapped register {v}')
     def expr(self, v):
-        if v.size > 16: raise LiftError(f'IR value wider than 128 bits: {v}')
+        if v.size > (16 if self.wide_mode else 8): raise LiftError(f'IR value wider than configured word size: {v}')
         if v.space.name == 'const': return f'((wide_t)UINT64_C({v.offset}))'
         if v.space.name == 'register': return f'raw_read(cpu+{self.reg_offset(v)}u,{v.size}u)'
         if v.space.name == 'unique':
@@ -58,7 +60,7 @@ class Lifter:
             return f'guest_read(image_base+UINT64_C({v.offset-self.base}),{v.size}u,guest_base)'
         raise LiftError(f'Unsupported input space {v.space.name}')
     def assign(self, v, expression):
-        if v.size > 16: raise LiftError(f'IR result wider than 128 bits: {v}')
+        if v.size > (16 if self.wide_mode else 8): raise LiftError(f'IR result wider than configured word size: {v}')
         if v.space.name == 'register': return f'raw_write(cpu+{self.reg_offset(v)}u,({expression}),{v.size}u);'
         if v.space.name == 'unique':
             base,shift=self.unique_groups.get(v.offset,(v.offset,0))
@@ -104,9 +106,25 @@ class Lifter:
         elif code in ['INT_ADD','INT_SUB','INT_MULT','INT_AND','INT_OR','INT_XOR']:
             operator={'INT_ADD':'+','INT_SUB':'-','INT_MULT':'*','INT_AND':'&','INT_OR':'|','INT_XOR':'^'}[code]
             e=f'({x[0]} {operator} {x[1]})'
+        elif code in ['INT_DIV','INT_REM','INT_SDIV','INT_SREM']:
+            signed=code in ['INT_SDIV','INT_SREM'];remainder=code in ['INT_REM','INT_SREM']
+            fail='raw_write(cpu+192u,pc,8u);lift_fault(5u,pc,pc);__builtin_trap();'
+            lines=['{',f'if(!{x[1]}){{{fail}}}']
+            if signed:
+                left=f'(__int128)(signed_wide_t)sext({x[0]},{a[0].size}u)';right=f'(__int128)(signed_wide_t)sext({x[1]},{a[1].size}u)'
+                lines.append(f'if((unsigned __int128)({left})==((unsigned __int128)1<<127u)&&({right})==-1){{{fail}}}')
+                lines.append(f'__int128 quotient=({left})/({right});')
+            else:lines.append(f'wide_t quotient={x[0]}/{x[1]};')
+            if self.current_instruction and self.current_instruction.mnem in ['DIV','IDIV']:
+                bits=op.output.size*4
+                condition=f'quotient<-((__int128)1<<{bits-1}u)||quotient>(((__int128)1<<{bits-1}u)-1)' if signed else f'quotient>mask({op.output.size//2}u)'
+                lines.append(f'if({condition}){{{fail}}}')
+            expression=f'({left})%({right})' if signed and remainder else f'{x[0]}%{x[1]}' if remainder else 'quotient'
+            lines += [self.assign(op.output,expression),'}']
+            return '\n'.join(lines)
         elif code=='INT_LEFT': e=f'({x[1]}>={a[0].size*8}u?0:({x[0]}<<{x[1]}))'
         elif code=='INT_RIGHT': e=f'({x[1]}>={a[0].size*8}u?0:({x[0]}>>{x[1]}))'
-        elif code=='INT_SRIGHT': e=f'({x[1]}>={a[0].size*8}u?(((__int128)sext({x[0]},{a[0].size}u)<0)?mask({a[0].size}u):0):(wide_t)((__int128)sext({x[0]},{a[0].size}u)>>{x[1]}))'
+        elif code=='INT_SRIGHT': e=f'({x[1]}>={a[0].size*8}u?(((signed_wide_t)sext({x[0]},{a[0].size}u)<0)?mask({a[0].size}u):0):(wide_t)((signed_wide_t)sext({x[0]},{a[0].size}u)>>{x[1]}))'
         elif code=='INT_NEGATE': e=f'~{x[0]}'
         elif code=='INT_2COMP': e=f'(UINT64_C(0)-{x[0]})'
         elif code in ['INT_EQUAL','INT_NOTEQUAL','INT_LESS','INT_LESSEQUAL']:
@@ -114,14 +132,14 @@ class Lifter:
             e=f'({x[0]} {operator} {x[1]})'
         elif code in ['INT_SLESS','INT_SLESSEQUAL']:
             operator='<' if code=='INT_SLESS' else '<='
-            e=f'((__int128)sext({x[0]},{a[0].size}u) {operator} (__int128)sext({x[1]},{a[1].size}u))'
+            e=f'((signed_wide_t)sext({x[0]},{a[0].size}u) {operator} (signed_wide_t)sext({x[1]},{a[1].size}u))'
         elif code=='INT_CARRY': e=f'(({x[0]}+{x[1]})&mask({a[0].size}u))<{x[0]}'
         elif code=='INT_SCARRY': e=f'((~({x[0]}^{x[1]})&({x[0]}^({x[0]}+{x[1]})))>>{a[0].size*8-1})&1u'
         elif code=='INT_SBORROW': e=f'((({x[0]}^{x[1]})&({x[0]}^({x[0]}-{x[1]})))>>{a[0].size*8-1})&1u'
         elif code=='BOOL_NEGATE': e=f'!{x[0]}'
         elif code in ['BOOL_AND','BOOL_OR','BOOL_XOR']:
             operator={'BOOL_AND':'&','BOOL_OR':'|','BOOL_XOR':'^'}[code]; e=f'((!!{x[0]}){operator}(!!{x[1]}))'
-        elif code=='POPCOUNT': e=f'(__builtin_popcountll((uint64_t){x[0]})+__builtin_popcountll((uint64_t)({x[0]}>>64u)))'
+        elif code=='POPCOUNT': e=f'(__builtin_popcountll((uint64_t){x[0]})+__builtin_popcountll((uint64_t)({x[0]}>>64u)))' if self.wide_mode else f'__builtin_popcountll({x[0]})'
         elif code=='SUBPIECE': e=f'({x[0]}>>({x[1]}*8u))'
         elif code=='PIECE':
             if sum(v.size for v in a)>16: raise LiftError('PIECE wider than 128 bits')
@@ -139,6 +157,7 @@ class Lifter:
                 raise LiftError(f'Branch leaves executable image at {va:#x}')
             data=self.pe.get_data(va-self.base,32)
             instruction=self.ctx.disassemble(data,base_address=va,max_instructions=1).instructions[0]
+            self.current_instruction=instruction
             ops=self.ctx.translate(data[:instruction.length],base_address=va,max_instructions=1).ops
             self.prepare_uniques(ops)
             emitted=[]
@@ -168,7 +187,8 @@ class Lifter:
             lines += [f'pc_{va:x}_op_{len(ops)}: ; goto next_instruction; }}']
             cases.append('\n'.join(lines))
         default='return 0x80000000u|step;' if self.yield_unknown else 'lift_fault(1u,pc,pc); __builtin_trap();'
-        return PRELUDE+'\n'.join(cases)+'\n default: '+default+'''
+        prelude=PRELUDE if self.wide_mode else PRELUDE.replace('typedef unsigned __int128 wide_t;','typedef uint64_t wide_t;').replace('typedef __int128 signed_wide_t;','typedef int64_t signed_wide_t;')
+        return prelude+'\n'.join(cases)+'\n default: '+default+'''
       }
       next_instruction: ;
     }
@@ -179,10 +199,11 @@ class Lifter:
 PRELUDE='''/* Generated from the pinned Windows DLL's instruction semantics. */
 #include <stdint.h>
 typedef unsigned __int128 wide_t;
+typedef __int128 signed_wide_t;
 __attribute__((import_module("env"),import_name("lift_fault")))
 void lift_fault(uint32_t code,uint64_t address,uint64_t pc);
-static inline wide_t mask(uint32_t n) {return n==16u?~(wide_t)0:(((wide_t)1<<(n*8u))-1u);}
-static inline wide_t sext(wide_t v,uint32_t n) {uint32_t s=128u-n*8u;return (wide_t)((__int128)(v<<s)>>s);}
+static inline wide_t mask(uint32_t n) {return n==sizeof(wide_t)?~(wide_t)0:(((wide_t)1<<(n*8u))-1u);}
+static inline wide_t sext(wide_t v,uint32_t n) {uint32_t s=sizeof(wide_t)*8u-n*8u;return (wide_t)((signed_wide_t)(v<<s)>>s);}
 static inline wide_t raw_read(uint64_t p,uint32_t n) {
   if(p+n>(uint64_t)__builtin_wasm_memory_size(0)*65536u){lift_fault(2u,p,0);__builtin_trap();}
   wide_t v=0;for(uint32_t i=0;i<n;i++)v|=(wide_t)(*(uint8_t*)(uintptr_t)(p+i))<<(i*8u);return v;

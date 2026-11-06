@@ -5,7 +5,7 @@ Unicorn executes original relocated x64 bytes; the reached instructions are
 then checked against the current binary translator. No API success is faked.
 TLS callbacks and actual Windows loader initialization are not provided.
 """
-import sys,json,hashlib,struct,time
+import sys,json,hashlib,struct,time,uuid
 from pathlib import Path
 import pefile,pypcode,unicorn
 from unicorn import x86_const as x
@@ -35,6 +35,7 @@ uc.reg_write(x.UC_X86_REG_R8,0);uc.reg_write(x.UC_X86_REG_RSP,0x2fff08)
 uc.mem_write(0x2fff08,(0x1234fedc).to_bytes(8,'little'))
 initial_image=bytes(uc.mem_read(base,size))
 profile=json.loads((Path(__file__).parent/'cpu-profile.json').read_text())
+windows_profile=json.loads((Path(__file__).parent/'windows-profile.json').read_text())
 tib=0x400000;tib_size=0x10000;uc.mem_map(tib,tib_size);uc.reg_write(x.UC_X86_REG_GS_BASE,tib)
 uc.mem_write(tib+8,struct.pack('<QQ',0x300000,0x200000))
 uc.mem_write(tib+0x30,struct.pack('<Q',tib))
@@ -116,6 +117,22 @@ def code(uc,pc,length,_):
   uc.emu_stop();return
  if pc in imports:
   name=imports[pc].lower()
+  if name in ['kernel32.dll!getsysteminfo','kernel32.dll!getnativesysteminfo']:
+   p=uc.reg_read(x.UC_X86_REG_RCX)
+   data=struct.pack('<HHIQQQIIIHH',9,0,4096,65536,0xffffffff,1,1,8664,65536,6,0);uc.mem_write(p,data)
+   sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+   host_calls.append({'address':hex(pc),'name':imports[pc],'output':hex(p)})
+   uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
+  if name=='ntdll.dll!rtlgetversion':
+   p=uc.reg_read(x.UC_X86_REG_RCX);length=int.from_bytes(uc.mem_read(p,4),'little');result=0
+   if length not in [276,284]:result=0xc000000d
+   else:
+    data=bytearray(length);struct.pack_into('<IIIII',data,0,length,windows_profile['major'],windows_profile['minor'],windows_profile['build'],windows_profile['platform'])
+    if length==284:data[282]=windows_profile['productType']
+    uc.mem_write(p,bytes(data))
+   sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+   host_calls.append({'address':hex(pc),'name':imports[pc],'structureSize':length})
+   uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
   if name in ['kernel32.dll!wakeallconditionvariable','kernel32.dll!wakeconditionvariable','kernel32.dll!initializeconditionvariable']:
    p=uc.reg_read(x.UC_X86_REG_RCX);assert p and int.from_bytes(uc.mem_read(p,8),'little')==0
    sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
@@ -232,11 +249,20 @@ try:
  else:stop['reason']='HOST_CALL_LIMIT'
 except unicorn.UcError as error:stop.setdefault('error',str(error))
 if not stop:stop['reason']='ENTRYPOINT_RETURNED'
+if stop.get('importName','').lower()=='kernel32.dll!getmodulehandlea':
+ p=uc.reg_read(x.UC_X86_REG_RCX);text=bytearray()
+ if p:
+  for i in range(32768):
+   value=bytes(uc.mem_read(p+i,1))
+   if value==b'\0':break
+   text+=value
+ stop['requestedModule']=text.decode('latin1') if p else None
 if stop.get('reason')=='UNMAPPED_MEMORY' and trace and trace[-1]==uc.reg_read(x.UC_X86_REG_RIP):trace.pop()
-lifter=Lifter(pe,10000,allow_indirect=True,yield_unknown=True,single_threaded=True);blocked=None;translated=0
+lifter=Lifter(pe,10000,allow_indirect=True,yield_unknown=True,single_threaded=True,wide_mode=True);blocked=None;translated=0
 for pc in dict.fromkeys(trace):
  data=bytes(uc.mem_read(pc,32));ins=lifter.ctx.disassemble(data,base_address=pc,max_instructions=1).instructions[0]
  ops=lifter.ctx.translate(data[:ins.length],base_address=pc,max_instructions=1).ops
+ lifter.current_instruction=ins
  try:
   lifter.prepare_uniques(ops)
   if ins.mnem=='CPUID':
@@ -255,18 +281,23 @@ for pc in dict.fromkeys(trace):
   translated+=1
  except LiftError as error:
   blocked={'instruction':str(ins),'reason':str(error),'pcode':str(op)};break
-report={'status':'DLL_STARTUP_BLOCKED','dllSha256':PIN,'entry':hex(entry),
+generation_id=str(uuid.uuid4())
+report={'status':'DLL_STARTUP_BLOCKED','generationId':generation_id,'dllSha256':PIN,'entry':hex(entry),
  'originalX64InstructionsExecuted':len(trace),'uniqueInstructionsReached':len(set(trace)),
  'firstRuntimeDependency':stop,'reachedInstructionsSupportedBeforeBlock':translated,
  'firstTranslationBlocker':blocked,'wasmStartupExecuted':False,'windowsImportsExecuted':False,
  'guestThreadModel':'single registered main context','hostCalls':host_calls,'cpuCalls':cpu_calls,'cpuProfile':profile,
  'tibBase':tib,'tlsCallbacksExecuted':False,'fullGeodeLoader':False,'existingGeodePackagesSupported':False}
 report['initializerEvents']=initializer_events
+report['windowsCompatibilityProfile']=windows_profile
 report['tibReads']=sorted(set(tib_reads))
+known_tib_fields=[(8,24),(0x30,0x38),(0x58,0x60),(0x68,0x6c),(0x2000,0x2008)]
+unknown_tib=[(offset,n) for offset,n in report['tibReads'] if not any(start<=offset and offset+n<=end for start,end in known_tib_fields)]
+report['unmodeledTibReads']=unknown_tib
 report.update(originalDllInstructionsExecuted=sum(base<=pc<base+size for pc in trace),loaderBootstrapInstructions=sum(bootstrap<=pc<bootstrap+4096 for pc in trace),
  tlsTemplateBytes=tls_end-tls_start,tlsZeroFillBytes=tls_zero,tlsCallbacksScheduled=len(callbacks),tlsCallbacksCompleted=len(completed_tls),
  tlsCallbacksExecuted=bool(completed_tls),tibSize=tib_size)
-if len(sys.argv)>2 and not blocked:
+if len(sys.argv)>2 and not blocked and not unknown_tib:
  out=Path(sys.argv[2]);out.mkdir(parents=True,exist_ok=True)
  (out/'startup.c').write_text(lifter.source());(out/'image.bin').write_bytes(initial_image)
  (out/'stack.bin').write_bytes(bytes(uc.mem_read(0x200000,0x100000)))
@@ -276,7 +307,7 @@ if len(sys.argv)>2 and not blocked:
  (out/'image-after.bin').write_bytes(bytes(uc.mem_read(base,size)))
  (out/'arena-after.bin').write_bytes(bytes(uc.mem_read(arena,arena_size)))
  names=['RAX','RCX','RDX','RBX','RSP','RBP','RSI','RDI','R8','R9','R10','R11','R12','R13','R14','R15']
- (out/'expected.json').write_text(json.dumps({'entry':entry,'base':base,'stop':uc.reg_read(x.UC_X86_REG_RIP),
+ (out/'expected.json').write_text(json.dumps({'generationId':generation_id,'entry':entry,'base':base,'stop':uc.reg_read(x.UC_X86_REG_RIP),
   'instructions':len(trace),'hostCalls':host_calls,'tibBase':tib,'tibSize':tib_size,'tlsBase':tls_block,'tlsSize':tls_size,
   'bootstrap':bootstrap,'loaderHex':loader.hex(),
   'xmm':[hex(uc.reg_read(getattr(x,f'UC_X86_REG_XMM{i}'))) for i in range(16)],

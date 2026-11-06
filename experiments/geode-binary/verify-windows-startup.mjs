@@ -28,6 +28,13 @@ call(init);assert.equal(v.getBigUint64(8192,true),12n);assert.equal(v.getBigUint
 assert.equal(call(init,0n),0xffffffffn);
 assert.throws(()=>call('KERNEL32.dll!QueryPerformanceCounter',131071n),/outside memory/);
 assert.throws(()=>call('unimplemented!api'),/Unimplemented/);
+for(const size of [276,284]){
+ new Uint8Array(memory.buffer,8192,284).fill(0xaa);v.setUint32(8192,size,true);
+ assert.equal(call('ntdll.dll!RtlGetVersion'),0n);
+ assert.equal(v.getUint32(8192,true),size);assert.equal(v.getUint32(8196,true),10);
+ assert.equal(v.getUint32(8204,true),19045);if(size===284)assert.equal(v.getUint8(8192+282),1);
+}
+v.setUint32(8192,1,true);assert.equal(call('ntdll.dll!RtlGetVersion'),0xc000000dn);
 const env=new StartupServices({environment:{NAME:'hello 🟩'},tibBase:0x10000});
 function wide(at,text){for(let i=0;i<text.length;i++)v.setUint16(at+i*2,text.charCodeAt(i),true);v.setUint16(at+text.length*2,0,true);}
 function envCall(name){v.setBigUint64(cpu+32,16384n,true);v.setBigUint64(16384,0x12345678n,true);env.invoke(name,memory,cpu);return v.getBigUint64(cpu,true);}

@@ -1,6 +1,6 @@
 // Execute actual native C/C++ initializer targets through the guest dispatcher.
 export class NativeInitializers {
- constructor(){this.frames=[];this.callbackCount=0;this.completedTables=0;}
+ constructor(){this.frames=[];this.callbackCount=0;this.completedCallbacks=0;this.completedTables=0;}
  handles(pc){return this.frames.length&&pc===this.frames.at(-1).sentinel;}
  read(v,p,n=8){if(p<0n||p>0xffffffffn||Number(p)+n>v.byteLength)throw Error('Initializer address outside memory');return Number(p);}
  begin(name,memory,cpu){
@@ -28,6 +28,7 @@ export class NativeInitializers {
  resume(memory,cpu){
   const v=new DataView(memory.buffer),f=this.frames.at(-1);
   if(!f||v.getBigUint64(cpu+192,true)!==f.sentinel||v.getBigUint64(cpu+32,true)!==f.callbackSp+8n)throw Error('Invalid initializer callback return');
+  this.completedCallbacks++;
   const result=Number(v.getBigUint64(cpu,true)&0xffffffffn);
   if(f.error&&result)this.finish(memory,cpu,result);else this.advance(memory,cpu);
  }
