@@ -47,7 +47,10 @@ def build_modules(pe,base):
  return modules,images,gates
 
 def module_handle(modules,name):
- if name is None:raise RuntimeError('PRIMARY_EXECUTABLE_REQUIRED')
+ if name is None:
+  primary=next((m for m in modules if m.get('primary')),None)
+  if primary:return primary['base']
+  raise RuntimeError('PRIMARY_EXECUTABLE_REQUIRED')
  key=name.replace('\\','/').lower()
  if '/' in key:
   if not key.startswith('c:/windows/system32/'):raise RuntimeError('UNMODELED_MODULE_PATH: '+name)
@@ -63,7 +66,7 @@ def resolve_export(modules,read,handle,symbol):
  if module is None:raise RuntimeError('UNMODELED_MODULE_HANDLE: '+hex(handle))
  if isinstance(symbol,int) and module['shim']:raise RuntimeError('UNMODELED_SHIM_ORDINAL: '+str(symbol))
  data=bytes(read(handle,module['size']));pe=mapped_pe(data)
- for entry in pe.DIRECTORY_ENTRY_EXPORT.symbols:
+ for entry in (pe.DIRECTORY_ENTRY_EXPORT.symbols if hasattr(pe,'DIRECTORY_ENTRY_EXPORT') else []):
   if (isinstance(symbol,int) and entry.ordinal==symbol) or (entry.name is not None and entry.name.decode('ascii')==symbol):
    if entry.forwarder:raise RuntimeError('UNMODELED_EXPORT_FORWARDER: '+entry.forwarder.decode())
    return handle+entry.address

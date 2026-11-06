@@ -11,7 +11,9 @@ programs={0:bytes.fromhex('48f7f7c3'),32:bytes.fromhex('48f7ffc3'),64:bytes.from
 programs[96]=bytes.fromhex('f30f5fd9c3')
 programs[112]=bytes.fromhex('f3480f2ac0c3');programs[120]=bytes.fromhex('f2480f2ac0c3')
 programs[144]=bytes.fromhex('f30f5ed9c3')
-code=bytearray(192)
+programs[160]=bytes.fromhex('f3480f2cc0c3');programs[176]=bytes.fromhex('f2480f2cc0c3')
+programs[192]=bytes.fromhex('f30f58d9c3');programs[208]=bytes.fromhex('f30f5cd9c3');programs[224]=bytes.fromhex('f30f59d9c3')
+code=bytearray(240)
 for rva,data in programs.items():code[rva:rva+len(data)]=data
 class Image:
  OPTIONAL_HEADER=SimpleNamespace(ImageBase=base,SizeOfImage=4096)
@@ -45,17 +47,25 @@ for rva in [112,120]:
    inputs.append((rva,value&0xffffffffffffffff,0,0));rounding_modes.append(mode)
 for pair in [(1.,3.),(10.,2.),(-5.,3.),(0.,-3.),(-0.,3.),(1e10,7.),(-1e10,-7.)]:
  float_case_map[len(inputs)]=pair;inputs.append((144,0,0,0));rounding_modes.append(0)
+for rva in [192,208,224]:
+ for pair in [(1.,0.5),(-1.,0.5),(0.,-0.),(2.**24,1.),(1e-30,1e30),(1.5,-1.5)]:
+  float_case_map[len(inputs)]=pair;inputs.append((rva,0,0,0));rounding_modes.append(0)
+trunc_inputs={}
+for rva,width in [(160,4),(176,8)]:
+ for value in [0.,-0.,0.1,-0.1,1.5,-1.5,2.**31,2.**63,-2.**63,1e30]:
+  trunc_inputs[len(inputs)]=(width,value);inputs.append((rva,0,0,0));rounding_modes.append(0)
 def hardware_float(program,rax,mxcsr,xmm):
  if platform.machine().lower() not in ['x86_64','amd64']:return None
  # SysV wrapper: save host MXCSR, load declared guest inputs, execute one SSE
  # instruction, store outputs/status, restore host MXCSR before returning.
- wrapper=bytes.fromhex('0fae5f640fae5708488b07660fefc0f30f6f4f10f30f6f5f20')+program[:-1]+bytes.fromhex('f30f7f4730f30f7f4f40f30f7f5f500fae5f600fae5764c3')
+ wrapper=bytes.fromhex('0fae5f640fae5708488b07f30f6f4770f30f6f4f10f30f6f5f20')+program[:-1]+bytes.fromhex('f30f7f4730f30f7f4f40f30f7f5f50488947680fae5f600fae5764c3')
  executable=mmap.mmap(-1,4096,prot=mmap.PROT_READ|mmap.PROT_WRITE|mmap.PROT_EXEC);executable.write(wrapper)
- buf=ctypes.create_string_buffer(112);address=ctypes.addressof(buf)
+ buf=ctypes.create_string_buffer(128);address=ctypes.addressof(buf)
  ctypes.memmove(address,struct.pack('<QI',rax,mxcsr),12)
+ ctypes.memmove(address+112,xmm[0].to_bytes(16,'little'),16)
  ctypes.memmove(address+16,xmm[1].to_bytes(16,'little'),16);ctypes.memmove(address+32,xmm[3].to_bytes(16,'little'),16)
  ctypes.CFUNCTYPE(None,ctypes.c_void_p)(ctypes.addressof(ctypes.c_char.from_buffer(executable)))(address)
- raw=buf.raw;result={'xmm':{i:int.from_bytes(raw[offset:offset+16],'little') for i,offset in [(0,48),(1,64),(3,80)]},'mxcsr':struct.unpack_from('<I',raw,96)[0]};executable.close();return result
+ raw=buf.raw;result={'xmm':{i:int.from_bytes(raw[offset:offset+16],'little') for i,offset in [(0,48),(1,64),(3,80)]},'mxcsr':struct.unpack_from('<I',raw,96)[0],'rax':struct.unpack_from('<Q',raw,104)[0]};executable.close();return result
 for index,(rva,rax,rdx,rdi) in enumerate(inputs):
  initial=[0]*16;initial[0]=rax;initial[2]=rdx;initial[7]=rdi;initial[4]=0x1f008
  if rva==64:initial[1]=0x12000;initial[2]=0x12020;initial[8]=0x12040
@@ -65,6 +75,8 @@ for index,(rva,rax,rdx,rdi) in enumerate(inputs):
  if index in float_case_map:
   first,second=float_case_map[index]
   for reg,value in [(3,first),(1,second)]:initial_xmm[reg]=(0x112233445566778899aabbcc<<32)|struct.unpack('<I',struct.pack('<f',value))[0]
+ if index in trunc_inputs:
+  width,value=trunc_inputs[index];initial_xmm[0]=int.from_bytes(struct.pack('<f' if width==4 else '<d',value),'little')
  for i,value in enumerate(initial_xmm):uc.reg_write(getattr(x,f'UC_X86_REG_XMM{i}'),value)
  uc.reg_write(x.UC_X86_REG_MXCSR,0x1f80|(rounding_modes[index]<<13))
  uc.mem_write(0x1f008,(0x1234fedc).to_bytes(8,'little'))
@@ -81,8 +93,9 @@ for index,(rva,rax,rdx,rdi) in enumerate(inputs):
   fault=True
   for name,value in zip(REGS,initial):uc.reg_write(getattr(x,'UC_X86_REG_'+name),value)
   uc.reg_write(x.UC_X86_REG_RIP,base+rva)
- native_float=hardware_float(programs[rva],rax,0x1f80|(rounding_modes[index]<<13),initial_xmm) if rva in [96,112,120,144] else None
+ native_float=hardware_float(programs[rva],rax,0x1f80|(rounding_modes[index]<<13),initial_xmm) if rva in [96,112,120,144,160,176,192,208,224] else None
  if native_float:
+  assert native_float['rax']==uc.reg_read(x.UC_X86_REG_RAX),'Hardware/emulator integer result mismatch'
   for reg,value in native_float['xmm'].items():assert value==uc.reg_read(getattr(x,f'UC_X86_REG_XMM{reg}')),'Hardware/emulator float value mismatch'
  cases.append({'hardwareFloatingVerified':native_float is not None,'emulatorMxcsrDiscrepancy':native_float is not None and native_float['mxcsr']!=uc.reg_read(x.UC_X86_REG_MXCSR),'entry':base+rva,'initial':[hex(v) for v in initial],'initialXmm':[hex(v) for v in initial_xmm],'initialMxcsr':0x1f80|(rounding_modes[index]<<13),'mxcsr':native_float['mxcsr'] if native_float else uc.reg_read(x.UC_X86_REG_MXCSR),'data':data.hex(),'fault':fault,'emulatorSignedOverflowDiscrepancy':discrepancy,
   'expected':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+n))) for n in REGS],

@@ -33,10 +33,12 @@ jobs:
           mkdir -p /tmp/geode-startup
           python experiments/geode-binary/fetch-startup-dll.py /tmp/geode-startup/Geode.dll
           python experiments/geode-binary/fetch_cocos_image.py /tmp/geode-startup/libcocos2d.dll.img
+          python experiments/geode-binary/fetch_primary_image.py /tmp/geode-startup/GeometryDash.exe.img
       - name: Verify actual DLL startup and boundary contracts
         env:
           GEODE_DLL: /tmp/geode-startup/Geode.dll
           GEODE_COCOS_IMG: /tmp/geode-startup/libcocos2d.dll.img
+          GEODE_PRIMARY_IMG: /tmp/geode-startup/GeometryDash.exe.img
           GEODE_OUT: /tmp/geode-startup
           GEODE_WASM_OPT: /tmp/geode-wasm-tools/node_modules/.bin/wasm-opt
         run: bash experiments/geode-binary/run-startup-tests.sh

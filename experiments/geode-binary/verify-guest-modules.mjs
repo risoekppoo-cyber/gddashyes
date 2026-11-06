@@ -9,7 +9,7 @@ for(const m of expected.modules)new Uint8Array(memory.buffer,m.base,m.size).set(
 let error=0;const modules=new GuestModules(expected.modules,{setLastError:value=>error=value});
 const ntdll=modules.handle('NtDlL'),kernel=modules.handle('C:\\Windows\\System32\\KERNEL32.DLL');
 assert.equal(modules.handle('kernel32.dll.'),kernel);
-assert.throws(()=>modules.handle(null),/PRIMARY_EXECUTABLE/);
+if(expected.modules.some(m=>m.primary))assert.equal(modules.handle(null),expected.modules.find(m=>m.primary).base);else assert.throws(()=>modules.handle(null),/PRIMARY_EXECUTABLE/);
 assert.throws(()=>modules.handle('unknown'),/UNMODELED_MODULE/);
 assert.throws(()=>modules.handle('D:\\other\\kernel32.dll'),/UNMODELED_MODULE_PATH/);
 assert.throws(()=>modules.resolve(memory,ntdll,'RtlUnknownService'),/UNMODELED_EXPORT/);
@@ -17,6 +17,7 @@ assert.throws(()=>modules.resolve(memory,ntdll,'rtlgetversion'),/UNMODELED_EXPOR
 assert.throws(()=>modules.resolve(memory,ntdll,1),/UNMODELED_SHIM_ORDINAL/);
 assert.equal(modules.resolve(memory,ntdll,'wine_get_version'),0);assert.equal(error,127);
 assert.equal(modules.resolve(memory,modules.handle('Geode'),'clearly_not_a_geode_export'),0);
+const primary=expected.modules.find(m=>m.primary);if(primary)assert.equal(modules.resolve(memory,primary.base,'absent_export'),0);
 const address=modules.resolve(memory,ntdll,'RtlGetVersion');
 assert.equal(expected.moduleGateways['0x'+address.toString(16)],'ntdll.dll!RtlGetVersion');
 const prepare=()=>{v.setBigUint64(cpu+32,8192n,true);v.setBigUint64(8192,0x1234fedcn,true);};

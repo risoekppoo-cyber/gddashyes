@@ -12,6 +12,7 @@ import {GuestModules} from './guest-modules.mjs';
 import {GuestHeap} from './guest-heap.mjs';
 import {NativeLoads} from './native-loads.mjs';
 import {crtString} from './crt-strings.mjs';
+import {ceilf} from './crt-math.mjs';
 const dir=process.argv[2],reportPath=process.argv[3];
 const [expected,image,stack,wasm,report]=await Promise.all([
  readFile(dir+'/expected.json').then(JSON.parse),readFile(dir+'/image.bin'),
@@ -30,6 +31,7 @@ if(expected.tibBase){
  v.setBigUint64(cpu+128,BigInt(expected.tibBase),true);
 }
 if(expected.tlsBase)new Uint8Array(memory.buffer,expected.tlsBase,expected.tlsSize).set(await readFile(dir+'/tls.bin'));
+for(const m of expected.modules.filter(m=>m.primaryTls))new Uint8Array(memory.buffer,m.primaryTls.base,m.primaryTls.size).set(await readFile(dir+'/primary-tls.bin'));
 v.setUint32(cpu+expected.mxcsr.offset,0x1f80,true);
 v.setBigUint64(cpu+8,BigInt(expected.base),true);v.setBigUint64(cpu+16,1n,true);
 v.setBigUint64(cpu+32,0x2fff08n,true);v.setBigUint64(0x2fff08,0x1234fedcn,true);
@@ -44,17 +46,19 @@ const locks=new SrwLocks();
 const conditions=new ConditionVariables();
 let steps=0,handled=0,pc=BigInt(expected.entry);
 for(let transfers=0;transfers<4096;transfers++){
- const result=instance.exports.lift_run(cpu,pc,BigInt(expected.base),0,(handled===expected.hostCalls.length?BigInt(expected.stop):0xffffffffffffffffn),10000)>>>0;
+ const result=instance.exports.lift_run(cpu,pc,BigInt(expected.base),0,0xffffffffffffffffn,expected.instructions-steps)>>>0;
  if(instance.exports.__stack_pointer)assert.equal(instance.exports.__stack_pointer.value,0x900000,'Compiler stack was not restored');
  steps+=result&0x7fffffff;
- if(!(result&0x80000000))break;
+ assert.ok(result&0x80000000,'Startup dispatcher must yield or pause');
  pc=v.getBigUint64(cpu+192,true);
+ if(steps===expected.instructions&&handled===expected.hostCalls.length&&pc===BigInt(expected.stop))break;
  if(loads.handles(pc)){loads.resume(memory,cpu);pc=v.getBigUint64(cpu+192,true);continue;}
  if(initializers.handles(pc)){initializers.resume(memory,cpu);pc=v.getBigUint64(cpu+192,true);continue;}
  const call=expected.hostCalls[handled];
  currentCall=call;
  assert.ok(call&&pc===BigInt(call.address),'Unexpected native import');
- if(/^(api-ms-win-crt-string-.*|VCRUNTIME140.dll)!(strlen|wcslen|memcpy|memmove|memset|memcmp)$/i.test(call.name))assert.equal(crtString(call.name,memory,cpu),BigInt(call.result));
+ if(call.name==='api-ms-win-crt-math-l1-1-0.dll!ceilf')assert.equal(BigInt(ceilf(memory,cpu)),BigInt(call.outputBits));
+ else if(/^(api-ms-win-crt-string-.*|VCRUNTIME140.dll)!(strlen|wcslen|memcpy|memmove|memset|memcmp)$/i.test(call.name))assert.equal(crtString(call.name,memory,cpu),BigInt(call.result));
  else if(call.action==='initializeDependency')loads.begin(expected.modules.find(m=>m.base===call.base),memory,cpu);
  else if((/^api-ms-win-crt-heap-.*!(malloc|free|calloc|realloc|_msize)$/.test(call.name))||call.name==='api-ms-win-crt-runtime-l1-1-0.dll!_errno'){
   const value=heap.invoke(call.name,cpu);assert.equal(value===undefined?null:'0x'+value.toString(16),call.result);
@@ -91,6 +95,7 @@ assert.deepEqual(Buffer.from(memory.buffer,heap.base,heap.size),await readFile(d
 assert.deepEqual(Buffer.from(memory.buffer,heap.errno,0x10000),await readFile(dir+'/errno-after.bin'));
 assert.deepEqual(Object.fromEntries(heap.allocations),report.crtHeap.allocations);assert.deepEqual(heap.available,report.crtHeap.freeBlocks);assert.equal(heap.calls,report.crtHeap.calls);
 report.crtHeapMemoryMatches=true;
+for(const m of expected.modules.filter(m=>m.primaryTls))assert.deepEqual(Buffer.from(memory.buffer,m.primaryTls.base,m.primaryTls.size),await readFile(dir+'/primary-tls-after.bin'));
 assert.deepEqual(Buffer.from(memory.buffer,0xa00000,0x100000),await readFile(dir+'/local-heap-after.bin'));
 assert.deepEqual(Object.fromEntries(threads.localAllocations),report.localAllocations);
 assert.equal(threads.descriptions.get('main')??null,report.threadDescription);

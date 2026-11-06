@@ -11,10 +11,11 @@ compile() {
  local input="$1" output="$2" mode="$3"
  local extra=()
  if [[ "$mode" == wide ]];then extra+=('-Wl,--export=__stack_pointer');fi
- "$GEODE_ZIG" cc -target wasm32-freestanding -O2 -g0 -s -nostdlib "$input" -Wl,--no-entry -Wl,--import-memory -Wl,--export=lift_run "${extra[@]}" -Wl,-z,stack-size=0 -Wl,--initial-memory=131072 -o "$output"
+ "$GEODE_ZIG" cc -target wasm32-freestanding -O2 -ffp-contract=off -g0 -s -nostdlib "$input" -Wl,--no-entry -Wl,--import-memory -Wl,--export=lift_run "${extra[@]}" -Wl,-z,stack-size=0 -Wl,--initial-memory=131072 -o "$output"
  "$GEODE_WASM_OPT" "$output" --remove-unused-module-elements -o "$output.clean"
  mv "$output.clean" "$output"
 }
+node experiments/geode-binary/verify-crt-math.mjs
 node experiments/geode-binary/verify-native-loads.mjs
 node experiments/geode-binary/verify-guest-heap.mjs
 node experiments/geode-binary/verify-windows-time.mjs

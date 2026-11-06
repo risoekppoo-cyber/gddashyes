@@ -14,11 +14,12 @@ REGS = ['RAX','RCX','RDX','RBX','RSP','RBP','RSI','RDI','R8','R9','R10','R11','R
 class LiftError(Exception): pass
 
 class Lifter:
-    def __init__(self, pe, limit, allow_indirect=False, yield_unknown=False, single_threaded=False, wide_mode=False):
+    def __init__(self, pe, limit, allow_indirect=False, yield_unknown=False, single_threaded=False, wide_mode=False, yield_on_budget=False):
         self.pe, self.limit = pe, limit
         self.allow_indirect, self.yield_unknown = allow_indirect, yield_unknown
         self.single_threaded=single_threaded
         self.wide_mode=wide_mode
+        self.yield_on_budget=yield_on_budget
         self.base = pe.OPTIONAL_HEADER.ImageBase
         self.allowed_images=[(self.base,self.base+pe.OPTIONAL_HEADER.SizeOfImage)]
         self.ctx = pypcode.Context('x86:LE:64:default')
@@ -103,6 +104,13 @@ class Lifter:
                 return cond+f'goto op_{to};'
             raise LiftError(f'Unsupported branch target {target}')
         elif code=='RETURN': return f'raw_write(cpu+192u,{self.expr(a[0])},8u); goto next_instruction;'
+        elif code in ['FLOAT_ADD','FLOAT_SUB','FLOAT_MULT']:
+            if a[0].size!=4 or a[1].size!=4 or op.output.size!=4 or self.current_instruction.mnem not in ['ADDSS','SUBSS','MULSS']:raise LiftError('Only bounded scalar binary32 arithmetic is implemented')
+            mode={'FLOAT_ADD':0,'FLOAT_SUB':1,'FLOAT_MULT':2}[code]
+            e=f'finite_arithmetic32({x[0]},{x[1]},{mode}u,cpu,image_base+UINT64_C({self.current_instruction.addr.offset-self.base}))'
+        elif code=='FLOAT_TRUNC':
+            if a[0].size not in [4,8] or op.output.size not in [4,8] or not self.current_instruction.mnem.startswith('CVTT'):raise LiftError('Unsupported float truncation instruction')
+            e=f'ieee_to_integer({x[0]},{a[0].size}u,{op.output.size}u,cpu,image_base+UINT64_C({self.current_instruction.addr.offset-self.base}))'
         elif code=='FLOAT_NAN':
             if a[0].size not in [4,8]:raise LiftError('Unsupported float predicate width')
             e=f'(!finite_compare({x[0]},{x[0]},{a[0].size}u,2u,cpu,image_base+UINT64_C({self.current_instruction.addr.offset-self.base})))'
@@ -203,13 +211,15 @@ class Lifter:
             cases.append('\n'.join(lines))
         default='return 0x80000000u|step;' if self.yield_unknown else 'lift_fault(1u,pc,pc); __builtin_trap();'
         prelude=PRELUDE if self.wide_mode else PRELUDE.replace('typedef unsigned __int128 wide_t;','typedef uint64_t wide_t;').replace('typedef __int128 signed_wide_t;','typedef int64_t signed_wide_t;')
-        return prelude+'\n'.join(cases)+'\n default: '+default+'''
+        result=prelude+'\n'.join(cases)+'\n default: '+default+'''
       }
       next_instruction: ;
     }
     lift_fault(4u,raw_read(cpu+192u,8u),entry); __builtin_trap();
 }
 '''
+        if self.yield_on_budget:result=result.replace('lift_fault(4u,raw_read(cpu+192u,8u),entry); __builtin_trap();','return 0x80000000u|limit;')
+        return result
 
 PRELUDE='''/* Generated from the pinned Windows DLL's instruction semantics. */
 #include <stdint.h>
@@ -232,6 +242,55 @@ static inline wide_t guest_read(uint64_t p,uint32_t n,uint32_t base) {
 }
 static inline void guest_write(uint64_t p,wide_t v,uint32_t n,uint32_t base) {
   if(p>UINT32_MAX){lift_fault(3u,p,0);__builtin_trap();}raw_write(p+base,v,n);
+}
+/* Bounded nearest-even binary32 add/subtract/multiply with exact integer precision checks. */
+static inline wide_t finite_arithmetic32(wide_t a,wide_t b,uint32_t mode,uint32_t cpu,uint64_t pc){
+ uint32_t left=(uint32_t)a,right=(uint32_t)b,ea=(left>>23u)&255u,eb=(right>>23u)&255u,csr=(uint32_t)raw_read(cpu+1536u,4u);
+ if(ea==255u||eb==255u||(!ea&&(left&0x7fffffu))||(!eb&&(right&0x7fffffu))||(csr&0x6000u))goto unsupported;
+ union {uint32_t bits;float value;} x={.bits=left},y={.bits=right},z;z.value=mode==0?x.value+y.value:mode==1?x.value-y.value:x.value*y.value;
+ uint32_t er=(z.bits>>23u)&255u;if(er==255u||(!er&&(z.bits&0x7fffffu)))goto unsupported;
+ uint32_t exact=1;
+ if(ea&&eb){
+  uint64_t ma=(left&0x7fffffu)|0x800000u,mb=(right&0x7fffffu)|0x800000u,mr=(z.bits&0x7fffffu)|0x800000u;
+  __int128 total;int32_t scale;
+  if(mode==2){if(!er)goto unsupported;total=(__int128)ma*mb;scale=(int32_t)ea+(int32_t)eb-300;}
+  else {
+   uint32_t distance=ea>eb?ea-eb:eb-ea;
+   if(distance>100u){exact=0;goto precision;}
+   __int128 na=(__int128)ma<<(ea>eb?distance:0u),nb=(__int128)mb<<(eb>ea?distance:0u);
+   if(left>>31u)na=-na;if((right>>31u)^(mode==1))nb=-nb;
+   total=na+nb;scale=(int32_t)(ea<eb?ea:eb)-150;
+  }
+  if(total){
+   if(!er)goto unsupported;
+   unsigned __int128 magnitude=total<0?(unsigned __int128)(-total):(unsigned __int128)total;
+   int32_t result_scale=(int32_t)er-150;
+   while(!(magnitude&1u)){magnitude>>=1u;scale++;}while(!(mr&1u)){mr>>=1u;result_scale++;}
+   exact=magnitude==mr&&scale==result_scale;
+  }
+ }
+ precision:if(!exact){if(!(csr&0x1000u))goto unsupported;raw_write(cpu+1536u,csr|0x20u,4u);}
+ return z.bits;
+ unsupported:raw_write(cpu+192u,pc,8u);lift_fault(7u,pc,pc);__builtin_trap();
+}
+/* CVTT: truncate finite normal/zero IEEE input; masked overflow returns integer indefinite. */
+static inline wide_t ieee_to_integer(wide_t input,uint32_t width,uint32_t output,uint32_t cpu,uint64_t pc){
+ uint32_t fraction=width==4?23u:52u,bias=width==4?127u:1023u,max_exp=width==4?255u:2047u;
+ uint64_t bits=(uint64_t)input,mantissa=bits&((UINT64_C(1)<<fraction)-1u),negative=(bits>>(width*8u-1u))&1u;
+ uint32_t exp=(uint32_t)((bits>>fraction)&max_exp),csr=(uint32_t)raw_read(cpu+1536u,4u);
+ if(exp==max_exp||(!exp&&mantissa))goto unsupported;
+ if(!exp)return 0;
+ mantissa|=UINT64_C(1)<<fraction;int32_t exponent=(int32_t)exp-(int32_t)bias;uint64_t magnitude=0;uint32_t inexact=0;
+ if(exponent<0)inexact=1;
+ else if(exponent>=(int32_t)(output*8u))goto invalid;
+ else if(exponent<(int32_t)fraction){uint32_t shift=fraction-(uint32_t)exponent;inexact=(mantissa&((UINT64_C(1)<<shift)-1u))!=0;magnitude=mantissa>>shift;}
+ else magnitude=mantissa<<((uint32_t)exponent-fraction);
+ uint64_t limit=UINT64_C(1)<<(output*8u-1u);
+ if(magnitude>limit||(!negative&&magnitude==limit))goto invalid;
+ if(inexact){if(!(csr&0x1000u))goto unsupported;raw_write(cpu+1536u,csr|0x20u,4u);}
+ return negative?(uint64_t)(0u-magnitude):magnitude;
+ invalid:if(!(csr&0x80u))goto unsupported;raw_write(cpu+1536u,csr|1u,4u);return UINT64_C(1)<<(output*8u-1u);
+ unsupported:raw_write(cpu+192u,pc,8u);lift_fault(7u,pc,pc);__builtin_trap();
 }
 /* Normal/zero binary32 division, nearest-even only; exactness from integer significands. */
 static inline wide_t finite_divide32(wide_t a,wide_t b,uint32_t cpu,uint64_t pc){

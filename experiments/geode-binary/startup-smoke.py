@@ -5,14 +5,16 @@ Unicorn executes original relocated x64 bytes; the reached instructions are
 then checked against the current binary translator. No API success is faked.
 PE TLS callbacks and a bounded loader model precede the entrypoint.
 """
-import sys,json,hashlib,struct,time,uuid,os
+import sys,json,hashlib,struct,time,uuid,os,math
 from pathlib import Path
 import pefile,pypcode,unicorn
 from unicorn import x86_const as x
 from lift import PIN,Lifter,LiftError
 from guest_modules import build_modules,module_handle,resolve_export,mapped_pe
 from guest_heap import GuestHeap
+from native_fp_reference import NativeFpReference
 
+trace_limit=int(os.environ.get('GEODE_INSTRUCTION_LIMIT','20000'));assert 1<=trace_limit<=1000000
 path=Path(sys.argv[1]);assert hashlib.sha256(path.read_bytes()).hexdigest()==PIN
 pe=pefile.PE(str(path));base=0x2000000;preferred=pe.OPTIONAL_HEADER.ImageBase
 image=bytearray(pe.get_memory_mapped_image());size=(pe.OPTIONAL_HEADER.SizeOfImage+4095)&~4095
@@ -54,6 +56,39 @@ if cocos_path:
  cocos={'name':'libcocos2d.dll','base':cocos_base,'size':len(cocos_data),'complete':True,'shim':False,'initialized':False,
   'sha256':cocos_pin,'entry':cocos_base+cocos_pe.OPTIONAL_HEADER.AddressOfEntryPoint,'staticTls':True,'exportCount':len(cocos_pe.DIRECTORY_ENTRY_EXPORT.symbols)}
  modules.append(cocos);module_images[cocos_base]=bytes(uc.mem_read(cocos_base,len(cocos_data)))
+primary=None;primary_path=os.environ.get('GEODE_PRIMARY_IMG')
+if primary_path:
+ from fetch_primary_image import PIN as primary_pin
+ raw=Path(primary_path).read_bytes();assert hashlib.sha256(raw).hexdigest()==primary_pin
+ primary_pe=mapped_pe(raw);primary_base=0x8000000;old_base=0x400000
+ assert len(raw)==primary_pe.OPTIONAL_HEADER.SizeOfImage and primary_pe.FILE_HEADER.Machine==0x8664
+ relocated=bytearray(raw);relocation_count=0
+ for block in primary_pe.DIRECTORY_ENTRY_BASERELOC:
+  for relocation in block.entries:
+   if relocation.type==0:continue
+   assert relocation.type==10;value=struct.unpack_from('<Q',relocated,relocation.rva)[0]
+   assert old_base<=value<old_base+len(raw),'Unexpected already-rebased primary pointer'
+   struct.pack_into('<Q',relocated,relocation.rva,value+primary_base-old_base);relocation_count+=1
+ primary_pe=mapped_pe(relocated);uc.mem_map(primary_base,len(relocated));uc.mem_write(primary_base,bytes(relocated))
+ cocos_exports={symbol.name:0x10000000+symbol.address for symbol in cocos_pe.DIRECTORY_ENTRY_EXPORT.symbols if symbol.name and not symbol.forwarder} if cocos else {}
+ primary_cocos_bindings=0
+ for desc in primary_pe.DIRECTORY_ENTRY_IMPORT:
+  for imp in desc.imports:
+   name=desc.dll.decode()+'!'+(imp.name.decode() if imp.name else '#'+str(imp.ordinal))
+   if desc.dll.decode().lower()=='libcocos2d.dll' and imp.name in cocos_exports:target=cocos_exports[imp.name];primary_cocos_bindings+=1
+   else:
+    target=next((p for p,n in imports.items() if n.lower()==name.lower()),None)
+    if target is None:target=0x70000000+i*16;i+=1;assert target<0x70010000;imports[target]=name
+   uc.mem_write(primary_base+imp.address-primary_pe.OPTIONAL_HEADER.ImageBase,struct.pack('<Q',target))
+ primary={'name':'GeometryDash.exe','base':primary_base,'size':len(raw),'complete':True,'shim':False,'primary':True,
+  'sha256':primary_pin,'sourceGuestBase':old_base,'relocationsApplied':relocation_count,'cocosImportsBound':primary_cocos_bindings,
+  'staticTls':bool(primary_pe.OPTIONAL_HEADER.DATA_DIRECTORY[9].VirtualAddress),'primaryEntrypointExecuted':False}
+ if primary['staticTls']:
+  t=primary_pe.DIRECTORY_ENTRY_TLS.struct;start=t.StartAddressOfRawData-primary_base;end=t.EndAddressOfRawData-primary_base
+  template=bytes(relocated[start:end]);assert len(template)+t.SizeOfZeroFill<=65536
+  uc.mem_map(0xe00000,65536);uc.mem_write(0xe00000,template);uc.mem_write(t.AddressOfIndex,struct.pack('<I',2))
+  primary['primaryTls']={'base':0xe00000,'size':65536,'index':2,'templateBytes':len(template),'callbacksExecuted':False}
+ modules.append(primary);module_images[primary_base]=bytes(uc.mem_read(primary_base,len(raw)))
 uc.reg_write(x.UC_X86_REG_RCX,base);uc.reg_write(x.UC_X86_REG_RDX,1)
 uc.reg_write(x.UC_X86_REG_R8,0);uc.reg_write(x.UC_X86_REG_RSP,0x2fff08)
 uc.mem_write(0x2fff08,(0x1234fedc).to_bytes(8,'little'))
@@ -70,6 +105,7 @@ uc.mem_map(tls_block,tls_size)
 uc.mem_write(tls_block,bytes(uc.mem_read(tls_start,tls_end-tls_start)))
 uc.mem_write(tls_index,struct.pack('<I',0))
 uc.mem_write(tib+0x58,struct.pack('<Q',tib+0x2000));uc.mem_write(tib+0x2000,struct.pack('<Q',tls_block))
+if primary and primary.get('primaryTls'):uc.mem_write(tib+0x2010,struct.pack('<Q',primary['primaryTls']['base']))
 callbacks=[]
 for i in range(64):
  target=int.from_bytes(uc.mem_read(tls_callbacks+i*8,8),'little')
@@ -84,6 +120,7 @@ for target in callbacks+[base+pe.OPTIONAL_HEADER.AddressOfEntryPoint]:
  if target in callbacks:callback_returns[bootstrap+len(loader)]=target
 loader+=bytes.fromhex('4883c428c3');uc.mem_write(bootstrap,bytes(loader))
 initial_image=bytes(uc.mem_read(base,size));initial_tib=bytes(uc.mem_read(tib,tib_size));initial_tls=bytes(uc.mem_read(tls_block,tls_size))
+initial_primary_tls=bytes(uc.mem_read(primary['primaryTls']['base'],65536)) if primary and primary.get('primaryTls') else None
 completed_tls=[]
 load_frame=None;load_events=[];uc.mem_map(0x73000000,4096)
 if cocos:
@@ -97,6 +134,7 @@ if cocos:
  cocos['tls']={'base':0xd00000,'size':0x10000,'indexAddress':t.AddressOfIndex,'index':1,'templateHex':template.hex(),'callbacks':targets}
  uc.mem_map(0xd00000,0x10000)
 trace=[];stop={};host_calls=[];cpu_calls=[]
+native_fp=NativeFpReference();native_disasm=pypcode.Context('x86:LE:64:default');fp_instructions={}
 uc.mem_map(0x71000000,4096)
 arena=0x500000;arena_size=0x100000;uc.mem_map(arena,arena_size);next_allocation=arena
 initializer_frames=[];initializer_events=[];control_events=[]
@@ -177,6 +215,12 @@ def code(uc,pc,length,_):
   uc.emu_stop();return
  if pc in imports:
   name=imports[pc].lower()
+  if name=='api-ms-win-crt-math-l1-1-0.dll!ceilf':
+   xmm=uc.reg_read(x.UC_X86_REG_XMM0);bits=xmm&0xffffffff;value=struct.unpack('<f',struct.pack('<I',bits))[0]
+   if not math.isfinite(value):stop.update(reason='UNMODELED_CRT_NONFINITE');uc.emu_stop();return
+   rounded=math.ceil(value);result=struct.unpack('<I',struct.pack('<f',-0.0 if rounded==0 and bits>>31 else rounded))[0]
+   uc.reg_write(x.UC_X86_REG_XMM0,(xmm&~0xffffffff)|result);host_calls.append({'address':hex(pc),'name':imports[pc],'inputBits':hex(bits),'outputBits':hex(result)})
+   sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little');uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
   if name=='kernel32.dll!disablethreadlibrarycalls':
    handle=uc.reg_read(x.UC_X86_REG_RCX);module=next((m for m in modules if m['base']==handle),None)
    if module is None:stop.update(reason='UNMODELED_MODULE_HANDLE',address=hex(handle));uc.emu_stop();return
@@ -365,7 +409,19 @@ def code(uc,pc,length,_):
    uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret)
    host_calls.append(call);uc.emu_stop();return
   stop.update(reason='WINDOWS_IMPORT_REQUIRED',importName=imports[pc],address=hex(pc));uc.emu_stop();return
- if len(trace)>=10000:stop.update(reason='INSTRUCTION_LIMIT');uc.emu_stop();return
+ if len(trace)>=trace_limit:stop.update(reason='INSTRUCTION_LIMIT');uc.emu_stop();return
+ data=bytes(uc.mem_read(pc,length))
+ if data[0] in [0xf2,0xf3]:
+  if pc not in fp_instructions:fp_instructions[pc]=native_disasm.disassemble(data,base_address=pc,max_instructions=1).instructions[0]
+  ins=fp_instructions[pc]
+  try:
+   handled=native_fp.apply(uc,x,ins,data)
+  except RuntimeError as error:stop.update(reason=str(error),instruction=str(ins));uc.emu_stop();return
+  if handled:
+   if native_fp.last_memory:
+    address,n=native_fp.last_memory
+    if tib<=address<tib+tib_size:tib_reads.append((address-tib,n))
+   trace.append(pc);control_events.append(pc);uc.emu_stop();return
  trace.append(pc)
  if bytes(uc.mem_read(pc,2))==b'\x0f\xa2':
   leaf=uc.reg_read(x.UC_X86_REG_EAX);subleaf=uc.reg_read(x.UC_X86_REG_ECX)
@@ -380,9 +436,9 @@ uc.hook_add(unicorn.UC_HOOK_MEM_READ,lambda uc,access,address,size,value,data:ti
 entry=bootstrap
 try:
  resume=entry
- for attempt in range(4096):
+ for attempt in range(16384):
   count_before=(len(host_calls),len(cpu_calls),len(control_events))
-  uc.emu_start(resume,0x1234fedc,count=10001)
+  uc.emu_start(resume,0x1234fedc,count=trace_limit+1)
   if stop or (len(host_calls),len(cpu_calls),len(control_events))==count_before:break
   resume=uc.reg_read(x.UC_X86_REG_RIP)
  else:stop['reason']='HOST_CALL_LIMIT'
@@ -398,8 +454,9 @@ if stop.get('importName','').lower() in ['kernel32.dll!getmodulehandlea','kernel
  stop['requestedModule']=text.decode('latin1') if p else None
  if stop['importName'].lower().endswith('loadlibraryexa'):stop.update(flags=hex(uc.reg_read(x.UC_X86_REG_R8)),file=hex(uc.reg_read(x.UC_X86_REG_RDX)))
 if stop.get('reason')=='UNMAPPED_MEMORY' and trace and trace[-1]==uc.reg_read(x.UC_X86_REG_RIP):trace.pop()
-lifter=Lifter(pe,10000,allow_indirect=True,yield_unknown=True,single_threaded=True,wide_mode=True);blocked=None;translated=0
+lifter=Lifter(pe,trace_limit,allow_indirect=True,yield_unknown=True,single_threaded=True,wide_mode=True,yield_on_budget=True);blocked=None;translated=0
 if cocos:lifter.allowed_images.append((cocos['base'],cocos['base']+cocos['size']))
+if primary:lifter.allowed_images.append((primary['base'],primary['base']+primary['size']))
 for pc in dict.fromkeys(trace):
  data=bytes(uc.mem_read(pc,32));ins=lifter.ctx.disassemble(data,base_address=pc,max_instructions=1).instructions[0]
  ops=lifter.ctx.translate(data[:ins.length],base_address=pc,max_instructions=1).ops
@@ -431,6 +488,10 @@ report={'status':'DLL_STARTUP_BLOCKED','generationId':generation_id,'dllSha256':
  'tibBase':tib,'tlsCallbacksExecuted':False,'fullGeodeLoader':False,'existingGeodePackagesSupported':False}
 report['initializerEvents']=initializer_events
 report['guestModules']=modules
+report['instructionBudget']=trace_limit
+report['nativeFloatingReference']={'kind':'real host x64 SSE with normalized registers and checked memory-source decoding; MXCSR saved/restored','instructions':native_fp.count,'byPc':native_fp.by_pc}
+report['primaryMappingPhase']='mapped at declared ASLR base before EXE TLS callbacks and entrypoint' if primary else 'not supplied'
+report['primaryImageInstructions']=sum(primary['base']<=pc<primary['base']+primary['size'] for pc in trace) if primary else 0
 report['dependencyImageInstructions']=sum(cocos['base']<=pc<cocos['base']+cocos['size'] for pc in trace) if cocos else 0
 report['dependencyLoadEvents']=load_events
 report['dependencyLoadInProgress']=load_frame is not None
@@ -442,7 +503,7 @@ report['crtHeap']={'base':heap.base,'size':heap.size,'errno':heap.errno,'allocat
 report['resolvedExports']=[c for c in host_calls if c['name'].lower().endswith('!getprocaddress')]
 report['windowsCompatibilityProfile']=windows_profile
 report['tibReads']=sorted(set(tib_reads))
-known_tib_fields=[(8,24),(0x30,0x38),(0x58,0x60),(0x68,0x6c),(0x2000,0x2010)]
+known_tib_fields=[(8,24),(0x30,0x38),(0x58,0x60),(0x68,0x6c),(0x2000,0x2018)]
 unknown_tib=[(offset,n) for offset,n in report['tibReads'] if not any(start<=offset and offset+n<=end for start,end in known_tib_fields)]
 report['unmodeledTibReads']=unknown_tib
 report.update(originalDllInstructionsExecuted=sum(base<=pc<base+size for pc in trace),loaderBootstrapInstructions=sum(bootstrap<=pc<bootstrap+4096 for pc in trace),
@@ -460,6 +521,9 @@ if len(sys.argv)>2 and not blocked and not unknown_tib:
  (out/'tls.bin').write_bytes(initial_tls);(out/'tls-after.bin').write_bytes(bytes(uc.mem_read(tls_block,tls_size)))
  (out/'image-after.bin').write_bytes(bytes(uc.mem_read(base,size)))
  if cocos:(out/'dependency-tls-after.bin').write_bytes(bytes(uc.mem_read(cocos['tls']['base'],cocos['tls']['size'])))
+ if primary and primary.get('primaryTls'):
+  (out/'primary-tls.bin').write_bytes(initial_primary_tls)
+  (out/'primary-tls-after.bin').write_bytes(bytes(uc.mem_read(primary['primaryTls']['base'],65536)))
  (out/'crt-heap-after.bin').write_bytes(bytes(uc.mem_read(heap.base,heap.size)))
  (out/'errno-after.bin').write_bytes(bytes(uc.mem_read(heap.errno,0x10000)))
  (out/'local-heap-after.bin').write_bytes(bytes(uc.mem_read(local_heap,local_heap_size)))

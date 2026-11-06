@@ -1,18 +1,14 @@
 {
   "status": "DLL_STARTUP_PREFIX_VERIFIED",
-  "generationId": "db003c72-c23e-4ef7-878c-a54304493434",
+  "generationId": "1299a8cc-46f5-45ff-bb38-5c9bd7738f96",
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
   "entry": "0x72000000",
-  "originalX64InstructionsExecuted": 8416,
-  "uniqueInstructionsReached": 3881,
+  "originalX64InstructionsExecuted": 20000,
+  "uniqueInstructionsReached": 5690,
   "firstRuntimeDependency": {
-    "reason": "PRIMARY_EXECUTABLE_REQUIRED",
-    "detail": "PRIMARY_EXECUTABLE_REQUIRED",
-    "importName": "KERNEL32.dll!GetModuleHandleW",
-    "address": "0x70000730",
-    "module": null
+    "reason": "INSTRUCTION_LIMIT"
   },
-  "reachedInstructionsSupportedBeforeBlock": 3881,
+  "reachedInstructionsSupportedBeforeBlock": 5690,
   "firstTranslationBlocker": null,
   "wasmStartupExecuted": true,
   "windowsImportsExecuted": true,
@@ -21,7 +17,7 @@
     {
       "address": "0x700007c0",
       "name": "KERNEL32.dll!GetSystemTimeAsFileTime",
-      "unixMilliseconds": 1793959456133,
+      "unixMilliseconds": 1793972192472,
       "output": "0x2ffeb0"
     },
     {
@@ -37,7 +33,7 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "3309547817638",
+      "counter": "670343123827",
       "output": "0x2ffeb8"
     },
     {
@@ -112,13 +108,13 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "3309558799578",
+      "counter": "670351097409",
       "output": "0x2ffdc0"
     },
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "3309559112541",
+      "counter": "670351395652",
       "output": "0x2ffd70"
     },
     {
@@ -298,7 +294,7 @@
     {
       "address": "0x700007c0",
       "name": "KERNEL32.dll!GetSystemTimeAsFileTime",
-      "unixMilliseconds": 1793959456133,
+      "unixMilliseconds": 1793972192472,
       "output": "0x2ff9e0"
     },
     {
@@ -314,7 +310,7 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "3309571389305",
+      "counter": "670361862554",
       "output": "0x2ff9e8"
     },
     {
@@ -921,6 +917,475 @@
       "address": "0x70000a30",
       "name": "KERNEL32.dll!ReleaseSRWLockExclusive",
       "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000730",
+      "name": "KERNEL32.dll!GetModuleHandleW",
+      "module": null,
+      "result": "0x8000000"
+    },
+    {
+      "address": "0x700002d0",
+      "name": "KERNEL32.dll!AcquireSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000a30",
+      "name": "KERNEL32.dll!ReleaseSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000d30",
+      "name": "KERNEL32.dll!WakeAllConditionVariable",
+      "condition": "0x2fb1930"
+    },
+    {
+      "address": "0x700002d0",
+      "name": "KERNEL32.dll!AcquireSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000a30",
+      "name": "KERNEL32.dll!ReleaseSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70001fe0",
+      "name": "VCRUNTIME140.dll!memcpy",
+      "result": "0x2ff870"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ad2ea0",
+      "result": "0x3401370"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x80",
+      "b": "0x3401370",
+      "result": "0x34013a0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ff870",
+      "result": "0x3401420"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ff888",
+      "result": "0x3401450"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x54be1cbd",
+      "result": "0x3401480"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x55de64f7",
+      "result": "0x34014b0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ff8d0",
+      "result": "0x34014e0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x56033eb0",
+      "result": "0x3401510"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ff900",
+      "result": "0x3401540"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ff930",
+      "result": "0x3401570"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x587d9ae2",
+      "result": "0x34015a0"
+    },
+    {
+      "address": "0x700024f0",
+      "name": "api-ms-win-crt-math-l1-1-0.dll!ceilf",
+      "inputBits": "0x41100000",
+      "outputBits": "0x41100000"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x400",
+      "b": "0x3401370",
+      "result": "0x34015d0"
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x34013a0",
+      "b": "0x80",
+      "result": null
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ff960",
+      "result": "0x34013a0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ff978",
+      "result": "0x34013d0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ff990",
+      "result": "0x34019d0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ff9a8",
+      "result": "0x3401a00"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x5a13638c",
+      "result": "0x3401a30"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x65808585",
+      "result": "0x3401a60"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x6599de10",
+      "result": "0x3401a90"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x659a26b2",
+      "result": "0x3401ac0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ffa20",
+      "result": "0x3401af0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ffa38",
+      "result": "0x3401b20"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ffa50",
+      "result": "0x3401b50"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x672e77f1",
+      "result": "0x3401b80"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ffa80",
+      "result": "0x3401bb0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ffa98",
+      "result": "0x3401be0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ffab0",
+      "result": "0x3401c10"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ffac8",
+      "result": "0x3401c40"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x696e1979",
+      "result": "0x3401c70"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ffaf8",
+      "result": "0x3401ca0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ffb10",
+      "result": "0x3401cd0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x2ffb28",
+      "result": "0x3401d00"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x2fb1960",
+      "function": "0x2154710"
+    },
+    {
+      "address": "0x700002d0",
+      "name": "KERNEL32.dll!AcquireSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000a30",
+      "name": "KERNEL32.dll!ReleaseSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000d30",
+      "name": "KERNEL32.dll!WakeAllConditionVariable",
+      "condition": "0x2fb1930"
+    },
+    {
+      "address": "0x70001fe0",
+      "name": "VCRUNTIME140.dll!memcpy",
+      "result": "0x2ffbf8"
+    },
+    {
+      "address": "0x700026f0",
+      "name": "api-ms-win-crt-string-l1-1-0.dll!strlen",
+      "result": "0x1d7b"
+    },
+    {
+      "address": "0x700002d0",
+      "name": "KERNEL32.dll!AcquireSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000a30",
+      "name": "KERNEL32.dll!ReleaseSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x700002d0",
+      "name": "KERNEL32.dll!AcquireSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000a30",
+      "name": "KERNEL32.dll!ReleaseSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000d30",
+      "name": "KERNEL32.dll!WakeAllConditionVariable",
+      "condition": "0x2fb1930"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x90",
+      "b": "0x2ff190",
+      "result": "0x3401d30"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x8",
+      "b": "0x1",
+      "result": "0x3401400"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x666666666666666",
+      "result": "0x3401dc0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x90",
+      "b": "0x3401d30",
+      "result": "0x3401df0"
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x3401df0",
+      "b": "0x90",
+      "result": null
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x90",
+      "b": "0x2fecf0",
+      "result": "0x3401df0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x8",
+      "b": "0x1",
+      "result": "0x3401410"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x28",
+      "b": "0x666666666666666",
+      "result": "0x3401e80"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x90",
+      "b": "0x3401df0",
+      "result": "0x3401eb0"
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x3401eb0",
+      "b": "0x90",
+      "result": null
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x90",
+      "b": "0x2fecf0",
+      "result": "0x3401eb0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x10",
+      "b": "0x2",
+      "result": "0x3401f40"
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x3401410",
+      "b": "0x8",
+      "result": null
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x50",
+      "b": "0x666666666666666",
+      "result": "0x3401f50"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x90",
+      "b": "0x3401eb0",
+      "result": "0x3401fa0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x90",
+      "b": "0x3401df0",
+      "result": "0x3402030"
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x3402030",
+      "b": "0x90",
+      "result": null
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x3401e80",
+      "b": "0x28",
+      "result": null
+    },
+    {
+      "address": "0x700028a0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!free",
+      "a": "0x3401fa0",
+      "b": "0x90",
+      "result": null
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x90",
+      "b": "0x2fecf0",
+      "result": "0x3401fa0"
     }
   ],
   "cpuCalls": [
@@ -1336,8 +1801,192 @@
         "templateHex": "0000000000000080",
         "callbacks": []
       }
+    },
+    {
+      "name": "GeometryDash.exe",
+      "base": 134217728,
+      "size": 13225984,
+      "complete": true,
+      "shim": false,
+      "primary": true,
+      "sha256": "dab65e0527e343f03ea08614b2967f5a20cdb481b1622aadde76cde648803c2a",
+      "sourceGuestBase": 4194304,
+      "relocationsApplied": 99581,
+      "cocosImportsBound": 856,
+      "staticTls": true,
+      "primaryEntrypointExecuted": false,
+      "primaryTls": {
+        "base": 14680064,
+        "size": 65536,
+        "index": 2,
+        "templateBytes": 8,
+        "callbacksExecuted": false
+      }
     }
   ],
+  "instructionBudget": 20000,
+  "nativeFloatingReference": {
+    "kind": "real host x64 SSE with normalized registers and checked memory-source decoding; MXCSR saved/restored",
+    "instructions": 115,
+    "byPc": {
+      "0x2168125": {
+        "instruction": "0x2168125/5: CVTSI2SS XMM0, RAX",
+        "bytes": "f3480f2ac0",
+        "count": 3,
+        "lastInputInteger": "0x3",
+        "lastInputLeft": "0x0",
+        "lastInputRight": "0x0",
+        "lastOutput": "0x40400000",
+        "lastMxcsr": "0x1f80"
+      },
+      "0x2168151": {
+        "instruction": "0x2168151/5: CVTSI2SS XMM2, RBX",
+        "bytes": "f3480f2ad3",
+        "count": 3,
+        "lastInputInteger": "0x8",
+        "lastInputLeft": "0x1f000000000000001f",
+        "lastInputRight": "0x0",
+        "lastOutput": "0x1f0000000041000000",
+        "lastMxcsr": "0x1f80"
+      },
+      "0x2168172": {
+        "instruction": "0x2168172/4: DIVSS XMM3, XMM2",
+        "bytes": "f30f5eda",
+        "count": 3,
+        "lastInputInteger": "0x0",
+        "lastInputLeft": "0x40400000",
+        "lastInputRight": "0x1f0000000041000000",
+        "lastOutput": "0x3ec00000",
+        "lastMxcsr": "0x1f80"
+      },
+      "0x2154268": {
+        "instruction": "0x2154268/5: CVTSI2SS XMM0, RDX",
+        "bytes": "f3480f2ac2",
+        "count": 29,
+        "lastInputInteger": "0x1d",
+        "lastInputLeft": "0x0",
+        "lastInputRight": "0x0",
+        "lastOutput": "0x41e80000",
+        "lastMxcsr": "0x1fa0"
+      },
+      "0x2154297": {
+        "instruction": "0x2154297/5: CVTSI2SS XMM1, RBX",
+        "bytes": "f3480f2acb",
+        "count": 29,
+        "lastInputInteger": "0x40",
+        "lastInputLeft": "0x0",
+        "lastInputRight": "0x0",
+        "lastOutput": "0x42800000",
+        "lastMxcsr": "0x1fa0"
+      },
+      "0x21542c5": {
+        "instruction": "0x21542c5/4: DIVSS XMM3, XMM1",
+        "bytes": "f30f5ed9",
+        "count": 29,
+        "lastInputInteger": "0x0",
+        "lastInputLeft": "0x41e80000",
+        "lastInputRight": "0x42800000",
+        "lastOutput": "0x3ee80000",
+        "lastMxcsr": "0x1fa0"
+      },
+      "0x21542d6": {
+        "instruction": "0x21542d6/4: DIVSS XMM0, XMM2",
+        "bytes": "f30f5ec2",
+        "count": 1,
+        "lastInputInteger": "0x0",
+        "lastInputLeft": "0x41100000",
+        "lastInputRight": "0x3f800000",
+        "lastOutput": "0x41100000",
+        "lastMxcsr": "0x1f80"
+      },
+      "0x21542df": {
+        "instruction": "0x21542df/5: CVTTSS2SI RCX, XMM0",
+        "bytes": "f3480f2cc8",
+        "count": 1,
+        "lastInputInteger": "0x0",
+        "lastInputLeft": "0x41100000",
+        "lastInputRight": "0x0",
+        "lastOutput": "0x9",
+        "lastMxcsr": "0x1f80"
+      },
+      "0x21542eb": {
+        "instruction": "0x21542eb/4: SUBSS XMM0, XMM6",
+        "bytes": "f30f5cc6",
+        "count": 1,
+        "lastInputInteger": "0x0",
+        "lastInputLeft": "0x41100000",
+        "lastInputRight": "0x5f000000",
+        "lastOutput": "0xdf000000",
+        "lastMxcsr": "0x1fa0"
+      },
+      "0x21542ef": {
+        "instruction": "0x21542ef/5: CVTTSS2SI RAX, XMM0",
+        "bytes": "f3480f2cc0",
+        "count": 1,
+        "lastInputInteger": "0x0",
+        "lastInputLeft": "0xdf000000",
+        "lastInputRight": "0x0",
+        "lastOutput": "0x8000000000000000",
+        "lastMxcsr": "0x1fa0"
+      },
+      "0x215e62f": {
+        "instruction": "0x215e62f/5: CVTSI2SS XMM0, R9",
+        "bytes": "f3490f2ac1",
+        "count": 3,
+        "lastInputInteger": "0x2",
+        "lastInputLeft": "0x0",
+        "lastInputRight": "0x0",
+        "lastOutput": "0x40000000",
+        "lastMxcsr": "0x1fa0"
+      },
+      "0x215e64f": {
+        "instruction": "0x215e64f/5: MULSS XMM0, dword ptr [RSI + 0x50]",
+        "bytes": "f30f594650",
+        "count": 3,
+        "lastMemoryAddress": "0x2ff008",
+        "memoryWidth": 4,
+        "lastInputInteger": "0x0",
+        "lastInputLeft": "0x40000000",
+        "lastInputRight": "0x3f400000",
+        "lastOutput": "0x3fc00000",
+        "lastMxcsr": "0x1fa0"
+      },
+      "0x215e654": {
+        "instruction": "0x215e654/5: CVTTSS2SI RAX, XMM0",
+        "bytes": "f3480f2cc0",
+        "count": 3,
+        "lastInputInteger": "0x0",
+        "lastInputLeft": "0x3fc00000",
+        "lastInputRight": "0x0",
+        "lastOutput": "0x1",
+        "lastMxcsr": "0x1fa0"
+      },
+      "0x215e65c": {
+        "instruction": "0x215e65c/8: SUBSS XMM0, dword ptr [0x2a9df80]",
+        "bytes": "f30f5c051cf99300",
+        "count": 3,
+        "lastMemoryAddress": "0x2a9df80",
+        "memoryWidth": 4,
+        "lastInputInteger": "0x0",
+        "lastInputLeft": "0x3fc00000",
+        "lastInputRight": "0x5f000000",
+        "lastOutput": "0xdf000000",
+        "lastMxcsr": "0x1fa0"
+      },
+      "0x215e668": {
+        "instruction": "0x215e668/5: CVTTSS2SI R10, XMM0",
+        "bytes": "f34c0f2cd0",
+        "count": 3,
+        "lastInputInteger": "0x0",
+        "lastInputLeft": "0xdf000000",
+        "lastInputRight": "0x0",
+        "lastOutput": "0x8000000000000000",
+        "lastMxcsr": "0x1fa0"
+      }
+    }
+  },
+  "primaryMappingPhase": "mapped at declared ASLR base before EXE TLS callbacks and entrypoint",
+  "primaryImageInstructions": 0,
   "dependencyImageInstructions": 1442,
   "dependencyLoadEvents": [
     {
@@ -1639,15 +2288,179 @@
       "54530800": [
         128,
         128
+      ],
+      "54530928": [
+        40,
+        48
+      ],
+      "54530976": [
+        40,
+        48
+      ],
+      "54531024": [
+        40,
+        48
+      ],
+      "54531072": [
+        8,
+        16
+      ],
+      "54531104": [
+        40,
+        48
+      ],
+      "54531152": [
+        40,
+        48
+      ],
+      "54531200": [
+        40,
+        48
+      ],
+      "54531248": [
+        40,
+        48
+      ],
+      "54531296": [
+        40,
+        48
+      ],
+      "54531344": [
+        40,
+        48
+      ],
+      "54531392": [
+        40,
+        48
+      ],
+      "54531440": [
+        40,
+        48
+      ],
+      "54531488": [
+        40,
+        48
+      ],
+      "54531536": [
+        1024,
+        1024
+      ],
+      "54532560": [
+        40,
+        48
+      ],
+      "54532608": [
+        40,
+        48
+      ],
+      "54532656": [
+        40,
+        48
+      ],
+      "54532704": [
+        40,
+        48
+      ],
+      "54532752": [
+        40,
+        48
+      ],
+      "54532800": [
+        40,
+        48
+      ],
+      "54532848": [
+        40,
+        48
+      ],
+      "54532896": [
+        40,
+        48
+      ],
+      "54532944": [
+        40,
+        48
+      ],
+      "54532992": [
+        40,
+        48
+      ],
+      "54533040": [
+        40,
+        48
+      ],
+      "54533088": [
+        40,
+        48
+      ],
+      "54533136": [
+        40,
+        48
+      ],
+      "54533184": [
+        40,
+        48
+      ],
+      "54533232": [
+        40,
+        48
+      ],
+      "54533280": [
+        40,
+        48
+      ],
+      "54533328": [
+        40,
+        48
+      ],
+      "54533376": [
+        40,
+        48
+      ],
+      "54533424": [
+        144,
+        144
+      ],
+      "54533568": [
+        40,
+        48
+      ],
+      "54533616": [
+        144,
+        144
+      ],
+      "54533808": [
+        144,
+        144
+      ],
+      "54533952": [
+        16,
+        16
+      ],
+      "54533968": [
+        80,
+        80
+      ],
+      "54534048": [
+        144,
+        144
       ]
     },
     "freeBlocks": [
       [
-        54530928,
-        8383632
+        54531088,
+        16
+      ],
+      [
+        54533760,
+        48
+      ],
+      [
+        54534192,
+        8380368
       ]
     ],
-    "calls": 55
+    "calls": 108
   },
   "resolvedExports": [
     {
@@ -1714,7 +2527,7 @@
     ]
   ],
   "unmodeledTibReads": [],
-  "originalDllInstructionsExecuted": 6958,
+  "originalDllInstructionsExecuted": 18542,
   "loaderBootstrapInstructions": 16,
   "tlsTemplateBytes": 784,
   "tlsZeroFillBytes": 0,
@@ -1726,27 +2539,27 @@
   "dependencyTlsCallbacksCompleted": 0,
   "dependencyEntriesCompleted": 1,
   "dependencyLoadsCompleted": 1,
-  "moduleLookups": 3,
+  "moduleLookups": 4,
   "exportResolutions": 5,
   "shimModuleImagesMatch": true,
-  "wasmStartupInstructions": 8416,
+  "wasmStartupInstructions": 20000,
   "allGeneralRegistersMatch": true,
   "entireNativeStackMatches": true,
   "dllInitializationCompleted": false,
-  "implementedWindowsCalls": 152,
+  "implementedWindowsCalls": 224,
   "initializerCallbacksExecuted": 52,
   "completedInitializerTables": 3,
   "entireDllImageMatches": true,
   "allXmmRegistersMatch": true,
   "arithmeticFlagsMatch": true,
   "tlsMemoryMatches": true,
-  "onexitRegistrations": 14,
-  "srwAcquisitions": 15,
-  "emptyQueueConditionWakes": 7,
+  "onexitRegistrations": 15,
+  "srwAcquisitions": 20,
+  "emptyQueueConditionWakes": 10,
   "initializerCallbacksStarted": 52,
   "initializerCallbacksCompleted": 51,
   "initializerTablesInProgress": 1,
-  "executedImportCalls": 152,
+  "executedImportCalls": 224,
   "implementedImports": [
     "KERNEL32.dll!AcquireSRWLockExclusive",
     "KERNEL32.dll!DisableThreadLibraryCalls",
@@ -1769,6 +2582,7 @@
     "VCRUNTIME140.dll!memmove",
     "api-ms-win-crt-heap-l1-1-0.dll!free",
     "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+    "api-ms-win-crt-math-l1-1-0.dll!ceilf",
     "api-ms-win-crt-runtime-l1-1-0.dll!_initialize_onexit_table",
     "api-ms-win-crt-runtime-l1-1-0.dll!_initterm",
     "api-ms-win-crt-runtime-l1-1-0.dll!_initterm_e",
@@ -1776,13 +2590,12 @@
     "api-ms-win-crt-string-l1-1-0.dll!strlen",
     "ntdll.dll!RtlGetVersion"
   ],
-  "verificationRun": "local complete test script",
-  "testedSource": "Cocos dependency checkpoint; fresh-runner confirmation pending",
-  "floatingPointReference": {
-    "cases": 69,
-    "reference": "real x64 SSE instructions with saved/restored MXCSR",
-    "unicornMxcsrDiscrepancies": 20
+  "verificationRun": "local complete script passed; new CI confirmation pending",
+  "validation": {
+    "aluCases": 118,
+    "realX64FloatingCases": 107,
+    "emulatorMxcsrDiscrepancies": 36,
+    "scalarReferenceCases": 200
   },
-  "standaloneWasmCompiler": "V8 Liftoff baseline only; giant dispatcher TurboFan tier-up exceeds Zone memory budget",
   "fullGameBootTested": false
 }

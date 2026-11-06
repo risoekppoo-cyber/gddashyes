@@ -2,7 +2,7 @@
 export class GuestModules {
  constructor(modules,{setLastError=()=>{}}={}){this.modules=modules;this.setLastError=setLastError;this.lookups=0;this.resolutions=0;}
  handle(name){
-  if(name===null)throw Error('PRIMARY_EXECUTABLE_REQUIRED');
+  if(name===null){const primary=this.modules.find(m=>m.primary);if(!primary)throw Error('PRIMARY_EXECUTABLE_REQUIRED');this.lookups++;return primary.base;}
   let key=name.replaceAll('\\','/').toLowerCase();
   if(key.includes('/')){if(!key.startsWith('c:/windows/system32/'))throw Error('UNMODELED_MODULE_PATH: '+name);key=key.slice(key.lastIndexOf('/')+1);}
   if(key.endsWith('.'))key=key.slice(0,-1);else if(!key.includes('.'))key+='.dll';
@@ -16,7 +16,7 @@ export class GuestModules {
   const u32=r=>v.getUint32(at(r,4),true),u16=r=>v.getUint16(at(r,2),true);
   if(u16(0)!==0x5a4d)throw Error('Invalid PE DOS header');
   const pe=u32(0x3c),optional=pe+24;if(u32(pe)!==0x4550||u16(optional)!==0x20b||u32(optional+108)<1)throw Error('Invalid PE64 header');
-  const dir=u32(optional+112),size=u32(optional+116);at(dir,size);
+  const dir=u32(optional+112),size=u32(optional+116);if(!dir||!size){if(!m.complete)throw Error('Incomplete PE export catalog');this.setLastError(127);return 0;}at(dir,size);
   const first=u32(dir+16),count=u32(dir+20),names=u32(dir+24),eat=u32(dir+28),nt=u32(dir+32),ot=u32(dir+36);
   at(eat,count*4);at(nt,names*4);at(ot,names*2);
   const string=rva=>{let text='';for(let i=0;i<32768;i++){const b=v.getUint8(at(rva+i,1));if(!b)return text;text+=String.fromCharCode(b);}throw Error('Unterminated PE export name');};

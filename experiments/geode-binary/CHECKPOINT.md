@@ -4,29 +4,24 @@ User goal: keep progressing in batches and save durable checkpoints. Do not equa
 
 ## Latest verified milestone
 
-`dist/batch-verified.json`: **8,416 total original-machine/loader instructions** in WASM, compared with independent x64 reference execution under the declared guest model:
+`dist/batch-verified.json`: **20,000 total instructions** verified in translated WASM: **18,542 original Geode.dll**, **1,442 real Cocos**, **16 initial-loader instructions**. The real primary GeometryDash.exe image is now mapped at declared ASLR base `0x08000000`; 99,581 DIR64 relocations were applied from its supplied `0x00400000` guest base. 856 primary-image imports bind to real Cocos exports. The primary executable's entrypoint and TLS callbacks have NOT run. This is a pre-entrypoint loader model, not a game boot.
 
-- **6,958 original Geode.dll instructions**.
-- **1,442 original libcocos2d.dll instructions**.
-- **16 generated initial-loader instructions**, counted separately.
-- **152 host calls**; Cocos's real PE DLL entrypoint completed and its pending LoadLibraryExA call returned the real guest module base. This is Cocos initialization in the bounded guest model, not completion of Geode initialization.
-- Both actual Geode PE TLS callbacks completed. Native C/C++ initializer callbacks execute with Win64 shadow space and checked native return frames; callback counts and table state are recorded in the report.
-- All 16 GPRs, all 16 XMMs, five arithmetic flags, MXCSR, the full native stack, complete Geode and Cocos images, shim images, TIB, both static TLS areas, CRT heap, allocation metadata, errno region, local-description heap and on-exit arena match.
+Full state matches: all GPRs/XMMs, five arithmetic flags, MXCSR, native stack, complete Geode/Cocos/primary/shim images, three static TLS areas, TIB, CRT heap and ownership metadata, errno and callback/local arenas. The real Cocos entrypoint completed; Geode initialization remains in progress. This run used 224 supported host calls and 115 hardware-referenced floating instructions. Both Geode TLS callbacks completed.
 
-Geode resolved three actual Cocos exports after the dependency finished: clearQueuedInput, pumpRawInput and setupWindow (full mangled names and guest addresses are in `resolvedExports`). It has not reached full loader startup or loaded an existing .geode mod.
+Complete local script passed: runtime contracts, 20,000-instruction comparison, **118 CPU fixtures including 107 real-x64 floating cases**, and **200 regenerated original scalar cases**. Unicorn omitted MXCSR precision flags in 36 fixture cases; the expected status comes from real hardware, not the emulator bug. Fresh-runner CI for this newest revision is pending below.
 
-The complete local script passed: module/heap/initializer/thread/string/synchronization contracts, the actual 8,416-instruction prefix, 80 machine-code ALU/SSE cases, and 200 regenerated original scalar getter comparisons. Fresh-runner confirmation of this newest revision is pending until recorded below.
+## Exact resume point
 
-## Exact runtime stop and next work
+This run stopped at the configured **20,000-instruction safety budget**, not a new missing API. A further native-only 100,000-instruction probe also found no missing API/IR, but that larger prefix has not been compared in WASM. It is still executing original static constructors: the host-call count grows, so do not assume an infinite loop merely from budget exhaustion.
 
-**KERNEL32.dll!GetModuleHandleW(NULL)** at `0x70000730` now requests the real **primary GeometryDash.exe image**. No fake main-module handle is returned. Current Geode initialization is incomplete.
+1. Continue the bounded native probe with `GEODE_INSTRUCTION_LIMIT`, up to 1,000,000. Inspect the next actual dependency, translation gap or budget stop. Use an output directory to generate a fresh proof; a native-only discovery report is not a verified WASM result.
+2. Prefer batches. A larger unique-instruction graph can strain the C compiler and V8 tier-up; do not equate a higher instruction total with compatibility/completion percentage.
+3. Continue implementing only the API/ISA behavior actually reached. Preserve explicit failures for unknown services, real workers, exception/unwind behavior, new DLL loads and primary/game initialization.
+4. Before claiming game support, attach this startup runtime to the real initialized game's memory and dispatcher. Existing `.geode` packages and mod hook installation remain unsupported.
 
-1. Recover the hash-pinned `GeometryDash.exe.img` from the same upstream payload. The manifest identifies GD 2.209, Steam build 26002420, primary image SHA-256 `dab65e0527e343f03ea08614b2967f5a20cdb481b1622aadde76cde648803c2a`. Determine the image's actual rebased guest address from its pointers, not merely the preferred base still present in its header.
-2. Audit address conflicts before mapping it. Existing test-only TIB/arenas/compiler stack occupy low guest addresses and must move if they overlap the actual primary image. Centralize these regions; update native and WASM sides together and re-run the complete comparison.
-3. Register the real primary module and bind its imported services explicitly. GetModuleHandleW(NULL) may then return its mapped base. Continue the original Geode code, stopping at the next real missing operation. Do not fake GD functions or assume game objects have initialized.
-4. Before claiming game support, attach this startup runtime to the actual game dispatcher and initialized game memory. The standalone prefix has not booted the game. Existing `.geode` packages, hook installation, exception unwinding, worker scheduling and browser performance remain separate unproven stages.
+The standalone test uses `node --liftoff-only`: V8 TurboFan tier-up of the giant dispatcher exceeds its Zone memory budget. Browser performance is unverified. Split translation into smaller native-function units before browser integration.
 
-The generated single giant dispatcher also triggers a V8 TurboFan Zone-memory failure during tier-up after executing successfully. The standalone test uses `node --liftoff-only` to keep verification reliable. **Browser execution/performance of this enlarged dispatcher is not verified**. Split translated code into smaller native-function dispatch units before browser integration; a compiler flag is not a production-browser fix.
+The startup dispatcher now yields at an exact instruction budget while preserving PC/state. The verifier counts all expected native steps and host/control transitions before accepting the terminal PC. This handles repeated terminal APIs and repeated loop PCs without falsely stopping at an earlier visit. The original scalar/fixture backend retains its default strict step-exhaustion trap.
 
 ## Implemented runtime model
 
@@ -38,9 +33,11 @@ Cocos image SHA-256: `1ade9d1b9603d82a41f2211348ec98516098b6d012114f785a763b8762
 
 Supported executed services include process/thread identity, FILETIME and monotonic timing, system/version information, CPUID, static TLS, environment/last error, SRW locks, condition wakes, on-exit registration, C/C++ initializer callbacks, CRT allocation and strlen, mapped-module/export lookup and bounded dependency attach. DisableThreadLibraryCalls fails for active static TLS, using declared model error ERROR_MOD_NOT_FOUND (126), rather than pretending it disabled required TLS notifications. Unknown modules are rejected.
 
+The `ceilf` CRT adapter uses the Win64 XMM0 argument/return ABI, preserves signed zero and rejects nonfinite inputs.
+
 The CRT heap (52–60 MiB) owns tracked 16-byte-aligned blocks. calloc overflow/zero fill, realloc preservation/failure, coalescing free and errno ENOMEM are tested. Thread descriptions use a separate local heap and LocalFree. Arbitrary thread handles and callbacks on shutdown remain unsupported.
 
-Floating point is deliberately bounded: finite normal/zero comparisons and predicates, signed integer-to-binary32/64 conversions with all four MXCSR rounding modes and sticky precision, and normal/zero binary32 division in nearest-even mode. NaN/infinity/subnormal comparisons, unsupported division inputs/results/modes and unmasked precision exceptions stop. This is not general SSE/x87 support. The guest starts with MXCSR 0x1f80. Raw SSE fixtures were also executed on real x64 hardware with host MXCSR restored: 69 hardware cases passed; Unicorn 2.1.4 omitted precision flags in 20 cases, so those expected flags come from hardware. The prior MIN64/-1 integer-division discrepancy is likewise checked with real x64 SIGFPE.
+Floating point is deliberately bounded: finite normal/zero comparisons and predicates, signed integer-to-binary32/64 conversions with all four MXCSR rounding modes and sticky precision, finite-to-integer CVTT conversion with masked invalid/precision status, and normal/zero binary32 add/subtract/multiply/divide in nearest-even mode. NaN/infinity/subnormal comparisons, unsupported division inputs/results/modes and unmasked precision exceptions stop. This is not general SSE/x87 support. The guest starts with MXCSR 0x1f80. The native reference now executes the reached scalar SSE operations on real host x64, using explicitly selected normalized instructions and checked register or base/displacement memory operands. Host MXCSR is always saved/restored. This prevents Unicorn precision-flag omissions from corrupting the reference. Unsupported addressing and unmasked FP exceptions stop. There are 107 separate hardware floating fixtures, with 36 emulator status discrepancies recorded. The prior MIN64/-1 integer-division discrepancy is likewise checked with real x64 SIGFPE.
 
 ## Durable milestones
 
@@ -49,9 +46,10 @@ Floating point is deliberately bounded: finite normal/zero comparisons and predi
 | e33d28c36977bff1b29e77b9c01203cf11da4eeb | 865 | https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42188246572 |
 | 7a6188aa21209386b4eff54a3dfca5f992e8368a | 988 | `dist/module-resolution-verified.json`; https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42196526947 |
 | d708353b8abc6c864776c5a85c9ee87bdbdc4696 | 1,607 | `dist/crt-heap-verified.json`; https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42197100197 |
-| Current checkpoint | 8,416 | `dist/batch-verified.json`; complete local script passed, CI pending |
+| d23ee69fcb9b7a5056449539bf2df1b0b66fdf31 | 8,416 | `dist/cocos-verified.json`; https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42200279670 |
+| Current primary-image checkpoint | 20,000 | `dist/batch-verified.json`; local complete script passed, CI pending |
 
-Older `dist/batch-native-next.json`, startup-smoke/time/thread reports and README original-canary tables are historical, not the current result. Always prefer this file plus `dist/batch-verified.json`. Each generation has a fresh ID; stale generated C/WASM or mismatched report/reference outputs are rejected. Repeated visits to the final API's address must still execute earlier successful calls: the verifier enables its stop PC only after all expected host calls have been consumed.
+Older `dist/batch-native-next.json`, startup-smoke/time/thread reports and README original-canary tables are historical, not the current result. Always prefer this file plus `dist/batch-verified.json`. Each generation has a fresh ID; stale generated C/WASM or mismatched report/reference outputs are rejected. Exact step budgets and the complete host-call transcript distinguish earlier visits to repeated terminal PCs from the actual reference endpoint.
 
 ## Rebuild after scratch disappears
 
@@ -62,9 +60,10 @@ python -m pip install -r experiments/geode-binary/requirements.txt ziglang==0.14
 npm install --prefix /tmp/geode-wasm-tools binaryen@123.0.0
 python experiments/geode-binary/fetch-startup-dll.py /tmp/Geode.dll
 python experiments/geode-binary/fetch_cocos_image.py /tmp/libcocos2d.dll.img
-GEODE_DLL=/tmp/Geode.dll GEODE_COCOS_IMG=/tmp/libcocos2d.dll.img GEODE_OUT=/tmp/geode-resume-run GEODE_WASM_OPT=/tmp/geode-wasm-tools/node_modules/.bin/wasm-opt bash experiments/geode-binary/run-startup-tests.sh
+python experiments/geode-binary/fetch_primary_image.py /tmp/GeometryDash.exe.img
+GEODE_PRIMARY_IMG=/tmp/GeometryDash.exe.img GEODE_DLL=/tmp/Geode.dll GEODE_COCOS_IMG=/tmp/libcocos2d.dll.img GEODE_OUT=/tmp/geode-resume-run GEODE_WASM_OPT=/tmp/geode-wasm-tools/node_modules/.bin/wasm-opt bash experiments/geode-binary/run-startup-tests.sh
 ```
 
 Local tools if present: Python dependencies `/tmp/geode-batch-tools` (set PYTHONPATH), Zig `/tmp/geode-batch-tools/ziglang/zig` (set GEODE_ZIG), Binaryen `/tmp/geode-wasm-tools/node_modules/.bin/wasm-opt`. Official DLL SHA-256 remains `ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499`; its release ZIP is also checked. CI runs the same script, uses pinned dependencies and read-only repository permissions, and uploads only the JSON report.
 
-Current guest regions: native stack 2–3 MiB; TIB/vector 4 MiB; on-exit arena 5–6 MiB; Geode static TLS 7 MiB; private compiler stack 8–9 MiB; local description heap 10–11 MiB; errno 12 MiB; Cocos static TLS 13 MiB; shim PE images 16 MiB onward; Geode DLL 32 MiB; CRT heap 52–60 MiB; Cocos DLL 256 MiB. Audit and relocate auxiliary regions before mapping the real primary executable.
+Current guest regions: native stack 2–3 MiB; TIB/vector 4 MiB; on-exit arena 5–6 MiB; Geode static TLS 7 MiB; private compiler stack 8–9 MiB; local description heap 10–11 MiB; errno 12 MiB; Cocos static TLS 13 MiB; primary static TLS 14 MiB; shim PE images 16 MiB onward; Geode DLL 32 MiB; CRT heap 52–60 MiB; primary executable 128 MiB; Cocos DLL 256 MiB. All images/helper regions are disjoint in this ASLR model.
