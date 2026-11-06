@@ -19,6 +19,7 @@ assert.equal(modules.resolve(memory,ntdll,'wine_get_version'),0);assert.equal(er
 assert.equal(modules.resolve(memory,modules.handle('Geode'),'clearly_not_a_geode_export'),0);
 if(expected.modules.some(m=>m.sliceOnly))assert.throws(()=>modules.handle('MSVCP140.dll'),/MSVCP_RUNTIME_INITIALIZATION_REQUIRED/);
 const primary=expected.modules.find(m=>m.primary);if(primary)assert.equal(modules.resolve(memory,primary.base,'absent_export'),0);
+const contract=expected.modules.find(m=>m.systemContract);if(contract){assert.equal(modules.loadContract('api-ms-win-core-synch-l1-2-0',0x800n,0n),contract.base);assert.equal(contract.loadReferences,1);assert.throws(()=>modules.loadContract(contract.name,0n,0n),/LOAD_FLAGS/);assert.throws(()=>modules.loadContract('kernel32',0x800n,0n),/UNMODELED_SYSTEM_LIBRARY_LOAD/);assert.throws(()=>modules.resolve(memory,contract.base,'WaitOnAddress'),/UNMODELED_EXPORT/);}
 const address=modules.resolve(memory,ntdll,'RtlGetVersion');
 assert.equal(expected.moduleGateways['0x'+address.toString(16)],'ntdll.dll!RtlGetVersion');
 const prepare=()=>{v.setBigUint64(cpu+32,8192n,true);v.setBigUint64(8192,0x1234fedcn,true);};

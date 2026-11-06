@@ -15,6 +15,8 @@ import {crtString} from './crt-strings.mjs';
 import {ceilf} from './crt-math.mjs';
 import {CriticalSections} from './critical-sections.mjs';
 import {CrtRuntime} from './crt-runtime.mjs';
+import {FiberLocalStorage} from './fiber-local-storage.mjs';
+import {SLists} from './slist.mjs';
 import {PointerEncoding} from './pointer-encoding.mjs';
 const dir=process.argv[2],reportPath=process.argv[3];
 const [expected,image,stack,wasm,report]=await Promise.all([
@@ -43,16 +45,21 @@ let currentCall;const services=new StartupServices({counter:()=>BigInt(currentCa
 const modules=new GuestModules(expected.modules,{setLastError:value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);}});
 const heap=new GuestHeap(memory,report.crtHeap);
 const crtRuntime=new CrtRuntime(memory,report.crtRuntime);
+const fls=new FiberLocalStorage({setLastError:value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);}});
 assert.deepEqual(Buffer.from(memory.buffer,crtRuntime.base,crtRuntime.size),await readFile(dir+'/crt-runtime.bin'));
 const loads=new NativeLoads(expected.tibBase);
 const initializers=new NativeInitializers();
 const onexit=new OnExitTables();
+const slists=new SLists();
 const locks=new SrwLocks();const critical=new CriticalSections();
 const conditions=new ConditionVariables();
 const pointers=new PointerEncoding(report.pointerEncoding.key);
 const completedBoots=new Set();
 let steps=0,handled=0,pc=BigInt(expected.entry);
-for(let transfers=0;transfers<4096;transfers++){
+// A reached API/callback closure can exceed 4,096 transfers. Every accepted run
+// must still consume the entire exact instruction count and host-call transcript.
+const transferLimit=expected.hostCalls.length+expected.instructions+(expected.moduleBootReturns??[]).length+1;
+for(let transfers=0;transfers<transferLimit;transfers++){
  const pendingBoot=(expected.moduleBootReturns??[]).find(b=>!completedBoots.has(b.pc));
  const result=instance.exports.lift_run(cpu,pc,BigInt(expected.base),0,pendingBoot?BigInt(pendingBoot.pc):0xffffffffffffffffn,expected.instructions-steps)>>>0;
  if(instance.exports.__stack_pointer)assert.equal(instance.exports.__stack_pointer.value,0x900000,'Compiler stack was not restored');
@@ -71,11 +78,13 @@ for(let transfers=0;transfers<4096;transfers++){
  currentCall=call;
  assert.ok(call&&pc===BigInt(call.address),'Unexpected native import');
  if(call.name==='api-ms-win-crt-math-l1-1-0.dll!ceilf')assert.equal(BigInt(ceilf(memory,cpu)),BigInt(call.outputBits));
- else if(/^(api-ms-win-crt-string-.*|VCRUNTIME140.dll)!(strlen|wcslen|memcpy|memmove|memset|memcmp|memchr)$/i.test(call.name))assert.equal(crtString(call.name,memory,cpu),BigInt(call.result));
+ else if(/^(api-ms-win-crt-string-.*|VCRUNTIME140.dll)!(strlen|wcslen|memcpy|memmove|memset|memcmp|memchr|strcpy_s|strcmp)$/i.test(call.name))assert.equal(crtString(call.name,memory,cpu),BigInt(call.result));
+ else if(/!(initializeslisthead|interlockedpushentryslist)$/i.test(call.name))slists.invoke(call.name,memory,cpu);
+ else if(/!(flsalloc|flsgetvalue|flssetvalue|flsfree)$/i.test(call.name))fls.invoke(call.name,memory,cpu);
  else if(call.action==='initializeDependency')loads.begin(expected.modules.find(m=>m.base===call.base),memory,cpu);
  else if((/^api-ms-win-crt-heap-.*!(malloc|free|calloc|realloc|_msize)$/.test(call.name))||call.name==='api-ms-win-crt-runtime-l1-1-0.dll!_errno'){
   const value=heap.invoke(call.name,cpu);assert.equal(value===undefined?null:'0x'+value.toString(16),call.result);
- }else if(/!(getmodulehandle[aw]|getprocaddress|disablethreadlibrarycalls|rtlpctofileheader)$/i.test(call.name)){
+ }else if(/!(getmodulehandle[aw]|getprocaddress|disablethreadlibrarycalls|rtlpctofileheader|loadlibraryexw)$/i.test(call.name)){
   const result=modules.invoke(call.name,memory,cpu);assert.equal(BigInt(result),BigInt(call.result));
  }else if(/!(getcurrentthread|setthreaddescription|getthreaddescription|localfree)$/i.test(call.name))threads.invoke(call.name,memory,cpu,'main');
  else if(call.name.toLowerCase()==='kernel32.dll!getsystemtimepreciseasfiletime')getSystemTimePreciseAsFileTime(memory,cpu,()=>BigInt(call.unixNanoseconds));
@@ -119,7 +128,11 @@ assert.equal(threads.descriptions.get('main')??null,report.threadDescription);
 for(const m of expected.modules.filter(m=>m.tls)){assert.deepEqual(Buffer.from(memory.buffer,m.tls.base,m.tls.size),await readFile(dir+'/dependency-tls-after.bin'));assert.equal(m.initialized,report.guestModules.find(x=>x.base===m.base).initialized);}
 assert.equal(!!loads.frame,report.dependencyLoadInProgress);
 for(const m of expected.modules.filter(m=>m.name==='MSVCP140.dll'))assert.equal(m.runtimeInitialized,report.msvcDllAttachCompleted);
+for(const m of expected.modules.filter(m=>m.name==='VCRUNTIME140.dll'))assert.equal(m.runtimeInitialized,report.vcruntimeDllAttachCompleted);
 report.dependencyTlsCallbacksCompleted=loads.completedTls;report.dependencyEntriesCompleted=loads.completedEntries;report.dependencyLoadsCompleted=loads.completedLoads;
+for(const m of expected.modules.filter(m=>m.systemContract))assert.equal(m.loadReferences,report.guestModules.find(x=>x.base===m.base).loadReferences);
+if(report.slists)assert.deepEqual(slists.snapshot(),report.slists);
+if(report.fiberLocalStorage)assert.deepEqual(fls.snapshot(),report.fiberLocalStorage);
 report.moduleLookups=modules.lookups;report.exportResolutions=modules.resolutions;report.shimModuleImagesMatch=true;
 Object.assign(report,{status:'DLL_STARTUP_PREFIX_VERIFIED',wasmStartupExecuted:true,
  wasmStartupInstructions:steps,allGeneralRegistersMatch:true,entireNativeStackMatches:true,

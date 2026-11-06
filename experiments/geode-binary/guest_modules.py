@@ -1,7 +1,7 @@
 """Declared PE shim modules. Gateways dispatch only explicitly implemented APIs."""
 import struct
 import pefile
-KERNEL_EXPORTS='RtlPcToFileHeader EncodePointer DecodePointer InitializeCriticalSection InitializeCriticalSectionEx InitializeCriticalSectionAndSpinCount EnterCriticalSection TryEnterCriticalSection LeaveCriticalSection DeleteCriticalSection GetTempPathW GetTempPath2W DisableThreadLibraryCalls GetCurrentProcess GetCurrentThread SetThreadDescription GetThreadDescription LocalFree GetModuleHandleA GetModuleHandleW GetProcAddress GetSystemTimeAsFileTime GetSystemTimePreciseAsFileTime GetCurrentThreadId GetCurrentProcessId QueryPerformanceCounter QueryPerformanceFrequency GetSystemInfo GetNativeSystemInfo InitializeSListHead GetEnvironmentVariableW GetLastError SetLastError InitializeSRWLock AcquireSRWLockExclusive ReleaseSRWLockExclusive TryAcquireSRWLockExclusive AcquireSRWLockShared ReleaseSRWLockShared TryAcquireSRWLockShared InitializeConditionVariable WakeConditionVariable WakeAllConditionVariable'.split()
+KERNEL_EXPORTS='InterlockedPushEntrySList FlsAlloc FlsGetValue FlsSetValue FlsFree LoadLibraryExW RtlPcToFileHeader EncodePointer DecodePointer InitializeCriticalSection InitializeCriticalSectionEx InitializeCriticalSectionAndSpinCount EnterCriticalSection TryEnterCriticalSection LeaveCriticalSection DeleteCriticalSection GetTempPathW GetTempPath2W DisableThreadLibraryCalls GetCurrentProcess GetCurrentThread SetThreadDescription GetThreadDescription LocalFree GetModuleHandleA GetModuleHandleW GetProcAddress GetSystemTimeAsFileTime GetSystemTimePreciseAsFileTime GetCurrentThreadId GetCurrentProcessId QueryPerformanceCounter QueryPerformanceFrequency GetSystemInfo GetNativeSystemInfo InitializeSListHead GetEnvironmentVariableW GetLastError SetLastError InitializeSRWLock AcquireSRWLockExclusive ReleaseSRWLockExclusive TryAcquireSRWLockExclusive AcquireSRWLockShared ReleaseSRWLockShared TryAcquireSRWLockShared InitializeConditionVariable WakeConditionVariable WakeAllConditionVariable'.split()
 
 def mapped_pe(data):
  pe=pefile.PE(data=bytes(data),fast_load=True)
@@ -44,6 +44,10 @@ def build_modules(pe,base):
  modules=[{'name':'Geode.dll','base':base,'size':pe.OPTIONAL_HEADER.SizeOfImage,'complete':True,'shim':False,'staticTls':bool(pe.OPTIONAL_HEADER.DATA_DIRECTORY[9].VirtualAddress)}];images={};gates={}
  for index,(name,exports) in enumerate([('kernel32.dll',KERNEL_EXPORTS),('ntdll.dll',['RtlGetVersion','RtlPcToFileHeader'])]):
   item,image,targets=shim(name,0x1000000+index*65536,exports);modules.append(item);images[item['base']]=image;gates.update(targets)
+ item,image,targets=shim('api-ms-win-core-synch-l1-2-0.dll',0x1020000,['InitializeCriticalSectionEx']);item.update(systemContract=True,loadReferences=0)
+ modules.append(item);images[item['base']]=image;gates.update({address:'kernel32.dll!'+name.split('!')[-1] for address,name in targets.items()})
+ item,image,targets=shim('api-ms-win-core-fibers-l1-1-1.dll',0x1030000,['FlsAlloc','FlsGetValue','FlsSetValue','FlsFree']);item.update(systemContract=True,loadReferences=0)
+ modules.append(item);images[item['base']]=image;gates.update({address:'kernel32.dll!'+name.split('!')[-1] for address,name in targets.items()})
  return modules,images,gates
 
 def module_handle(modules,name):
@@ -75,3 +79,9 @@ def resolve_export(modules,read,handle,symbol):
  if symbol in module.get('knownAbsent',[]):return 0
  if not module['complete']:raise RuntimeError('UNMODELED_EXPORT: '+module['name']+'!'+str(symbol))
  return 0
+
+def load_system_contract(modules,name,flags,file):
+ if flags!=0x800 or file:raise RuntimeError('UNMODELED_SYSTEM_LIBRARY_LOAD_FLAGS')
+ handle=module_handle(modules,name);module=next(m for m in modules if m['base']==handle)
+ if not module.get('systemContract'):raise RuntimeError('UNMODELED_SYSTEM_LIBRARY_LOAD')
+ module['loadReferences']+=1;return handle

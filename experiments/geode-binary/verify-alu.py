@@ -21,7 +21,7 @@ class Image:
  def get_data(self,rva,n):return bytes(code[rva:rva+n])
 lifter=Lifter(Image(),128,allow_indirect=True,yield_unknown=True,wide_mode=True)
 lifter.discover(base+rva for rva in programs)
-(out/'alu.c').write_text(lifter.source())
+(out/'alu.c').write_text(lifter.source(partition_size=1))
 uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64);uc.mem_map(base,4096);uc.mem_write(base,bytes(code));uc.mem_map(0x10000,0x10000)
 cases=[]
 hardware_overflow=None

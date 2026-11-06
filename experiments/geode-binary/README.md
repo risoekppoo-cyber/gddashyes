@@ -4,7 +4,7 @@ This experiment executes instructions from the **official Windows Geode.dll**, n
 
 ## Current startup work
 
-The experimental `geode-startup-batch` branch now completes the real Microsoft C++ runtime DLL process attach, then verifies 546,460 combined startup instructions (533,791 Geode, 11,206 Microsoft runtime, 1,442 Cocos and 21 bootstrap). Full Geode initialization and existing mod packages remain unsupported. See [CHECKPOINT.md](CHECKPOINT.md) for the exact stop, evidence, limits and resume commands.
+The active branch verifies 1,000,000 combined startup instructions and separately completes both original Microsoft runtime DLL entrypoints. A newer native discovery passes through the original RTTI type-name routine and reaches 1,056,404 instructions; its full translated comparison is pending. Full Geode and downloaded mods remain unsupported. See [CHECKPOINT.md](CHECKPOINT.md) for evidence and the exact resume point.
 
 ## Try the earlier browser canary
 

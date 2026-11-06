@@ -194,7 +194,8 @@ class Lifter:
                     queue.append(op.inputs[0].offset)
                 if op.opcode.name in ['BRANCH','RETURN','BRANCHIND'] and (op.opcode.name in ['RETURN','BRANCHIND'] or op.inputs[0].space.name=='ram'): terminal=True
             if not terminal: queue.append(va+instruction.length)
-    def source(self):
+    def source(self,partition_size=0):
+        if not 0<=partition_size<=1024:raise LiftError('Invalid instruction partition size')
         cases=[]
         for va,(ins,ops,emitted) in sorted(self.blocks.items()):
             unique=self.prepare_uniques(ops)
@@ -211,7 +212,19 @@ class Lifter:
             cases.append('\n'.join(lines))
         default='return 0x80000000u|step;' if self.yield_unknown else 'lift_fault(1u,pc,pc); __builtin_trap();'
         prelude=PRELUDE if self.wide_mode else PRELUDE.replace('typedef unsigned __int128 wide_t;','typedef uint64_t wide_t;').replace('typedef __int128 signed_wide_t;','typedef int64_t signed_wide_t;')
-        result=prelude+'\n'.join(cases)+'\n default: '+default+'''
+        if partition_size:
+            marker='__attribute__((visibility("default")))\nuint32_t lift_run'
+            split=prelude.index(marker);helpers=prelude[:split];loop=prelude[split:]
+            ordered=sorted(self.blocks);functions=[];routes=[]
+            for first in range(0,len(cases),partition_size):
+                number=first//partition_size;batch=cases[first:first+partition_size]
+                functions.append(f'static __attribute__((noinline)) uint32_t lift_group_{number}(uint32_t cpu,uint64_t image_base,uint32_t guest_base,uint64_t pc) {{\n switch(pc-image_base) {{\n'+'\n'.join(batch)+'\n default:return 0; }\n next_instruction:return 1;\n}\n')
+                upper=ordered[min(first+partition_size,len(ordered))-1]-self.base
+                routes.append(('if' if not first else 'else if')+f'(pc-image_base<=UINT64_C({upper})) found=lift_group_{number}(cpu,image_base,guest_base,pc);')
+            loop=loop[:loop.index('      switch(pc-image_base) {')]
+            result=helpers+'\n'.join(functions)+loop+'uint32_t found=0;\n'+'\n'.join(routes)+'\nif(!found){'+default+'}\n}\nlift_fault(4u,raw_read(cpu+192u,8u),entry); __builtin_trap();\n}\n'
+        else:
+            result=prelude+'\n'.join(cases)+'\n default: '+default+'''
       }
       next_instruction: ;
     }

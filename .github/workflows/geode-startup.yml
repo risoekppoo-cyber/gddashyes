@@ -15,7 +15,11 @@ permissions:
 jobs:
   startup:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [geode, vcruntime, combined]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,19 +42,22 @@ jobs:
           python experiments/geode-binary/fetch_cocos_image.py /tmp/geode-startup/libcocos2d.dll.img
           python experiments/geode-binary/fetch_primary_image.py /tmp/geode-startup/GeometryDash.exe.img
           python experiments/geode-binary/fetch_msvc_slice.py /tmp/geode-startup/msvcp140-x64.dll
+          python experiments/geode-binary/fetch_vcruntime.py /tmp/geode-startup/vcruntime140-x64.dll
       - name: Verify actual DLL startup and boundary contracts
         env:
           GEODE_MSVCP_BOOT: '1'
-          GEODE_INSTRUCTION_LIMIT: 1000000
+          GEODE_INSTRUCTION_LIMIT: 2000000
           GEODE_DLL: /tmp/geode-startup/Geode.dll
           GEODE_COCOS_IMG: /tmp/geode-startup/libcocos2d.dll.img
           GEODE_PRIMARY_IMG: /tmp/geode-startup/GeometryDash.exe.img
           GEODE_MSVCP_DLL: /tmp/geode-startup/msvcp140-x64.dll
-          GEODE_OUT: /tmp/geode-startup
+          GEODE_VCRUNTIME_DLL: ${{ matrix.mode != 'geode' && '/tmp/geode-startup/vcruntime140-x64.dll' || '' }}
+          GEODE_VCRUNTIME_ONLY: ${{ matrix.mode == 'vcruntime' && '1' || '' }}
+          GEODE_OUT: /tmp/geode-startup/${{ matrix.mode }}
           GEODE_WASM_OPT: /tmp/geode-wasm-tools/node_modules/.bin/wasm-opt
         run: bash experiments/geode-binary/run-startup-tests.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: geode-startup-report
-          path: /tmp/geode-startup/report.json
+          name: geode-startup-report-${{ matrix.mode }}
+          path: /tmp/geode-startup/${{ matrix.mode }}/report.json

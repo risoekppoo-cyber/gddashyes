@@ -1,0 +1,317 @@
+{
+  "status": "DLL_STARTUP_PREFIX_VERIFIED",
+  "generationId": "cf3f0ac9-d98c-4fa8-aa49-5f7981b6f0f3",
+  "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
+  "entry": "0x72000000",
+  "originalX64InstructionsExecuted": 410,
+  "uniqueInstructionsReached": 303,
+  "firstRuntimeDependency": {
+    "reason": "ENTRYPOINT_RETURNED"
+  },
+  "reachedInstructionsSupportedBeforeBlock": 303,
+  "firstTranslationBlocker": null,
+  "wasmStartupExecuted": true,
+  "windowsImportsExecuted": true,
+  "guestThreadModel": "single registered main context",
+  "cpuCalls": [
+    {
+      "pc": "0x130116d8",
+      "leaf": 0,
+      "subleaf": 0,
+      "results": [
+        1,
+        1970169159,
+        1818588270,
+        1231384169
+      ]
+    },
+    {
+      "pc": "0x130116fa",
+      "leaf": 1,
+      "subleaf": 0,
+      "results": [
+        1536,
+        0,
+        0,
+        125861905
+      ]
+    }
+  ],
+  "cpuProfile": {
+    "description": "Virtual x64 baseline: SSE2, no AVX/XSAVE; unlisted CPUID leaves return zero",
+    "leaves": {
+      "0": [
+        1,
+        1970169159,
+        1818588270,
+        1231384169
+      ],
+      "1": [
+        1536,
+        0,
+        0,
+        125861905
+      ],
+      "2147483648": [
+        2147483649,
+        0,
+        0,
+        0
+      ],
+      "2147483649": [
+        0,
+        0,
+        0,
+        537919488
+      ]
+    }
+  },
+  "tibBase": 4194304,
+  "tlsCallbacksExecuted": false,
+  "fullGeodeLoader": false,
+  "existingGeodePackagesSupported": false,
+  "guestModules": [
+    {
+      "name": "Geode.dll",
+      "base": 33554432,
+      "size": 17035264,
+      "complete": true,
+      "shim": false,
+      "staticTls": true
+    },
+    {
+      "name": "kernel32.dll",
+      "base": 16777216,
+      "size": 65536,
+      "complete": false,
+      "shim": true,
+      "knownAbsent": []
+    },
+    {
+      "name": "ntdll.dll",
+      "base": 16842752,
+      "size": 65536,
+      "complete": false,
+      "shim": true,
+      "knownAbsent": [
+        "wine_get_version"
+      ]
+    },
+    {
+      "name": "api-ms-win-core-synch-l1-2-0.dll",
+      "base": 16908288,
+      "size": 65536,
+      "complete": false,
+      "shim": true,
+      "knownAbsent": [],
+      "systemContract": true,
+      "loadReferences": 1
+    },
+    {
+      "name": "api-ms-win-core-fibers-l1-1-1.dll",
+      "base": 16973824,
+      "size": 65536,
+      "complete": false,
+      "shim": true,
+      "knownAbsent": [],
+      "systemContract": true,
+      "loadReferences": 1
+    },
+    {
+      "name": "VCRUNTIME140.dll",
+      "base": 318767104,
+      "size": 122880,
+      "complete": true,
+      "shim": false,
+      "initializing": false,
+      "runtimeInitialized": true,
+      "entry": 318833552,
+      "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+      "typeInfoAddress": 318787872,
+      "typeInfoBindings": 1,
+      "staticTls": false
+    }
+  ],
+  "instructionBudget": 1000000,
+  "nativeFloatingReference": {
+    "kind": "real host x64 SSE with normalized registers and checked memory-source decoding; MXCSR saved/restored",
+    "instructions": 0
+  },
+  "primaryMappingPhase": "not supplied",
+  "pointerEncoding": {
+    "key": "11087483875799882679",
+    "encodes": 0,
+    "decodes": 0
+  },
+  "crtRuntime": {
+    "base": 15728640,
+    "size": 65536,
+    "callbacks": [],
+    "fileLocks": {},
+    "newHandler": "0",
+    "localeLock": {
+      "owner": null,
+      "depth": 0
+    },
+    "localeQueries": 0,
+    "localeConvQueries": 0
+  },
+  "fiberLocalStorage": {
+    "capacity": 128,
+    "slots": {
+      "0": {
+        "callback": "318788864",
+        "value": "318870240"
+      }
+    },
+    "calls": 2
+  },
+  "criticalSections": {
+    "states": {
+      "318870184": {
+        "owner": null,
+        "depth": 0,
+        "spin": 4000
+      }
+    },
+    "acquisitions": 0
+  },
+  "testedComponent": "vcruntime-dll-attach",
+  "vcruntimeDllAttachCompleted": true,
+  "vcruntimeImageInstructions": 402,
+  "msvcImageInstructions": 0,
+  "msvcBootMode": "",
+  "msvcDllAttachCompleted": false,
+  "msvcCtorFixtureScheduled": false,
+  "msvcSliceInstructions": 0,
+  "primaryImageInstructions": 0,
+  "dependencyImageInstructions": 0,
+  "dependencyLoadEvents": [],
+  "dependencyLoadInProgress": false,
+  "nativeExportChecks": [
+    {
+      "name": "??0?$Pollable@UWebFuture@web@utils@geode@@VWebResponse@234@$0A@@arc@@QEAA@$$QEAU01@@Z",
+      "ordinal": 1,
+      "address": 34663136,
+      "module": 33554432
+    },
+    {
+      "name": "??_7PopupManager@geode@@6B@",
+      "ordinal": 601,
+      "address": 45096600,
+      "module": 33554432
+    },
+    {
+      "name": "?getDevelopers@ModMetadata@geode@@QEBAAEBV?$vector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@XZ",
+      "ordinal": 1201,
+      "address": 36488768,
+      "module": 33554432
+    },
+    {
+      "name": "?onDescription@SettingNodeV3@geode@@IEAAXPEAVCCObject@cocos2d@@@Z",
+      "ordinal": 1801,
+      "address": 35755232,
+      "module": 33554432
+    },
+    {
+      "name": "?unselected@Button@geode@@UEAAXXZ",
+      "ordinal": 2401,
+      "address": 35855856,
+      "module": 33554432
+    }
+  ],
+  "threadDescription": null,
+  "localAllocations": {},
+  "crtHeap": {
+    "base": 54525952,
+    "size": 8388608,
+    "errno": 12582912,
+    "allocations": {},
+    "calls": 0,
+    "freeBlocksCount": 1
+  },
+  "resolvedExports": [
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "InitializeCriticalSectionEx",
+      "result": "0x1021000"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "FlsAlloc",
+      "result": "0x1031000"
+    },
+    {
+      "address": "0x70000750",
+      "name": "KERNEL32.dll!GetProcAddress",
+      "symbol": "FlsSetValue",
+      "result": "0x1031030"
+    }
+  ],
+  "windowsCompatibilityProfile": {
+    "description": "Declared compatibility target; does not describe the host OS or guarantee Windows API coverage",
+    "major": 10,
+    "minor": 0,
+    "build": 19045,
+    "platform": 2,
+    "productType": 1
+  },
+  "tibReads": [],
+  "unmodeledTibReads": [],
+  "originalDllInstructionsExecuted": 0,
+  "loaderBootstrapInstructions": 8,
+  "tlsTemplateBytes": 784,
+  "tlsZeroFillBytes": 0,
+  "tlsCallbacksScheduled": 0,
+  "tlsCallbacksCompleted": 0,
+  "tibSize": 65536,
+  "mxcsrMatches": true,
+  "crtHeapMemoryMatches": true,
+  "dependencyTlsCallbacksCompleted": 0,
+  "dependencyEntriesCompleted": 0,
+  "dependencyLoadsCompleted": 0,
+  "moduleLookups": 2,
+  "exportResolutions": 3,
+  "shimModuleImagesMatch": true,
+  "wasmStartupInstructions": 410,
+  "allGeneralRegistersMatch": true,
+  "entireNativeStackMatches": true,
+  "dllInitializationCompleted": false,
+  "implementedWindowsCalls": 12,
+  "initializerCallbacksExecuted": 0,
+  "completedInitializerTables": 0,
+  "entireDllImageMatches": true,
+  "allXmmRegistersMatch": true,
+  "arithmeticFlagsMatch": true,
+  "tlsMemoryMatches": true,
+  "onexitRegistrations": 0,
+  "srwAcquisitions": 0,
+  "emptyQueueConditionWakes": 0,
+  "initializerCallbacksStarted": 0,
+  "initializerCallbacksCompleted": 0,
+  "initializerTablesInProgress": 0,
+  "executedImportCalls": 12,
+  "implementedImports": [
+    "KERNEL32.dll!GetCurrentProcessId",
+    "KERNEL32.dll!GetCurrentThreadId",
+    "KERNEL32.dll!GetProcAddress",
+    "KERNEL32.dll!GetSystemTimeAsFileTime",
+    "KERNEL32.dll!LoadLibraryExW",
+    "KERNEL32.dll!QueryPerformanceCounter",
+    "kernel32.dll!FlsAlloc",
+    "kernel32.dll!FlsSetValue",
+    "kernel32.dll!InitializeCriticalSectionEx"
+  ],
+  "reportFormat": "verification-summary-v1",
+  "fullReportSha256": "5c1b42de521e89dd87b9cc32e0ed4e9c2c8adbf25cc81893e11d41c559223b6b",
+  "omittedDetails": [
+    "hostCalls",
+    "initializerEvents",
+    "crtHeap.live",
+    "crtHeap.freeBlocks",
+    "nativeFloatingReference.byPc"
+  ],
+  "verificationScope": "Local complete startup script; fresh CI pending"
+}
