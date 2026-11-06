@@ -15,6 +15,7 @@ compile() {
  "$GEODE_WASM_OPT" "$output" --remove-unused-module-elements -o "$output.clean"
  mv "$output.clean" "$output"
 }
+node experiments/geode-binary/verify-guest-heap.mjs
 node experiments/geode-binary/verify-windows-time.mjs
 node experiments/geode-binary/verify-windows-threads.mjs
 node experiments/geode-binary/verify-windows-startup.mjs

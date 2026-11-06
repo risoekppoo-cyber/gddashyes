@@ -4,7 +4,7 @@ User goal: continue the real binary translation in batches, quickly; save durabl
 
 ## Latest verified milestone
 
-`dist/batch-verified.json` records **972 original Geode DLL instructions plus 16 loader-bootstrap instructions** (988 total) executed in translated WASM and compared with Unicorn 2.1.4 under the declared guest platform model.
+`dist/batch-verified.json` records **1,591 original Geode DLL instructions plus 16 loader-bootstrap instructions** (1,607 total) executed in translated WASM and compared with Unicorn 2.1.4 under the declared guest platform model.
 
 Verified state: all 16 general registers, all 16 XMM registers, five arithmetic flags, the full native stack, the complete DLL image, TLS memory, TIB and CRT callback arena match. Both actual PE TLS callbacks completed; static TLS copies the DLL's 784-byte template and supplies its TLS index and main-thread vector. Real initializer callbacks run through a native call/return bridge, with null skipping and error propagation. One initializer table completed; the C++ constructor table is still in progress. On-exit callbacks are stored, not executed yet.
 
@@ -14,7 +14,9 @@ CPU and Windows versions are explicit virtual profiles, not host hardware/OS rep
 
 ## Exact resume point
 
-The next missing API is **api-ms-win-crt-heap-l1-1-0.dll!malloc** at import gateway `0x700028b0`. Implement a bounded, tracked CRT heap, including allocation failure, 16-byte alignment, realloc preservation and valid free handling, then continue the actual constructor path. Unknown exports and unknown modules must keep stopping explicitly. The real GD executable and Cocos integration still need to be supplied when requested.
+The current stop is **KERNEL32.dll!LoadLibraryExA("libcocos2d.dll", NULL, 0)** at import gateway `0x70000900`. This is now an actual game dependency, not a CRT allocation blocker. Inspect the pinned GD WASM data segments for the mapped Cocos PE image and exports; verify whether original executable code survives before trying native reference execution. Reuse the game's existing translated dispatcher where necessary, with full register/callback/memory state accounting. Do not substitute an empty DLL handle or fake Cocos constructors.
+
+A bounded CRT heap now owns guest addresses 52–60 MiB. It implements malloc/free/calloc/realloc/_msize and an errno location at 12 MiB. Allocation failure sets ENOMEM (12); calloc overflow is checked; realloc failure preserves the old allocation; valid blocks are 16-byte aligned; freeing coalesces blocks. Unknown/double frees stop. This is one serialized guest context, not a complete MSVC allocator or concurrent CRT. Two actual malloc calls executed in the DLL prefix. All heap bytes, allocation metadata, errno memory and previous state comparisons match the independent native trace. GetCurrentProcess supplies the documented current-process pseudo handle. Five real initializer callbacks started, four completed; one table remains in progress.
 
 Module lookup now resolves case-insensitive names to actual mapped PE images. Two explicitly partial system shim images contain real export tables and only implemented host gateways. GetProcAddress parses mapped PE export tables, preserves case-sensitive names, and returns real guest VAs. Real Geode.dll exports also use its mapped PE table. Unknown shim exports/ordinals/forwarders stop; they are not reported as absent. NULL GetModuleHandle stops until the real primary executable is integrated.
 
@@ -51,7 +53,7 @@ The updated GitHub workflow runs the same script on a fresh runner with read-onl
 
 ## Verification and limitations
 
-Passed locally: time/thread/startup/initializer/synchronization contracts; 11 raw-machine-code division/SSE cases; 200 original scalar reference cases; full 988-instruction startup-prefix comparison. A known Unicorn 2.1.4 discrepancy on signed MIN64 / -1 is documented in `verify-alu.py`: preserve the architectural divide fault, independently confirmed by real x64 SIGFPE, rather than copying the emulator's wrapped result.
+Passed locally: time/thread/startup/initializer/synchronization contracts; 11 raw-machine-code division/SSE cases; 200 original scalar reference cases; full 1,607-instruction startup-prefix comparison. A known Unicorn 2.1.4 discrepancy on signed MIN64 / -1 is documented in `verify-alu.py`: preserve the architectural divide fault, independently confirmed by real x64 SIGFPE, rather than copying the emulator's wrapped result.
 
 The original shared-game `instantiateLift` validator is unchanged. Wide generated code uses `startup-module.mjs` in the standalone test, which permits only the exported i32 compiler-stack global and rejects data/start sections or unexpected imports. It reserves a private compiler stack and checks restoration after each dispatcher return. This does not claim a general untrusted-module sandbox.
 
@@ -68,3 +70,9 @@ Tested source commit: `e33d28c36977bff1b29e77b9c01203cf11da4eeb`. That run cover
 ## Latest checkpoint validation
 
 Module resolution checkpoint: 988 total instructions, 37 host calls, 3 module lookups, 2 positive export resolutions, matching shim PE images and all prior state comparisons. Complete local test script passed, including 11 division/SSE and 200 regenerated scalar cases. GitHub Actions confirmation pending for this new source revision.
+
+## Saved module checkpoint and current heap checkpoint
+
+Module checkpoint source: `7a6188aa21209386b4eff54a3dfca5f992e8368a`. Fresh-runner full script PASSED: https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42196526947 . Immutable result: `dist/module-resolution-verified.json` (988 total instructions).
+
+Current heap checkpoint: 1,607 total instructions, 49 host calls, 5 initializer callbacks started / 4 completed, full heap/state comparison passed locally. Focused allocator contracts, module/thread contracts, 11 division/SSE regressions and 200 regenerated scalar cases passed. Fresh-runner confirmation for this heap revision pending.

@@ -11,6 +11,7 @@ import pefile,pypcode,unicorn
 from unicorn import x86_const as x
 from lift import PIN,Lifter,LiftError
 from guest_modules import build_modules,module_handle,resolve_export
+from guest_heap import GuestHeap
 
 path=Path(sys.argv[1]);assert hashlib.sha256(path.read_bytes()).hexdigest()==PIN
 pe=pefile.PE(str(path));base=0x2000000;preferred=pe.OPTIONAL_HEADER.ImageBase
@@ -70,6 +71,8 @@ trace=[];stop={};host_calls=[];cpu_calls=[]
 uc.mem_map(0x71000000,4096)
 arena=0x500000;arena_size=0x100000;uc.mem_map(arena,arena_size);next_allocation=arena
 initializer_frames=[];initializer_events=[];control_events=[]
+uc.mem_map(0x3400000,0x800000);uc.mem_map(0xc00000,0x10000)
+heap=GuestHeap(uc.mem_read,uc.mem_write)
 def finish_initializer(result):
  f=initializer_frames.pop()
  if f['error']:uc.reg_write(x.UC_X86_REG_RAX,result&0xffffffff)
@@ -130,6 +133,13 @@ def code(uc,pc,length,_):
   uc.emu_stop();return
  if pc in imports:
   name=imports[pc].lower()
+  if (name.startswith('api-ms-win-crt-heap-') and name.split('!')[-1] in ['malloc','free','realloc','calloc','_msize']) or name=='api-ms-win-crt-runtime-l1-1-0.dll!_errno':
+   a=uc.reg_read(x.UC_X86_REG_RCX);b=uc.reg_read(x.UC_X86_REG_RDX)
+   result=heap.invoke(name.split('!')[-1],a,b)
+   call={'address':hex(pc),'name':imports[pc],'a':hex(a),'b':hex(b),'result':hex(result) if result is not None else None};host_calls.append(call)
+   sp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(sp,8),'little')
+   if result is not None:uc.reg_write(x.UC_X86_REG_RAX,result)
+   uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret);uc.emu_stop();return
   if name in ['kernel32.dll!getcurrentthread','kernel32.dll!setthreaddescription','kernel32.dll!getthreaddescription','kernel32.dll!localfree']:
    call={'address':hex(pc),'name':imports[pc]}
    if name.endswith('getcurrentthread'):result=0xfffffffffffffffe
@@ -259,10 +269,11 @@ def code(uc,pc,length,_):
    host_calls.append({'address':hex(pc),'name':imports[pc],'table':hex(p)})
    uc.reg_write(x.UC_X86_REG_RAX,result);uc.reg_write(x.UC_X86_REG_RSP,sp+8);uc.reg_write(x.UC_X86_REG_RIP,ret)
    uc.emu_stop();return
-  if name in ['kernel32.dll!getcurrentprocessid','kernel32.dll!queryperformancecounter','kernel32.dll!queryperformancefrequency']:
+  if name in ['kernel32.dll!getcurrentprocess','kernel32.dll!getcurrentprocessid','kernel32.dll!queryperformancecounter','kernel32.dll!queryperformancefrequency']:
    call={'address':hex(pc),'name':imports[pc]}
    result=1
-   if name.endswith('getcurrentprocessid'):call['processId']=1
+   if name.endswith('getcurrentprocess'):result=0xffffffffffffffff
+   elif name.endswith('getcurrentprocessid'):call['processId']=1
    else:
     value=time.perf_counter_ns() if name.endswith('queryperformancecounter') else 1000000000
     output=uc.reg_read(x.UC_X86_REG_RCX);uc.mem_write(output,struct.pack('<Q',value))
@@ -294,7 +305,7 @@ try:
  else:stop['reason']='HOST_CALL_LIMIT'
 except unicorn.UcError as error:stop.setdefault('error',str(error))
 if not stop:stop['reason']='ENTRYPOINT_RETURNED'
-if stop.get('importName','').lower()=='kernel32.dll!getmodulehandlea':
+if stop.get('importName','').lower() in ['kernel32.dll!getmodulehandlea','kernel32.dll!loadlibraryexa','kernel32.dll!loadlibrarya']:
  p=uc.reg_read(x.UC_X86_REG_RCX);text=bytearray()
  if p:
   for i in range(32768):
@@ -302,6 +313,7 @@ if stop.get('importName','').lower()=='kernel32.dll!getmodulehandlea':
    if value==b'\0':break
    text+=value
  stop['requestedModule']=text.decode('latin1') if p else None
+ if stop['importName'].lower().endswith('loadlibraryexa'):stop.update(flags=hex(uc.reg_read(x.UC_X86_REG_R8)),file=hex(uc.reg_read(x.UC_X86_REG_RDX)))
 if stop.get('reason')=='UNMAPPED_MEMORY' and trace and trace[-1]==uc.reg_read(x.UC_X86_REG_RIP):trace.pop()
 lifter=Lifter(pe,10000,allow_indirect=True,yield_unknown=True,single_threaded=True,wide_mode=True);blocked=None;translated=0
 for pc in dict.fromkeys(trace):
@@ -337,6 +349,7 @@ report['initializerEvents']=initializer_events
 report['guestModules']=modules
 report['threadDescription']=thread_description
 report['localAllocations']=local_allocations
+report['crtHeap']={'base':heap.base,'size':heap.size,'errno':heap.errno,'allocations':heap.allocations,'freeBlocks':heap.available,'calls':heap.calls}
 report['resolvedExports']=[c for c in host_calls if c['name'].lower().endswith('!getprocaddress')]
 report['windowsCompatibilityProfile']=windows_profile
 report['tibReads']=sorted(set(tib_reads))
@@ -357,6 +370,8 @@ if len(sys.argv)>2 and not blocked and not unknown_tib:
  (out/'tib-after.bin').write_bytes(bytes(uc.mem_read(tib,tib_size)))
  (out/'tls.bin').write_bytes(initial_tls);(out/'tls-after.bin').write_bytes(bytes(uc.mem_read(tls_block,tls_size)))
  (out/'image-after.bin').write_bytes(bytes(uc.mem_read(base,size)))
+ (out/'crt-heap-after.bin').write_bytes(bytes(uc.mem_read(heap.base,heap.size)))
+ (out/'errno-after.bin').write_bytes(bytes(uc.mem_read(heap.errno,0x10000)))
  (out/'local-heap-after.bin').write_bytes(bytes(uc.mem_read(local_heap,local_heap_size)))
  (out/'arena-after.bin').write_bytes(bytes(uc.mem_read(arena,arena_size)))
  names=['RAX','RCX','RDX','RBX','RSP','RBP','RSI','RDI','R8','R9','R10','R11','R12','R13','R14','R15']

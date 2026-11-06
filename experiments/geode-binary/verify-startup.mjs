@@ -9,6 +9,7 @@ import {OnExitTables} from './onexit-tables.mjs';
 import {SrwLocks} from './srw-locks.mjs';
 import {ConditionVariables} from './condition-variables.mjs';
 import {GuestModules} from './guest-modules.mjs';
+import {GuestHeap} from './guest-heap.mjs';
 const dir=process.argv[2],reportPath=process.argv[3];
 const [expected,image,stack,wasm,report]=await Promise.all([
  readFile(dir+'/expected.json').then(JSON.parse),readFile(dir+'/image.bin'),
@@ -32,6 +33,7 @@ v.setBigUint64(cpu+32,0x2fff08n,true);v.setBigUint64(0x2fff08,0x1234fedcn,true);
 const threads=new GuestThreads();threads.register('main');
 let currentCall;const services=new StartupServices({counter:()=>BigInt(currentCall.counter),tibBase:expected.tibBase,version:report.windowsCompatibilityProfile});
 const modules=new GuestModules(expected.modules,{setLastError:value=>{services.lastError=value;v.setUint32(expected.tibBase+0x68,value,true);}});
+const heap=new GuestHeap(memory,report.crtHeap);
 const initializers=new NativeInitializers();
 const onexit=new OnExitTables();
 const locks=new SrwLocks();
@@ -47,7 +49,9 @@ for(let transfers=0;transfers<4096;transfers++){
  const call=expected.hostCalls[handled];
  currentCall=call;
  assert.ok(call&&pc===BigInt(call.address),'Unexpected native import');
- if(/!(getmodulehandle[aw]|getprocaddress)$/i.test(call.name)){
+ if((/^api-ms-win-crt-heap-.*!(malloc|free|calloc|realloc|_msize)$/.test(call.name))||call.name==='api-ms-win-crt-runtime-l1-1-0.dll!_errno'){
+  const value=heap.invoke(call.name,cpu);assert.equal(value===undefined?null:'0x'+value.toString(16),call.result);
+ }else if(/!(getmodulehandle[aw]|getprocaddress)$/i.test(call.name)){
   const result=modules.invoke(call.name,memory,cpu);assert.equal(BigInt(result),BigInt(call.result));
  }else if(/!(getcurrentthread|setthreaddescription|getthreaddescription|localfree)$/i.test(call.name))threads.invoke(call.name,memory,cpu,'main');
  else if(call.name.toLowerCase()==='kernel32.dll!getsystemtimeasfiletime')
@@ -75,6 +79,10 @@ assert.deepEqual(Buffer.from(memory.buffer,0x500000,0x100000),await readFile(dir
 assert.deepEqual(Buffer.from(memory.buffer,expected.tibBase,expected.tibSize),await readFile(dir+'/tib-after.bin'));
 assert.deepEqual(Buffer.from(memory.buffer,expected.tlsBase,expected.tlsSize),await readFile(dir+'/tls-after.bin'));
 for(const m of expected.modules.filter(m=>m.shim))assert.deepEqual(Buffer.from(memory.buffer,m.base,m.size),await readFile(dir+'/module-'+m.base.toString(16)+'-after.bin'));
+assert.deepEqual(Buffer.from(memory.buffer,heap.base,heap.size),await readFile(dir+'/crt-heap-after.bin'));
+assert.deepEqual(Buffer.from(memory.buffer,heap.errno,0x10000),await readFile(dir+'/errno-after.bin'));
+assert.deepEqual(Object.fromEntries(heap.allocations),report.crtHeap.allocations);assert.deepEqual(heap.available,report.crtHeap.freeBlocks);assert.equal(heap.calls,report.crtHeap.calls);
+report.crtHeapMemoryMatches=true;
 assert.deepEqual(Buffer.from(memory.buffer,0xa00000,0x100000),await readFile(dir+'/local-heap-after.bin'));
 assert.deepEqual(Object.fromEntries(threads.localAllocations),report.localAllocations);
 assert.equal(threads.descriptions.get('main')??null,report.threadDescription);

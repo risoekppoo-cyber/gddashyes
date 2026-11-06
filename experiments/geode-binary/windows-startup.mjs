@@ -13,7 +13,8 @@ export class StartupServices {
   const sp=v.getBigUint64(cpu+32,true),stack=linear(sp,8),ret=v.getBigUint64(stack,true);
   let result;
   const setError=value=>{this.lastError=value;if(this.tibBase)v.setUint32(this.tibBase+0x68,value,true);};
-  if(key==='kernel32.dll!getcurrentprocessid')result=BigInt(this.processId);
+  if(key==='kernel32.dll!getcurrentprocess')result=0xffffffffffffffffn;
+  else if(key==='kernel32.dll!getcurrentprocessid')result=BigInt(this.processId);
   else if(key==='kernel32.dll!getsysteminfo'||key==='kernel32.dll!getnativesysteminfo') {
    const at=linear(v.getBigUint64(cpu+8,true),48);new Uint8Array(memory.buffer,at,48).fill(0);
    v.setUint16(at,9,true);v.setUint32(at+4,4096,true);

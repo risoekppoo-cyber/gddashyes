@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {GuestHeap} from './guest-heap.mjs';
+const memory=new WebAssembly.Memory({initial:2}),v=new DataView(memory.buffer),heap=new GuestHeap(memory,{base:32768,size:256,errno:16384});
+const first=heap.call('malloc',17n),second=heap.call('malloc',16n);assert.equal(first%16n,0n);assert.equal(second-first,32n);
+new Uint8Array(memory.buffer,Number(first),17).set(Array.from({length:17},(_,i)=>i+1));
+const enlarged=heap.call('realloc',first,64n);assert.notEqual(enlarged,first);assert.deepEqual([...new Uint8Array(memory.buffer,Number(enlarged),17)],Array.from({length:17},(_,i)=>i+1));
+assert.equal(heap.call('realloc',enlarged,0xffffffffffffffffn),0n);assert.equal(v.getUint32(16384,true),12);assert.ok(heap.allocations.has(Number(enlarged)));assert.equal(v.getUint8(Number(enlarged)),1);
+heap.call('free',second);heap.call('free',enlarged);assert.deepEqual(heap.available,[[32768,256]]);
+new Uint8Array(memory.buffer,32768,256).fill(0xff);const zeroed=heap.call('calloc',7n,3n);assert.deepEqual([...new Uint8Array(memory.buffer,Number(zeroed),21)],Array(21).fill(0));
+assert.equal(heap.call('calloc',0xffffffffffffffffn,2n),0n);assert.equal(heap.call('realloc',zeroed,0n),0n);
+const empty=heap.call('malloc',0n);assert.notEqual(empty,0n);assert.equal(heap.call('_msize',empty),16n);heap.call('free',empty);
+assert.throws(()=>heap.call('free',empty),/INVALID_CRT_FREE/);heap.call('free',0n);
+const whole=heap.call('malloc',256n);assert.notEqual(whole,0n);assert.equal(heap.call('malloc',1n),0n);heap.call('free',whole);
+assert.equal(heap.call('_errno',0n),16384n);assert.deepEqual(heap.available,[[32768,256]]);
+const cpu=4096;v.setBigUint64(cpu,999n,true);v.setBigUint64(cpu+8,0n,true);v.setBigUint64(cpu+32,8192n,true);v.setBigUint64(8192,123456n,true);
+heap.invoke('api-ms-win-crt-heap-l1-1-0.dll!free',cpu);assert.equal(v.getBigUint64(cpu,true),999n);assert.equal(v.getBigUint64(cpu+192,true),123456n);assert.equal(v.getBigUint64(cpu+32,true),8200n);
+console.log('PASS: CRT alignment, zero allocation, zeroed calloc, overflow/exhaustion, realloc preservation, coalesced free, native return');

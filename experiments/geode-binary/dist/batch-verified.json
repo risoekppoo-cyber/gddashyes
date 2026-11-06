@@ -1,16 +1,19 @@
 {
   "status": "DLL_STARTUP_PREFIX_VERIFIED",
-  "generationId": "8b6b72ef-bf9d-44a0-be1f-3fcd4f686430",
+  "generationId": "d8d14aa6-8b1a-4287-b810-036b4bb1cc2e",
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
   "entry": "0x72000000",
-  "originalX64InstructionsExecuted": 988,
-  "uniqueInstructionsReached": 715,
+  "originalX64InstructionsExecuted": 1607,
+  "uniqueInstructionsReached": 1030,
   "firstRuntimeDependency": {
     "reason": "WINDOWS_IMPORT_REQUIRED",
-    "importName": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
-    "address": "0x700028b0"
+    "importName": "KERNEL32.dll!LoadLibraryExA",
+    "address": "0x70000900",
+    "requestedModule": "libcocos2d.dll",
+    "flags": "0x0",
+    "file": "0x0"
   },
-  "reachedInstructionsSupportedBeforeBlock": 715,
+  "reachedInstructionsSupportedBeforeBlock": 1030,
   "firstTranslationBlocker": null,
   "wasmStartupExecuted": true,
   "windowsImportsExecuted": true,
@@ -19,7 +22,7 @@
     {
       "address": "0x700007c0",
       "name": "KERNEL32.dll!GetSystemTimeAsFileTime",
-      "unixMilliseconds": 1793957796933,
+      "unixMilliseconds": 1793958062663,
       "output": "0x2ffeb0"
     },
     {
@@ -35,7 +38,7 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "1650347736741",
+      "counter": "1916077974970",
       "output": "0x2ffeb8"
     },
     {
@@ -110,13 +113,13 @@
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "1650358242118",
+      "counter": "1916089086226",
       "output": "0x2ffdc0"
     },
     {
       "address": "0x700009e0",
       "name": "KERNEL32.dll!QueryPerformanceCounter",
-      "counter": "1650358951117",
+      "counter": "1916089923173",
       "output": "0x2ffd70"
     },
     {
@@ -206,7 +209,7 @@
       "address": "0x70000750",
       "name": "KERNEL32.dll!GetProcAddress",
       "symbol": "SetThreadDescription",
-      "result": "0x1001170"
+      "result": "0x1001180"
     },
     {
       "address": "0x70000730",
@@ -218,7 +221,73 @@
       "address": "0x70000750",
       "name": "KERNEL32.dll!GetProcAddress",
       "symbol": "GetThreadDescription",
-      "result": "0x10010d0"
+      "result": "0x10010e0"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x40",
+      "b": "0x2a9f8b2",
+      "result": "0x3400000"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x80",
+      "b": "0x0",
+      "result": "0x3400040"
+    },
+    {
+      "address": "0x700002d0",
+      "name": "KERNEL32.dll!AcquireSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000a30",
+      "name": "KERNEL32.dll!ReleaseSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x700005d0",
+      "name": "KERNEL32.dll!GetCurrentProcess"
+    },
+    {
+      "address": "0x700002d0",
+      "name": "KERNEL32.dll!AcquireSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000a30",
+      "name": "KERNEL32.dll!ReleaseSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x700028b0",
+      "name": "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+      "a": "0x40",
+      "b": "0x402000",
+      "result": "0x34000c0"
+    },
+    {
+      "address": "0x70002420",
+      "name": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "table": "0x2fb1960",
+      "function": "0x2598a70"
+    },
+    {
+      "address": "0x700002d0",
+      "name": "KERNEL32.dll!AcquireSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000a30",
+      "name": "KERNEL32.dll!ReleaseSRWLockExclusive",
+      "lock": "0x2fb1938"
+    },
+    {
+      "address": "0x70000d30",
+      "name": "KERNEL32.dll!WakeAllConditionVariable",
+      "condition": "0x2fb1930"
     }
   ],
   "cpuCalls": [
@@ -377,6 +446,32 @@
   ],
   "threadDescription": null,
   "localAllocations": {},
+  "crtHeap": {
+    "base": 54525952,
+    "size": 8388608,
+    "errno": 12582912,
+    "allocations": {
+      "54525952": [
+        64,
+        64
+      ],
+      "54526016": [
+        128,
+        128
+      ],
+      "54526144": [
+        64,
+        64
+      ]
+    },
+    "freeBlocks": [
+      [
+        54526208,
+        8388352
+      ]
+    ],
+    "calls": 3
+  },
   "resolvedExports": [
     {
       "address": "0x70000750",
@@ -388,13 +483,13 @@
       "address": "0x70000750",
       "name": "KERNEL32.dll!GetProcAddress",
       "symbol": "SetThreadDescription",
-      "result": "0x1001170"
+      "result": "0x1001180"
     },
     {
       "address": "0x70000750",
       "name": "KERNEL32.dll!GetProcAddress",
       "symbol": "GetThreadDescription",
-      "result": "0x10010d0"
+      "result": "0x10010e0"
     }
   ],
   "windowsCompatibilityProfile": {
@@ -424,36 +519,38 @@
     ]
   ],
   "unmodeledTibReads": [],
-  "originalDllInstructionsExecuted": 972,
+  "originalDllInstructionsExecuted": 1591,
   "loaderBootstrapInstructions": 16,
   "tlsTemplateBytes": 784,
   "tlsZeroFillBytes": 0,
   "tlsCallbacksScheduled": 2,
   "tlsCallbacksCompleted": 2,
   "tibSize": 65536,
+  "crtHeapMemoryMatches": true,
   "moduleLookups": 3,
   "exportResolutions": 2,
   "shimModuleImagesMatch": true,
-  "wasmStartupInstructions": 988,
+  "wasmStartupInstructions": 1607,
   "allGeneralRegistersMatch": true,
   "entireNativeStackMatches": true,
   "dllInitializationCompleted": false,
-  "implementedWindowsCalls": 37,
+  "implementedWindowsCalls": 49,
   "initializerCallbacksExecuted": 5,
   "completedInitializerTables": 1,
   "entireDllImageMatches": true,
   "allXmmRegistersMatch": true,
   "arithmeticFlagsMatch": true,
   "tlsMemoryMatches": true,
-  "onexitRegistrations": 6,
-  "srwAcquisitions": 4,
-  "emptyQueueConditionWakes": 2,
+  "onexitRegistrations": 7,
+  "srwAcquisitions": 7,
+  "emptyQueueConditionWakes": 3,
   "initializerCallbacksStarted": 5,
   "initializerCallbacksCompleted": 4,
   "initializerTablesInProgress": 1,
-  "executedImportCalls": 37,
+  "executedImportCalls": 49,
   "implementedImports": [
     "KERNEL32.dll!AcquireSRWLockExclusive",
+    "KERNEL32.dll!GetCurrentProcess",
     "KERNEL32.dll!GetCurrentProcessId",
     "KERNEL32.dll!GetCurrentThreadId",
     "KERNEL32.dll!GetEnvironmentVariableW",
@@ -467,6 +564,7 @@
     "KERNEL32.dll!QueryPerformanceFrequency",
     "KERNEL32.dll!ReleaseSRWLockExclusive",
     "KERNEL32.dll!WakeAllConditionVariable",
+    "api-ms-win-crt-heap-l1-1-0.dll!malloc",
     "api-ms-win-crt-runtime-l1-1-0.dll!_initialize_onexit_table",
     "api-ms-win-crt-runtime-l1-1-0.dll!_initterm",
     "api-ms-win-crt-runtime-l1-1-0.dll!_initterm_e",
@@ -474,5 +572,5 @@
     "ntdll.dll!RtlGetVersion"
   ],
   "verificationRun": "local complete test script",
-  "testedSource": "module-resolution checkpoint; fresh-runner confirmation pending"
+  "testedSource": "CRT heap checkpoint; fresh-runner confirmation pending"
 }
