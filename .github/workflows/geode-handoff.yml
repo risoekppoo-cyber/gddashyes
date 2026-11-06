@@ -1,0 +1,32 @@
+name: Geode live startup handoff component
+on:
+  push:
+    paths:
+      - '.github/workflows/geode-handoff.yml'
+      - 'experiments/geode-binary/handoff/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  handoff:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build pinned callback and compare native reference
+        run: |
+          python -m pip install -r experiments/geode-binary/requirements.txt ziglang==0.14.1
+          python experiments/geode-binary/fetch-startup-dll.py /tmp/Geode.dll
+          python experiments/fmod-bridge/fetch_module.py /tmp/gd.wasm
+          python experiments/geode-binary/handoff/build.py /tmp/Geode.dll /tmp/gd.wasm /tmp/handoff
+          GEODE_ZIG=$(python -c 'import ziglang;from pathlib import Path;print(Path(ziglang.__file__).parent/"zig")')
+          "$GEODE_ZIG" cc -target wasm32-freestanding -O2 -ffp-contract=off -g0 -s -nostdlib /tmp/handoff/prologue.c -Wl,--no-entry -Wl,--import-memory -Wl,--export=lift_run -Wl,--export=__stack_pointer -Wl,-z,stack-size=0 -Wl,--initial-memory=131072 -o /tmp/handoff/prologue.wasm
+          cmp /tmp/handoff/prologue.wasm experiments/geode-binary/handoff/prologue.wasm
+          node experiments/geode-binary/handoff/verify-node.mjs /tmp/handoff
+          node --check experiments/geode-binary/handoff/runtime.js

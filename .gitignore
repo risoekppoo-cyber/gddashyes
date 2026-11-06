@@ -8,6 +8,8 @@ __pycache__/
 !experiments/geode-binary/indirect/*.wasm
 !experiments/geode-binary/generated/*.wasm
 experiments/geode-binary/generated/*.c
+!experiments/geode-binary/handoff/*.wasm
+experiments/geode-binary/handoff/*.c
 experiments/geode-sdk/build/
 *.dis
 node_modules/

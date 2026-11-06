@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Geode live startup handoff</title>
+<body style="background:#101b2b;color:#eaffdd;font:16px system-ui;padding:30px"><p id="status">Preparing the opt-in startup handoff…</p>
+<script type="module">
+try{
+ const url=new URL(location.href);url.searchParams.set('geodehandoff','1');if(!url.searchParams.has('quality'))url.searchParams.set('quality','low');history.replaceState(null,'',url);
+ const root=new URL('../../../',url),response=await fetch(new URL('index.html',root));if(!response.ok)throw Error('Game launcher HTTP '+response.status);let html=await response.text();
+ const edits=[
+  ["  if (!sdk && params.get('hooktest') !== '1') return;","  if (!sdk && params.get('hooktest') !== '1' && params.get('geodehandoff') !== '1') return;"],
+  ["  if (sdk) paths.push('experiments/geode-sdk/menu-runtime.js');","  if (sdk) paths.push('experiments/geode-sdk/menu-runtime.js');\n  if (params.get('geodehandoff') === '1') paths.push('experiments/geode-binary/handoff/runtime.js');"],
+  ["var url = new URL(path, window.location.href);","var url = new URL(path, "+JSON.stringify(root.href)+");"]];
+ for(const [before,after] of edits){if(html.split(before).length!==2)throw Error('The game launcher changed; handoff stopped before game boot');html=html.replace(before,after);}
+ document.open();document.write(html);document.close();
+}catch(error){document.getElementById('status').textContent=error.message;}
+</script></body></html>
