@@ -14,6 +14,10 @@ The previous 546,460 combined-prefix proof passed in clean GitHub CI at https://
 
 The partitioned translator passes 118 CPU fixtures, including 107 real-x64 floating cases, plus the original 200 scalar cases from the unchanged scalar path. Native and WASM comparisons include all GPRs/XMMs/flags/MXCSR, complete images and native stack, TLS and CRT arenas, heap ownership, and each reached provider's metadata. Non-native providers remain a declared serialized Windows compatibility model, not real Windows itself.
 
+## FMOD follow-up component
+
+`../fmod-bridge/README.md` records a verified mapping from the pinned primary import IAT 0x00ace740 through WASM table slot 24570 to function 24950. Its exact implementation only returns FMOD_OK and performs no audio initialization. A matching owned readable Win64 entry and a narrow native-E9-to-WASM router pass 64 register contexts, 576 browser-adapter calls and 192 independent native executions, including call-original and restoration. Unknown patches fail closed. This is a component proof, not Geode's own installer running. It does not change the canonical 1,051,993 boundary. Next wire the owned provider and patch-write invalidation into the actual Geode runtime, as described there. New focused CI is pending.
+
 ## Exact resume point
 
 With VCRUNTIME enabled, the verified boundary is **1,051,993 instructions**, stopped BEFORE occurrence 33 of instruction `0x21a6dad`. The next operation reads native bytes from **fmod.dll!FMOD::System::init**, currently represented only by callable gateway `0x70001020`. Exact mangled import: `?init@System@FMOD@@QEAA?AW4FMOD_RESULT@@HIPEAX@Z`. The guard records the first unresolved import-memory access, then reruns from fresh native state and stops before that exact instruction occurrence. A verified result must have `unresolvedImportMemoryReads: []` and `stoppedBeforeUnresolvedImportRead: true`.

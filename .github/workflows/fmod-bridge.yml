@@ -1,0 +1,39 @@
+name: FMOD owned bridge contract
+on:
+  push:
+    paths:
+      - '.github/workflows/fmod-bridge.yml'
+      - 'experiments/fmod-bridge/**'
+      - 'experiments/hook-prototype.js'
+      - 'tools/wasm_probe.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bridge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Fetch pinned inputs and native reference
+        run: |
+          python -m pip install unicorn==2.1.4
+          python experiments/fmod-bridge/fetch_module.py /tmp/fmod/gd.wasm
+          python experiments/geode-binary/fetch_primary_image.py /tmp/fmod/primary.img
+      - name: Verify actual adapter and matched native contract
+        run: |
+          python experiments/fmod-bridge/build.py /tmp/fmod/gd.wasm /tmp/fmod/primary.img /tmp/fmod/test
+          node experiments/fmod-bridge/verify.cjs /tmp/fmod/test
+          python experiments/fmod-bridge/verify_native.py /tmp/fmod/test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fmod-bridge-evidence
+          path: |
+            /tmp/fmod/test/result.json
+            /tmp/fmod/test/manifest.json
