@@ -27,8 +27,7 @@ jobs:
         run: |
           python -m pip install -r experiments/geode-binary/requirements.txt
           python -m pip install ziglang==0.14.1
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq binaryen
+          npm install --prefix /tmp/geode-wasm-tools binaryen@123.0.0
       - name: Fetch hash-pinned official DLL
         run: |
           mkdir -p /tmp/geode-startup
@@ -37,6 +36,7 @@ jobs:
         env:
           GEODE_DLL: /tmp/geode-startup/Geode.dll
           GEODE_OUT: /tmp/geode-startup
+          GEODE_WASM_OPT: /tmp/geode-wasm-tools/node_modules/.bin/wasm-opt
         run: bash experiments/geode-binary/run-startup-tests.sh
       - uses: actions/upload-artifact@v4
         if: always()
