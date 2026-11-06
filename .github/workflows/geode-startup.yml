@@ -36,6 +36,7 @@ jobs:
           python experiments/geode-binary/fetch_primary_image.py /tmp/geode-startup/GeometryDash.exe.img
       - name: Verify actual DLL startup and boundary contracts
         env:
+          GEODE_INSTRUCTION_LIMIT: 1000000
           GEODE_DLL: /tmp/geode-startup/Geode.dll
           GEODE_COCOS_IMG: /tmp/geode-startup/libcocos2d.dll.img
           GEODE_PRIMARY_IMG: /tmp/geode-startup/GeometryDash.exe.img
