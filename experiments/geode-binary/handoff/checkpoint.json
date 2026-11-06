@@ -1,0 +1,20 @@
+{
+  "status": "LIVE_HANDOFF_READY_FOR_BROWSER_TEST",
+  "sourceCommit": "280dfa1cc09666800d27bc222a3e824a193a55c8",
+  "verificationRun": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42294122002",
+  "publishedCommit": "232f949ef4ef5f283df52f92202d225b4b887837",
+  "deploymentRun": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42294128413",
+  "testUrl": "https://risoekppoo-cyber.github.io/gddashyes/experiments/geode-binary/handoff/",
+  "pinnedMappingVerified": true,
+  "nativeReferenceCases": 8,
+  "compiledModuleMatchesCleanRebuild": true,
+  "callbackEntry": "0x212f200",
+  "stopBeforeFirstCall": "0x212f22d",
+  "instructions": 14,
+  "liveBrowserTested": false,
+  "liveGameContinuedAfterHandoffConfirmed": false,
+  "dllMappedIntoLiveGame": false,
+  "fullGeodeLoader": false,
+  "existingGeodePackagesSupported": false,
+  "next": "Run the real game handoff and save its CPU/stack/memory-base report before proceeding with complete DLL/runtime reservations. Do not copy the standalone arena into the live primary image."
+}
