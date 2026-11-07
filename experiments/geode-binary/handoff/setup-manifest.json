@@ -1,11 +1,11 @@
 {
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
-  "wasmSha256": "c1fbcdbb5cba6d9d4d9d2472d97e0f374490545392cc2f081e9b9cccdc142c02",
-  "servicesSha256": "b62c09e1fd04f101f8d55739a8a0bc11be48b54533f1c6ff96e56543c7d47244",
+  "wasmSha256": "457260f8f41b34428f3b3f57da5ba6f32b5aaf011d4b8d1de293fa1b517a319a",
+  "servicesSha256": "52371f12a1e6ee3de9fd48b390dbeef8d43b342442d3e473d2e613c66112d1f0",
   "entryRva": 1241600,
-  "stopRva": 10856768,
-  "steps": 4004,
-  "nextService": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+  "stopRva": 1241513,
+  "steps": 6109,
+  "nextService": "USER32.dll!GetAsyncKeyState",
   "tls": {
     "templateRva": 16908288,
     "templateSize": 784,
@@ -13,5 +13,8 @@
     "indexRva": 16456216,
     "callbacksExecuted": false
   },
-  "gsOffset": 2328
+  "gsOffset": 2328,
+  "onexitTables": [
+    16456032
+  ]
 }

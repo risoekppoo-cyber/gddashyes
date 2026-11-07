@@ -184,12 +184,13 @@ function fullWindowsPath(input,cwd='C:\\GeometryDash'){
  return result;
 }
 class GuestPaths extends GuestEncoding{
+ constructor(memory,addresses,options={}){super(memory,addresses,options);this.cwd=options.cwd||'C:\\GeometryDash';}
  invoke(cpu,address){
   if(this.addresses.GetFullPathNameW===undefined||address!==BigInt(this.addresses.GetFullPathNameW))return super.invoke(cpu,address);
   const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true),input=v.getBigUint64(cpu+8,true),capacity=Number(v.getBigUint64(cpu+16,true)&0xffffffffn),output=v.getBigUint64(cpu+64,true),part=v.getBigUint64(cpu+72,true);
   this.range(sp,8);let text='';
   for(let n=0;;n++){const p=this.range(input+BigInt(n*2),2),c=v.getUint16(p,true);if(!c)break;text+=String.fromCharCode(c);}
-  const full=fullWindowsPath(text);let result=0;
+  const full=fullWindowsPath(text,this.cwd);let result=0;
   if(full===null)v.setUint32(this.tib+0x68,123,true);
   else if(capacity<=full.length)result=full.length+1;
   else{
@@ -204,7 +205,7 @@ class GuestPaths extends GuestEncoding{
 }
 
 // windows-files.mjs
-const FILE_NAMES=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle'];
+const FILE_NAMES=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle','SetCurrentDirectoryW','GetCurrentDirectoryW'];
 function gameFilesystem(fs){
  if(!fs||typeof fs.stat!=='function')throw Error('Game filesystem unavailable');
  return {stat(path){
@@ -227,8 +228,16 @@ class GuestFiles extends GuestPaths{
   if(!name)return super.invoke(cpu,address);
   const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true),a=v.getBigUint64(cpu+8,true),b=v.getBigUint64(cpu+16,true),c=v.getBigUint64(cpu+64,true),d=v.getBigUint64(cpu+72,true);
   this.range(sp,name==='CreateFileW'?64:8);let result=0n,error=0;
-  if(name==='CreateFileW'){
-   const path=fullWindowsPath(this.wide(a)),disposition=v.getUint32(Number(sp)+40,true),flags=v.getUint32(Number(sp)+48,true);
+  if(name==='SetCurrentDirectoryW'){
+   if(!this.filesystem)throw Error('Guest filesystem is not configured');
+   const path=fullWindowsPath(this.wide(a),this.cwd),item=path&&this.filesystem.stat(path);
+   if(!item)error=3;else if(!item.directory)error=267;else{this.cwd=path;result=1n;}
+  }else if(name==='GetCurrentDirectoryW'){
+   const capacity=Number(a&0xffffffffn),text=this.cwd;
+   if(capacity<=text.length)result=BigInt(text.length+1);
+   else{const p=this.range(b,BigInt(capacity)*2n);for(let i=0;i<text.length;i++)v.setUint16(p+i*2,text.charCodeAt(i),true);v.setUint16(p+text.length*2,0,true);result=BigInt(text.length);}
+  }else if(name==='CreateFileW'){
+   const path=fullWindowsPath(this.wide(a),this.cwd),disposition=v.getUint32(Number(sp)+40,true),flags=v.getUint32(Number(sp)+48,true);
    if(b!==0n||disposition!==3||d!==0n)throw Error('Only existing metadata-only guest handles are implemented');
    if(!this.filesystem)throw Error('Guest filesystem is not configured');
    const item=path&&this.filesystem.stat(path);
@@ -252,5 +261,43 @@ class GuestFiles extends GuestPaths{
  }
 }
 
-export {GuestFiles as ServiceClass,gameFilesystem};
-export const SERVICE_NAMES=["AcquireSRWLockExclusive","ReleaseSRWLockExclusive","GetModuleFileNameW","GetLastError","SetLastError",...CRT_NAMES,...ENCODING_NAMES,...PATH_NAMES,...FILE_NAMES];
+// windows-lifecycle.mjs
+const LIFECYCLE_NAMES=['_initialize_onexit_table','_register_onexit_function','_execute_onexit_table','WakeAllConditionVariable'];
+class GuestLifecycle extends GuestFiles{
+ constructor(memory,addresses,options={}){super(memory,addresses,options);this.onexit=new Map();this.wakes=new Map();this.dispatchExit=options.dispatchExit;}
+ resolve(item){if(LIFECYCLE_NAMES.includes(item.name)&&/^(api-ms-win-crt-runtime|ucrtbase)/i.test(item.dll)){const p=this.addresses[item.name];return p===undefined?undefined:BigInt(p);}return super.resolve(item);}
+ initializeOnexit(table){
+  const p=this.range(table,24),old=this.onexit.get(p);if(old?.callbacks.length)throw Error('Cannot reinitialize active guest onexit table');
+  if(old?.buffer)this.free(old.buffer);
+  new Uint8Array(this.memory.buffer,p,24).fill(0);this.onexit.set(p,{callbacks:[],buffer:0n,capacity:0});
+ }
+ registerOnexit(table,callback){
+  const p=this.range(table,24),entry=this.onexit.get(p);if(!entry)throw Error('Guest CRT onexit table was not initialized');
+  if(entry.callbacks.length===entry.capacity){
+   const capacity=Math.max(4,entry.capacity*2),buffer=this.allocate(BigInt(capacity*8));if(!buffer)return -1;
+   if(entry.buffer){new Uint8Array(this.memory.buffer).copyWithin(Number(buffer),Number(entry.buffer),Number(entry.buffer)+entry.callbacks.length*8);this.free(entry.buffer);}
+   entry.buffer=buffer;entry.capacity=capacity;
+  }
+  const v=new DataView(this.memory.buffer);v.setBigUint64(Number(entry.buffer)+entry.callbacks.length*8,callback,true);entry.callbacks.push(callback);
+  v.setBigUint64(p,entry.buffer,true);v.setBigUint64(p+8,entry.buffer+BigInt(entry.callbacks.length*8),true);v.setBigUint64(p+16,entry.buffer+BigInt(entry.capacity*8),true);return 0;
+ }
+ executeOnexit(table){
+  const p=this.range(table,24),entry=this.onexit.get(p);if(!entry)throw Error('Uninitialized guest onexit execution');
+  if(entry.callbacks.length&&typeof this.dispatchExit!=='function')throw Error('Guest exit callbacks require translated callback dispatch');
+  while(entry.callbacks.length)this.dispatchExit(entry.callbacks.pop());
+  if(entry.buffer)this.free(entry.buffer);new Uint8Array(this.memory.buffer,p,24).fill(0);this.onexit.delete(p);return 0;
+ }
+ invoke(cpu,address){
+  const name=LIFECYCLE_NAMES.find(n=>this.addresses[n]!==undefined&&BigInt(this.addresses[n])===address);if(!name)return super.invoke(cpu,address);
+  let v=new DataView(this.memory.buffer);const a=v.getBigUint64(cpu+8,true),b=v.getBigUint64(cpu+16,true),sp=v.getBigUint64(cpu+32,true);this.range(sp,8);let result;
+  if(name==='_initialize_onexit_table'){this.initializeOnexit(a);result=0;}
+  else if(name==='_register_onexit_function')result=this.registerOnexit(a,b);
+  else if(name==='_execute_onexit_table')result=this.executeOnexit(a);
+  else{const p=this.range(a,8);if(v.getBigUint64(p,true)!==0n)throw Error('Nonempty guest condition-variable wait state is unsupported');this.wakes.set(p,(this.wakes.get(p)||0)+1);}
+  v=new DataView(this.memory.buffer);if(result!==undefined)v.setBigUint64(cpu,BigInt.asUintN(32,BigInt(result)),true);
+  this.calls.push(name);v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);
+ }
+}
+
+export {GuestLifecycle as ServiceClass,gameFilesystem};
+export const SERVICE_NAMES=["AcquireSRWLockExclusive","ReleaseSRWLockExclusive","GetModuleFileNameW","GetLastError","SetLastError",...CRT_NAMES,...ENCODING_NAMES,...PATH_NAMES,...FILE_NAMES,...LIFECYCLE_NAMES];

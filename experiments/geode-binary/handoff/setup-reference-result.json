@@ -1,28 +1,28 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
   "cases": 8,
-  "uniqueInstructions": 1785,
+  "uniqueInstructions": 2274,
   "boundaries": [
     {
-      "rva": 10856768,
-      "service": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
-      "iatRva": 15263688,
+      "rva": 1241513,
+      "service": "USER32.dll!GetAsyncKeyState",
+      "iatRva": 15258944,
       "arguments": [
-        "0x2fb1960",
-        "0x2132f00",
-        "0xf",
-        "0x10e893"
+        "0x12",
+        "0x30",
+        "0x1800390",
+        "0xf"
       ]
     },
     {
-      "rva": 10856768,
-      "service": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
-      "iatRva": 15263688,
+      "rva": 1241513,
+      "service": "USER32.dll!GetAsyncKeyState",
+      "iatRva": 15258944,
       "arguments": [
-        "0x2fb1960",
-        "0x2132f00",
-        "0xf",
-        "0x10e893"
+        "0x12",
+        "0x30",
+        "0x1800390",
+        "0xf"
       ]
     },
     {
@@ -34,25 +34,25 @@
       "service": "Signed-shift fixture stop"
     },
     {
-      "rva": 10856768,
-      "service": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
-      "iatRva": 15263688,
+      "rva": 1241513,
+      "service": "USER32.dll!GetAsyncKeyState",
+      "iatRva": 15258944,
       "arguments": [
-        "0x16fb1960",
-        "0x16132f00",
-        "0xf",
-        "0x10e893"
+        "0x12",
+        "0x30",
+        "0x1800390",
+        "0xf"
       ]
     },
     {
-      "rva": 10856768,
-      "service": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
-      "iatRva": 15263688,
+      "rva": 1241513,
+      "service": "USER32.dll!GetAsyncKeyState",
+      "iatRva": 15258944,
       "arguments": [
-        "0x16fb1960",
-        "0x16132f00",
-        "0xf",
-        "0x10e893"
+        "0x12",
+        "0x30",
+        "0x1800390",
+        "0xf"
       ]
     },
     {
@@ -64,6 +64,6 @@
       "service": "Signed-shift fixture stop"
     }
   ],
-  "wasmSha256": "c1fbcdbb5cba6d9d4d9d2472d97e0f374490545392cc2f081e9b9cccdc142c02",
+  "wasmSha256": "457260f8f41b34428f3b3f57da5ba6f32b5aaf011d4b8d1de293fa1b517a319a",
   "fullGeodeLoader": false
 }
