@@ -36,7 +36,9 @@ class SetupContext{
    const state=new DataView(e.memory.buffer);
    if(!(r&0x80000000)){
     if(state.getBigUint64(shadow+192,true)!==stop||steps!==m.steps||this.services.held.size)throw Error('Unexpected setup stop state');
-    return {steps,stop,service:m.nextService,calls:[...this.services.calls],tib:this.tib,isolatedStack:this.stackTop,onexitCallbacks:[...this.services.onexit.values()].reduce((n,t)=>n+t.callbacks.length,0),
+    const dialog=m.nextService==='USER32.dll!MessageBoxW'?{text:this.services.wide(state.getBigUint64(shadow+16,true)),caption:this.services.wide(state.getBigUint64(shadow+64,true))}:undefined;
+    if(m.nextDialog&&JSON.stringify(dialog)!==JSON.stringify(m.nextDialog))throw Error('Live loader diagnostic differs from native reference');
+    return {steps,stop,service:m.nextService,dialog,calls:[...this.services.calls],tib:this.tib,isolatedStack:this.stackTop,onexitCallbacks:[...this.services.onexit.values()].reduce((n,t)=>n+t.callbacks.length,0),
      nextArguments:[8,16,64,72].map(o=>'0x'+state.getBigUint64(shadow+o,true).toString(16))};
    }
    this.services.invoke(shadow,state.getBigUint64(shadow+192,true));pc=state.getBigUint64(shadow+192,true);

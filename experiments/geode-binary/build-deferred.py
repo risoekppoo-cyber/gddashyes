@@ -53,6 +53,7 @@ class WideLifter(Lifter):
   if max([v.size for v in a]+([op.output.size] if op.output else [])+[0])<=8:
    return super().emit_op(op,index,count)
   if code=='COPY':return self.assign(op.output,self.expr(a[0]))
+  if code=='INT_ZEXT' and op.output.size==16:return self.assign(op.output,f'(wide_t){self.expr(a[0])}')
   if code=='LOAD' and op.output.size==16:return self.assign(op.output,f'guest_read128({self.expr(a[1])},guest_base)')
   if code=='STORE' and a[2].size==16:return f'guest_write128({self.expr(a[1])},{self.expr(a[2])},guest_base);'
   if code in ['INT_XOR','INT_AND','INT_OR']:
@@ -367,6 +368,15 @@ def main():
         raw.extend(ch)
        rsp=emu.reg_read(x.UC_X86_REG_RSP)
        boundary['fileRequest']={'path':raw.decode('utf-16le'),'access':hex(emu.reg_read(x.UC_X86_REG_RDX)),'share':hex(emu.reg_read(x.UC_X86_REG_R8)),'disposition':int.from_bytes(emu.mem_read(rsp+32,4),'little'),'flags':hex(int.from_bytes(emu.mem_read(rsp+40,4),'little'))}
+      if imports[slot].endswith('!MessageBoxW'):
+       def wide_text(pointer):
+        raw=bytearray()
+        for i in range(32768):
+         char=bytes(emu.mem_read(pointer+i*2,2))
+         if char==b'\0\0':return raw.decode('utf-16le')
+         raw.extend(char)
+        raise RuntimeError('Unterminated guest dialog text')
+       boundary['dialog']={'text':wide_text(emu.reg_read(x.UC_X86_REG_RDX)),'caption':wide_text(emu.reg_read(x.UC_X86_REG_R8))}
       emu.emu_stop();return
     instruction=str(ctx.disassemble(pe.get_data(rva,16),base_address=preferred+rva,max_instructions=1).instructions[0])
     mnemonic=instruction.split(': ',1)[1].split(' ',1)[0]
