@@ -5,6 +5,7 @@ on:
       - '.github/workflows/geode-deferred.yml'
       - 'experiments/geode-binary/inspect-deferred.py'
       - 'experiments/geode-binary/build-deferred.py'
+      - 'integration-tests/deferred-reference.mjs'
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,12 +18,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
       - run: python -m pip install -r experiments/geode-binary/requirements.txt
       - run: |
           python experiments/geode-binary/fetch-startup-dll.py /tmp/Geode.dll
           python experiments/geode-binary/inspect-deferred.py /tmp/Geode.dll
           python experiments/geode-binary/build-deferred.py /tmp/Geode.dll /tmp/deferred
           clang --target=wasm32 -O2 -nostdlib /tmp/deferred/deferred.c -Wl,--no-entry -Wl,--import-memory -Wl,--export=lift_run -Wl,--export=__stack_pointer -Wl,-z,stack-size=65536 -o /tmp/deferred/deferred.wasm
+          node integration-tests/deferred-reference.mjs /tmp/deferred
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -30,3 +35,4 @@ jobs:
           path: |
             deferred-inspection.json
             /tmp/deferred/manifest.json
+            /tmp/deferred/reference-result.json

@@ -68,14 +68,14 @@ def main():
  data=Path(sys.argv[1]).read_bytes();assert hashlib.sha256(data).hexdigest()==PIN
  out=Path(sys.argv[2]);out.mkdir(parents=True,exist_ok=True)
  pe=pefile.PE(data=data);preferred=pe.OPTIONAL_HEADER.ImageBase;size=pe.OPTIONAL_HEADER.SizeOfImage
- original=pe.get_memory_mapped_image();ctx=pypcode.Context('x86:LE:64:default')
+ original=pe.get_memory_mapped_image().ljust(size,b'\0');ctx=pypcode.Context('x86:LE:64:default')
  imports={}
  for group in [getattr(pe,'DIRECTORY_ENTRY_IMPORT',[]),getattr(pe,'DIRECTORY_ENTRY_DELAY_IMPORT',[])]:
   for desc in group:
    for imp in desc.imports:imports[imp.address-preferred]=desc.dll.decode()+'!'+(imp.name.decode() if imp.name else '#'+str(imp.ordinal))
  cases=[];observed=set();boundaries=[]
  for image_base in [0x2000000,0x16000000]:
-  for variant in range(2):
+  for variant in range(3):
    image=bytearray(original)
    for block in pe.DIRECTORY_ENTRY_BASERELOC:
     for rel in block.entries:
@@ -99,6 +99,8 @@ def main():
    uc.mem_map(stack_base,stack_size);uc.mem_write(stack_base,b'\xa5'*stack_size)
    values=[((i+1)*0x1111111111111111+variant)&((1<<64)-1) for i in range(16)]
    for i,value in {1:0x400000,2:0,4:sp,8:0,9:10}.items():values[i]=value
+   entry_rva=0x12df16 if variant==2 else 0x12f200
+   if variant==2:values[5]=0x10e000
    for reg,value in zip(REGS,values):uc.reg_write(getattr(x,'UC_X86_REG_'+reg),value)
    xmm=[((i+1)*0x01010101010101010101010101010101)&((1<<128)-1) for i in range(16)]
    for i,value in enumerate(xmm):uc.reg_write(getattr(x,'UC_X86_REG_XMM'+str(i)),value)
@@ -107,6 +109,8 @@ def main():
    def hook(emu,address,n,_):
     rva=address-image_base
     if not 0<=rva<size:raise RuntimeError(f'Unexpected target {address:#x}')
+    if variant==2 and rva==0x12df21:
+     boundary.update(rva=rva,service='SIMD fixture stop');emu.emu_stop();return
     b=bytes(emu.mem_read(address,min(16,size-rva)))
     if b[:2] in [b'\xff\x15',b'\xff\x25']:
      slot=rva+6+int.from_bytes(b[2:6],'little',signed=True)
@@ -115,12 +119,13 @@ def main():
     trace.append(rva);observed.add(rva)
     if len(trace)>10000:raise RuntimeError('Native path step limit')
    uc.hook_add(unicorn.UC_HOOK_CODE,hook)
-   try:uc.emu_start(image_base+0x12f200,0,count=10001)
+   try:uc.emu_start(image_base+entry_rva,0,count=10001)
    except unicorn.UcError as error:
     fault=uc.reg_read(x.UC_X86_REG_RIP)
     recent=[str(ctx.disassemble(bytes(uc.mem_read(image_base+i,16)),base_address=preferred+i,max_instructions=1).instructions[0]) for i in trace[-6:]]
     raise RuntimeError(f'Native path fault at {fault:#x}; recent {recent}: {error}') from error
    if not boundary:raise RuntimeError('No explicit service boundary found')
+   print(json.dumps({'nativeBoundary':boundary,'steps':len(trace),'imageBase':hex(image_base)}),flush=True)
    # Store only changed DLL bytes; pointers in the reference are base-specific.
    final=bytes(uc.mem_read(image_base,size));changes=[];at=0
    while at<size:
@@ -128,7 +133,7 @@ def main():
     start=at
     while at<size and final[at]!=image[at]:at+=1
     changes.append({'rva':start,'hex':final[start:at].hex()})
-   cases.append({'imageBase':image_base,'initial':[hex(v) for v in values],'initialXmm':[hex(v) for v in xmm],'flags':flags,
+   cases.append({'imageBase':image_base,'entryRva':entry_rva,'initial':[hex(v) for v in values],'initialXmm':[hex(v) for v in xmm],'flags':flags,
      'expected':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+r))) for r in REGS],
      'expectedXmm':[hex(uc.reg_read(getattr(x,'UC_X86_REG_XMM'+str(i)))) for i in range(16)],
      'expectedFlags':uc.reg_read(x.UC_X86_REG_EFLAGS),'stopRva':boundary['rva'],'steps':len(trace),
