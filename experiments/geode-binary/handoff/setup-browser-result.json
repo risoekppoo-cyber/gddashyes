@@ -7,7 +7,7 @@
     "deferredLoaderInitialized": false,
     "callbackPrologueExecuted": true,
     "callbackPrologueOnly": false,
-    "gameFrames": 135,
+    "gameFrames": 138,
     "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
     "sourceDllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
     "gameModuleSha256": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
@@ -278,7 +278,10 @@
       "malloc",
       "CreateIoCompletionPort",
       "malloc",
-      "malloc"
+      "malloc",
+      "memcpy",
+      "GetCurrentThreadId",
+      "RaiseException"
     ],
     "staticTlsTemplateInitialized": true,
     "tlsCallbacksExecuted": false,
@@ -298,6 +301,10 @@
       [
         1,
         "Main"
+      ],
+      [
+        2,
+        "arc-worker-0"
       ]
     ],
     "threadNameNotificationHandled": true,
@@ -368,6 +375,25 @@
       "threadIdOutputIsNull": false,
       "threadCreationImplemented": false
     },
+    "worker": {
+      "status": "WORKER_CALLBACK_BOUNDARY_PASS",
+      "id": 2,
+      "entryRva": 5241520,
+      "instructions": 557,
+      "nextRequiredService": "MSVCP140.dll!?__ExceptionPtrCreate@@YAXPEAX@Z",
+      "nextBoundaryKind": "service-call",
+      "rootCpuPreserved": true,
+      "rootCpuRetained": true,
+      "contextRetained": true,
+      "threadCreationImplemented": false,
+      "crtThreadStartupImplemented": false,
+      "executedServices": [
+        "memcpy",
+        "GetCurrentThreadId",
+        "RaiseException"
+      ]
+    },
+    "totalTranslatedInstructions": 12780,
     "originalGameCpuPreserved": true,
     "liveStackRestored": true,
     "gameContinuedAfterHandoff": true
@@ -396,6 +422,6 @@
     }
   ],
   "jspi": true,
-  "seconds": 19.683,
+  "seconds": 18.988,
   "events": []
 }
