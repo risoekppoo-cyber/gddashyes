@@ -22,7 +22,7 @@
       "linearEnd": 374665216,
       "active": true
     },
-    "unresolvedImportCount": 2004,
+    "unresolvedImportCount": 1994,
     "dllRelocations": 56939,
     "memoryLayout": {
       "memoryBytes": 377487360,
@@ -43,12 +43,12 @@
       ],
       "guestReservationVerified": false
     },
-    "instructions": 71,
+    "instructions": 112,
     "stoppedBeforeFirstCall": false,
     "liveGuestBase": "0x0",
     "liveStack": "0x13efefe0",
     "gameStartupTarget": "0xa74a90",
-    "callbackStop": "0x15642d14",
+    "callbackStop": "0x15a206eb",
     "arguments": [
       "0x400000",
       "0x0",
@@ -56,17 +56,18 @@
       "0xa"
     ],
     "sharedGameMemory": true,
-    "nextRequiredService": "api-ms-win-crt-string-l1-1-0.dll!wcslen",
+    "nextRequiredService": "KERNEL32.dll!WideCharToMultiByte",
     "nextServiceArguments": [
+      "0xfde9",
+      "0x0",
       "0x1550ef80",
-      "0x1550ef80",
-      "0x104",
-      "0xa"
+      "0x20"
     ],
     "executedServices": [
       "AcquireSRWLockExclusive",
       "ReleaseSRWLockExclusive",
-      "GetModuleFileNameW"
+      "GetModuleFileNameW",
+      "wcslen"
     ],
     "staticTlsTemplateInitialized": true,
     "tlsCallbacksExecuted": false,
@@ -99,6 +100,6 @@
     }
   ],
   "jspi": true,
-  "seconds": 14.679,
+  "seconds": 14.43,
   "events": []
 }
