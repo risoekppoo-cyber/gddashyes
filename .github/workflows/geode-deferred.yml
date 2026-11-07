@@ -1,0 +1,27 @@
+name: Geode deferred callback
+on:
+  push:
+    paths:
+      - '.github/workflows/geode-deferred.yml'
+      - 'experiments/geode-binary/inspect-deferred.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deferred:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r experiments/geode-binary/requirements.txt
+      - run: |
+          python experiments/geode-binary/fetch-startup-dll.py /tmp/Geode.dll
+          python experiments/geode-binary/inspect-deferred.py /tmp/Geode.dll
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deferred-inspection
+          path: deferred-inspection.json
