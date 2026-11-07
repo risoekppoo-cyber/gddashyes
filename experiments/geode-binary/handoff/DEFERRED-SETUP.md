@@ -1,42 +1,48 @@
-# Deferred setup checkpoint â€” 7 November 2026
+# Deferred setup checkpoint - 7 November 2026
 
-The owned live-game mapping now has an opt-in continuation past the original
-14-instruction callback prologue. It executes 69 translated native instructions,
-including nested calls and the first two reached Windows service calls:
-`AcquireSRWLockExclusive` and `ReleaseSRWLockExclusive`.
+Setup executes 9,633 native instructions and 171 guest service calls across 23
+distinct services. Chromium continued for 143 game frames. The game CPU was
+preserved and its stack restored.
 
-The bounded SRW profile tracks lock ownership and rejects contention/recursive
-acquisition or invalid releases. It is not a no-op success stub. Its simple
-uncontended 0 â†’ 1 â†’ 0 representation was checked against the local Windows
-kernel APIs; it does not implement general native threading or blocking.
+The pinned DLL uses allocator-owned live game memory, an isolated Windows-aligned
+guest stack, a partial one-context TIB, static TLS template, owned heap and an
+initialized CRT onexit table. Registered exit callbacks are retained. Complete
+CRT startup and TLS callback execution remain unfinished.
 
-Static TLS template and zero-fill storage use allocator-owned memory. The
-translator gets its own GS/TIB/TLS context and an isolated Windows-aligned guest
-stack. The live game CPU and stack are preserved. TLS callbacks, CRT startup
-and deferred loader initialization remain unimplemented.
+Reached services now cover locks, module paths/errors, strings/memory, heap,
+C-locale character classification, UTF-8, DOS paths, actual directory metadata,
+current directory, onexit registration, empty condition-variable wakes, browser
+modifiers and ceilf. The translator handles the reached floating-point, signed
+shift and 128-bit operations. Unsupported behavior stops explicitly.
 
-`build-deferred.py` traces the official hash-pinned DLL with Unicorn and emits
-only the observed instruction closure. It adds bounded 128-bit copy/load/store
-and bitwise semantics, explicit XMM shadow storage and image-relative address
-rebasing. Unknown operations remain errors. Six native-reference contexts at
-two image bases verify registers, XMMs, arithmetic flags, stack, TLS, DLL writes,
-and service call order. Two of those cases independently exercise the reached
-MOVUPS/MOVAPS/XORPS instruction slice; the live 69-instruction path itself has
-not reached that SIMD slice yet.
+The game PE timestamp is 1792203143 (supported GD 2.2091). The normal Windows
+bootstrap saves this before entering the main hook. Our direct hook now performs
+this initialization at the pinned DLL RVA 0xfb22a8 from the real live PE header.
+Missing it caused the misleading error that 2.2091 needed updating to 2.2091.
+Neither the game PE header nor the version comparison is patched.
 
-The real Chromium/game check reports `LIVE_SETUP_SERVICE_BOUNDARY_PASS`, 140
-or more frames (154 in the published run), preserved sampled CPU state and restored live stack. It stops BEFORE:
+The next boundary is an unresolved function-pointer read:
 
-`KERNEL32.dll!GetModuleFileNameW` (callback path RVA `0x132d0b`).
+    Instruction RVA: 0x12ecf4
+    IAT slot RVA:    0xfaf1f0
+    DLL:            libcocos2d.dll
+    Export:         ?convertToNodeSpace@CCNode@cocos2d@@QEAA?AVCCPoint@2@AEBV32@@Z
 
-The reported next arguments are module handle 0, a buffer in the private setup
-stack, and capacity 260 WCHARs. No module-file-name result is fabricated.
-Two imports now have implemented guest dispatch; 2,007 import slots remain
-unresolved. This count is not the number of services executed by setup.
+It needs the actual loaded Cocos2d module/export address. Direct and indirect
+unresolved import probes now stop before a null value can change a branch. A
+provisional trace reached thread-naming RaiseException after an unresolved probe;
+that is not the current verified continuation.
 
-Use the mapping page's checked setup option, or append `&geodesetup=1` to the
-owned-mapping handoff URL after supplying the pinned DLL. The old modes remain
-available. **Existing `.geode` packages and the full loader do not work yet.**
+Generated C uses non-inlined functions for 256-byte native address ranges to
+prevent V8 compiler memory exhaustion. Eight native-reference cases at two DLL
+bases verify GPRs, XMMs, defined flags, stack, TLS, DLL writes, heap, onexit
+registrations, primary header preservation and service order. Cases include
+correct bootstrap initialization, its missing-initialization error branch,
+SIMD and a negative signed shift.
 
-The workflow publishes `setup.wasm`, its hash manifest, native-reference result
-and browser result only after both reference and actual-browser checks pass.
+[Reference and browser checks](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42366669242)
+passed. WASM, content-versioned service code, manifests and results publish only
+after these checks pass. The launcher revision has been updated.
+
+**Full Geode initialization and existing .geode packages remain unsupported.**
+See [NEXT-CHAT-TASKS.md](NEXT-CHAT-TASKS.md) for the next small tasks.
