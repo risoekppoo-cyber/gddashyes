@@ -60,11 +60,12 @@ for(const [index,c] of manifest.cases.entries()){
  assert.deepEqual(services.pipeSnapshot(),c.pipeState,`case ${index} pipe endpoints, queues and completion ownership`);
  assert.deepEqual(services.criticalSnapshot(),c.criticalState,`case ${index} critical-section ownership and recursion`);
  assert.deepEqual(services.iocpSnapshot(),c.iocpState,`case ${index} completion ports, associations and queued packets`);
+ if(manifest.boundaries[index].stopService==='_beginthreadex')assert.deepEqual(services.readThreadRequest(cpu,c.imageBase),manifest.boundaries[index].threadRequest,`case ${index} captured worker request`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,gh.base,4096),Buffer.from(gh.hex,'hex')),0,`case ${index} primary game headers`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,cc.pageBase,4096),Buffer.from(cc.pageHex,'hex')),0,`case ${index} Cocos code`);
 }
 const result={status:'DEFERRED_NATIVE_REFERENCE_PASS',cases:manifest.cases.length,uniqueInstructions:manifest.uniqueInstructions,boundaries:manifest.boundaries,wasmSha256:createHash('sha256').update(wasm).digest('hex'),fullGeodeLoader:false};
 await writeFile(dir+'/reference-result.json',JSON.stringify(result,null,2));
 const first=manifest.cases[0];
-await writeFile(dir+'/runtime-manifest.json',JSON.stringify({dllSha256:manifest.dllSha256,wasmSha256:result.wasmSha256,servicesSha256:createHash('sha256').update(await readFile(dir+'/services.mjs')).digest('hex'),entryRva:manifest.entryRva,stopRva:first.stopRva,steps:first.steps,nextService:manifest.boundaries[0].service,nextBoundaryKind:manifest.boundaries[0].kind,nextDialog:manifest.boundaries[0].dialog,nextPipeRequest:manifest.boundaries[0].pipeRequest,cocos:manifest.cocos,bootstrap:manifest.bootstrap,tls:manifest.tls,gsOffset:manifest.gsOffset,onexitTables:manifest.onexitTables},null,2));
+await writeFile(dir+'/runtime-manifest.json',JSON.stringify({dllSha256:manifest.dllSha256,wasmSha256:result.wasmSha256,servicesSha256:createHash('sha256').update(await readFile(dir+'/services.mjs')).digest('hex'),entryRva:manifest.entryRva,stopRva:first.stopRva,steps:first.steps,nextService:manifest.boundaries[0].service,stopService:manifest.boundaries[0].stopService,nextThreadRequest:manifest.boundaries[0].threadRequest,nextBoundaryKind:manifest.boundaries[0].kind,nextDialog:manifest.boundaries[0].dialog,nextPipeRequest:manifest.boundaries[0].pipeRequest,cocos:manifest.cocos,bootstrap:manifest.bootstrap,tls:manifest.tls,gsOffset:manifest.gsOffset,onexitTables:manifest.onexitTables},null,2));
 console.log(JSON.stringify(result,null,2));

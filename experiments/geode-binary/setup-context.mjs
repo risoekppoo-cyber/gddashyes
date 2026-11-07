@@ -41,7 +41,7 @@ class SetupContext{
   new Uint8Array(e.memory.buffer,this.stackTop,64).set(new Uint8Array(e.memory.buffer,liveSp,64));
   v.setBigUint64(shadow+32,BigInt(this.stackTop),true);v.setBigUint64(shadow+m.gsOffset,BigInt(this.tib),true);
   this.aux.exports.__stack_pointer.value=compilerTop;
-  const stop=BigInt(imageBase+m.stopRva);let pc=BigInt(imageBase+m.entryRva),steps=0;
+  const stop=m.stopService?BigInt(this.services.addresses[m.stopService]):BigInt(imageBase+m.stopRva);let pc=BigInt(imageBase+m.entryRva),steps=0;
   for(let transfers=0;transfers<1000;transfers++){
    const r=this.aux.exports.lift_run(shadow,pc,BigInt(imageBase),0,stop,20000)>>>0;steps+=r&0x7fffffff;
    if(steps>m.steps)throw Error('Setup exceeded verified instruction budget');
@@ -52,7 +52,9 @@ class SetupContext{
     if(m.nextDialog&&JSON.stringify(dialog)!==JSON.stringify(m.nextDialog))throw Error('Live loader diagnostic differs from native reference');
     let pipeRequest;
     if(m.nextPipeRequest){const sp=state.getBigUint64(shadow+32,true);this.services.range(sp,64);const p=Number(sp);pipeRequest={path:this.services.wide(state.getBigUint64(shadow+8,true)),openMode:state.getUint32(shadow+16,true),pipeMode:state.getUint32(shadow+64,true),maxInstances:state.getUint32(shadow+72,true),outBufferSize:state.getUint32(p+32,true),inBufferSize:state.getUint32(p+40,true),defaultTimeout:state.getUint32(p+48,true),security:'0x'+state.getBigUint64(p+56,true).toString(16)};if(JSON.stringify(pipeRequest)!==JSON.stringify(m.nextPipeRequest))throw Error('Live named-pipe request differs from native reference');}
-    return {steps,stop,service:m.nextService,dialog,pipeRequest,pipeState:this.services.pipeSnapshot?.(),calls:[...this.services.calls],threadNames:[...(this.services.threadNames||[])],stdioState:this.services.stdioSnapshot?.(),tib:this.tib,isolatedStack:this.stackTop,onexitCallbacks:[...this.services.onexit.values()].reduce((n,t)=>n+t.callbacks.length,0),
+    const threadRequest=m.stopService==='_beginthreadex'?this.services.readThreadRequest(shadow,imageBase):undefined;
+    if(m.nextThreadRequest)for(const key of ['security','stackSize','entryRva','argumentIsNull','initFlags','threadIdOutputIsNull','threadCreationImplemented'])if(threadRequest[key]!==m.nextThreadRequest[key])throw Error('Live worker request differs from native reference: '+key);
+    return {steps,stop,service:m.nextService,dialog,pipeRequest,threadRequest,pipeState:this.services.pipeSnapshot?.(),iocpState:this.services.iocpSnapshot?.(),criticalState:this.services.criticalSnapshot?.(),calls:[...this.services.calls],threadNames:[...(this.services.threadNames||[])],stdioState:this.services.stdioSnapshot?.(),tib:this.tib,isolatedStack:this.stackTop,onexitCallbacks:[...this.services.onexit.values()].reduce((n,t)=>n+t.callbacks.length,0),
      nextArguments:[8,16,64,72].map(o=>'0x'+state.getBigUint64(shadow+o,true).toString(16))};
    }
    this.services.invoke(shadow,state.getBigUint64(shadow+192,true));pc=new DataView(e.memory.buffer).getBigUint64(shadow+192,true);

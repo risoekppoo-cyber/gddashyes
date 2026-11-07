@@ -167,7 +167,7 @@ def main():
    pipe_services=['CreateNamedPipeW','ReadFile','WriteFile','GetOverlappedResult','freopen_s','_write']
    critical_names=['InitializeCriticalSection','EnterCriticalSection','LeaveCriticalSection','TryEnterCriticalSection','DeleteCriticalSection','InitializeConditionVariable','WakeConditionVariable']
    iocp_names=['CreateIoCompletionPort','PostQueuedCompletionStatus','GetQueuedCompletionStatus']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','powf','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services+critical_names+iocp_names)}
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','powf','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services+critical_names+iocp_names+['_beginthreadex'])}
    def bound(name):return name.split('!')[-1] in services or name in external
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],external.get(name,0)).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
@@ -247,6 +247,11 @@ def main():
    def hook(emu,address,n,_):
     if address in services.values():
      name=next(k for k,v in services.items() if v==address);ptr=emu.reg_read(x.UC_X86_REG_RCX)
+     if name=='_beginthreadex':
+      rsp=emu.reg_read(x.UC_X86_REG_RSP);start=emu.reg_read(x.UC_X86_REG_R8);argument=emu.reg_read(x.UC_X86_REG_R9);id_out=int.from_bytes(emu.mem_read(rsp+48,8),'little')
+      boundary.update(rva=address-image_base,service='api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex',kind='thread-start-request',stopService='_beginthreadex')
+      boundary['threadRequest']={'security':hex(ptr),'stackSize':emu.reg_read(x.UC_X86_REG_RDX)&0xffffffff,'entryAddress':hex(start),'entryRva':start-image_base if image_base<=start<image_base+size else None,'argument':hex(argument),'argumentIsNull':argument==0,'initFlags':int.from_bytes(emu.mem_read(rsp+40,4),'little'),'threadIdOutput':hex(id_out),'threadIdOutputIsNull':id_out==0,'threadCreationImplemented':False}
+      emu.emu_stop();return
      if name=='AcquireSRWLockExclusive':
       value=int.from_bytes(emu.mem_read(ptr,8),'little')
       if ptr in locks or value!=0:raise RuntimeError('Unsupported contended native lock')
