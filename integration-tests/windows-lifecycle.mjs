@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {GuestLifecycle} from '../experiments/geode-binary/windows-lifecycle.mjs';
+const memory=new WebAssembly.Memory({initial:4}),table=16384n,order=[];let at=100000;
+const s=new GuestLifecycle(memory,{}, {tib:8192,allocator:{malloc(n){const p=at;at+=n+16;return p;},free(){}},dispatchExit:fn=>order.push(fn)});
+assert.throws(()=>s.registerOnexit(table,1n),/not initialized/);s.initializeOnexit(table);
+for(let i=1;i<=6;i++)assert.equal(s.registerOnexit(table,BigInt(i)),0);
+assert.equal(s.onexit.get(Number(table)).callbacks.length,6);assert.throws(()=>s.initializeOnexit(table),/active/);
+assert.equal(s.executeOnexit(table),0);assert.deepEqual(order,[6n,5n,4n,3n,2n,1n]);assert.equal(s.heap.size,0);assert.throws(()=>s.executeOnexit(table),/Uninitialized/);
+s.initializeOnexit(table);s.registerOnexit(table,42n);s.dispatchExit=undefined;assert.throws(()=>s.executeOnexit(table),/translated callback dispatch/);assert.equal(s.onexit.get(Number(table)).callbacks.length,1);
+console.log('PASS: mandatory CRT initialization, real callback storage, growth, LIFO execution and unsupported dispatch rejection');

@@ -17,6 +17,7 @@ class SetupContext{
  run(shadow,imageBase,liveSp,compilerTop){
   const {e,metadata:m}=this,t=m.tls;
   this.services.modules.set(BigInt(imageBase),'C:\\GeometryDash\\Geode.dll');
+  for(const rva of m.onexitTables)this.services.initializeOnexit(BigInt(imageBase+rva));
   if(t.templateSize+t.zeroFill>4096||t.templateRva+t.templateSize>17035264||t.indexRva+4>17035264)throw Error('Setup TLS template bounds');
   new Uint8Array(e.memory.buffer,this.tib,0x10000).fill(0);
   new Uint8Array(e.memory.buffer,this.stack,0x10000).fill(0xa5);
@@ -34,7 +35,7 @@ class SetupContext{
    const state=new DataView(e.memory.buffer);
    if(!(r&0x80000000)){
     if(state.getBigUint64(shadow+192,true)!==stop||steps!==m.steps||this.services.held.size)throw Error('Unexpected setup stop state');
-    return {steps,stop,service:m.nextService,calls:[...this.services.calls],tib:this.tib,isolatedStack:this.stackTop,
+    return {steps,stop,service:m.nextService,calls:[...this.services.calls],tib:this.tib,isolatedStack:this.stackTop,onexitCallbacks:[...this.services.onexit.values()].reduce((n,t)=>n+t.callbacks.length,0),
      nextArguments:[8,16,64,72].map(o=>'0x'+state.getBigUint64(shadow+o,true).toString(16))};
    }
    this.services.invoke(shadow,state.getBigUint64(shadow+192,true));pc=state.getBigUint64(shadow+192,true);

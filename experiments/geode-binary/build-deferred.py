@@ -94,16 +94,17 @@ def main():
    crt=['wcslen','strlen','memcpy','memmove','memset','memcmp','malloc','calloc','realloc','free']+list(ctype)
    encoding=['WideCharToMultiByte','MultiByteToWideChar']
    file_services=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services)}
+   lifecycle=['_initialize_onexit_table','_register_onexit_function','_execute_onexit_table','WakeAllConditionVariable']
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle)}
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
    uc.mem_map(0x70000000,4096)
-   uc.mem_map(0x300000,0x400000);heap_at=[0x300000];allocations={}
+   uc.mem_map(0x1800000,0x400000);heap_at=[0x1800000];allocations={}
    def allocate(n,zero=False):
     if n>0x7ffffff0:return 0
     capacity=max(1,n)+15;raw=heap_at[0];heap_at[0]=(raw+capacity+7)&~7
-    if heap_at[0]>0x700000:raise RuntimeError('Native fixture heap exhausted')
+    if heap_at[0]>0x1c00000:raise RuntimeError('Native fixture heap exhausted')
     pointer=(raw+15)&~15;allocations[pointer]=n
     if zero and n:uc.mem_write(pointer,b'\0'*n)
     return pointer
@@ -135,6 +136,10 @@ def main():
    xmm=[((i+1)*0x01010101010101010101010101010101)&((1<<128)-1) for i in range(16)]
    for i,value in enumerate(xmm):uc.reg_write(getattr(x,'UC_X86_REG_XMM'+str(i)),value)
    flags=0x202 if not variant else 0xad7;uc.reg_write(x.UC_X86_REG_EFLAGS,flags)
+   # Explicit CRT component initialization, required before registration. This
+   # does not execute the DLL's complete CRT entrypoint or TLS callbacks.
+   onexit={image_base+0xfb1960:{'callbacks':[],'buffer':0,'capacity':0}}
+   uc.mem_write(image_base+0xfb1960,b'\0'*24)
    trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000]
    def memory_write(emu,_access,address,n,_value,_):
     if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
@@ -184,6 +189,28 @@ def main():
        if name=='memcpy' and a!=b and a<b+c and b<a+c:raise RuntimeError('Overlapping native memcpy fixture')
        if c:emu.mem_write(a,bytes(emu.mem_read(b,c)))
        result=a
+      if result is not None:emu.reg_write(x.UC_X86_REG_RAX,result)
+     elif name in lifecycle:
+      result=None
+      if name=='WakeAllConditionVariable':
+       if int.from_bytes(emu.mem_read(ptr,8),'little')!=0:raise RuntimeError('Unsupported nonempty native condition variable')
+      elif name=='_initialize_onexit_table':
+       if ptr in onexit and onexit[ptr]['callbacks']:raise RuntimeError('Active native exit table reinitialization')
+       onexit[ptr]={'callbacks':[],'buffer':0,'capacity':0};emu.mem_write(ptr,b'\0'*24);result=0
+      elif ptr not in onexit:raise RuntimeError('Native onexit table requires explicit initialization')
+      elif name=='_execute_onexit_table':
+       if onexit[ptr]['callbacks']:raise RuntimeError('Native exit callbacks need a callback dispatcher')
+       if onexit[ptr]['buffer']:free(onexit[ptr]['buffer'])
+       del onexit[ptr];emu.mem_write(ptr,b'\0'*24);result=0
+      else:
+       entry=onexit[ptr];callback=emu.reg_read(x.UC_X86_REG_RDX)
+       if len(entry['callbacks'])==entry['capacity']:
+        capacity=max(4,entry['capacity']*2);buffer=allocate(capacity*8)
+        if entry['buffer']:
+         emu.mem_write(buffer,bytes(emu.mem_read(entry['buffer'],len(entry['callbacks'])*8)));free(entry['buffer'])
+        entry['buffer']=buffer;entry['capacity']=capacity
+       emu.mem_write(entry['buffer']+len(entry['callbacks'])*8,callback.to_bytes(8,'little'));entry['callbacks'].append(callback)
+       emu.mem_write(ptr,b''.join(n.to_bytes(8,'little') for n in [entry['buffer'],entry['buffer']+len(entry['callbacks'])*8,entry['buffer']+entry['capacity']*8]));result=0
       if result is not None:emu.reg_write(x.UC_X86_REG_RAX,result)
      elif name in file_services:
       result=0;error=0
@@ -302,9 +329,9 @@ def main():
     elif mnemonic in ['SHL','SHR','SAR','SHLD','SHRD']:defined_flags[0]&=~0x810
     elif mnemonic in ['MUL','IMUL']:defined_flags[0]&=0x801
     trace.append(rva);observed.add(rva)
-    if len(trace)>10000:raise RuntimeError('Native path step limit')
+    if len(trace)>50000:raise RuntimeError('Native path step limit')
    uc.hook_add(unicorn.UC_HOOK_CODE,hook)
-   try:uc.emu_start(image_base+entry_rva,0,count=10001)
+   try:uc.emu_start(image_base+entry_rva,0,count=50001)
    except unicorn.UcError as error:
     fault=uc.reg_read(x.UC_X86_REG_RIP)
     recent=[str(ctx.disassemble(bytes(uc.mem_read(image_base+i,16)),base_address=preferred+i,max_instructions=1).instructions[0]) for i in trace[-6:]]
@@ -325,14 +352,15 @@ def main():
      'stackBase':stack_base,'stackHex':bytes(uc.mem_read(stack_base,stack_size)).hex(),'dllChanges':changes,
      'tib':tib,'tlsArray':tls_array,'tlsData':tls_data,'tlsHex':bytes(uc.mem_read(tls_data,tls_size+tls.SizeOfZeroFill)).hex(),
      'serviceCalls':service_calls,'stackBelow':sp-min([a for a,b in writes]+[sp]),'stackAbove':max([b for a,b in writes]+[sp])-sp,
-     'heapHex':bytes(uc.mem_read(0x300000,heap_at[0]-0x300000)).hex() if heap_at[0]>0x300000 else ''})
+     'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex() if heap_at[0]>0x1800000 else '',
+     'onexitCallbacks':[str(callback) for table in onexit.values() for callback in table['callbacks']]})
    boundaries.append(boundary)
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)
  source=lifter.source();(out/'deferred.c').write_text(source)
  manifest={'dllSha256':PIN,'entryRva':0x12f200,'boundaries':boundaries,'uniqueInstructions':len(observed),
   'instructions':[{'rva':va-preferred,'length':ins.length,'assembly':str(ins)} for va,(ins,_,_) in sorted(lifter.blocks.items())],
-  'cases':cases,'gsOffset':2048+ctx.registers['GS_OFFSET'].offset,
+  'cases':cases,'gsOffset':2048+ctx.registers['GS_OFFSET'].offset,'onexitTables':[0xfb1960],
   'tls':{'templateRva':tls_rva,'templateSize':tls_size,'zeroFill':tls.SizeOfZeroFill,'indexRva':tls.AddressOfIndex-preferred,'callbacksExecuted':False},
   'generatedCsha256':hashlib.sha256(source.encode()).hexdigest(),'fullGeodeLoader':False}
  (out/'manifest.json').write_text(json.dumps(manifest,indent=2))
