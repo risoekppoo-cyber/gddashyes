@@ -12,8 +12,12 @@ class SetupContext{
   this.tib=Math.ceil(this.allocate(0x10010)/16)*16;
   this.stack=this.allocate(0x10000);this.stackTop=Math.floor((this.stack+0x10000-128)/16)*16-8;
   this.services=new this.serviceTypes.ServiceClass(this.e.memory,Object.fromEntries(this.serviceTypes.SERVICE_NAMES.map((n,i)=>[n,this.tib+0xf000+i*16])),{tib:this.tib,allocator:this.e,filesystem:this.serviceTypes.gameFilesystem(globalThis.Module?.FS),input:new this.serviceTypes.BrowserModifiers(globalThis.window)});
+  if(this.metadata.cocos){
+   this.cocos=this.serviceTypes.inspectCocos(this.e.memory,globalThis.Module.FS);
+   for(const key of ['base','imageSize','timestamp','dll','name','rva','address','pageBase','pageHex'])if(this.cocos[key]!==this.metadata.cocos[key])throw Error('Unverified live Cocos binding: '+key);
+  }
  }
- resolveImport(item){return this.services.resolve(item);}
+ resolveImport(item){if(this.cocos&&item.dll.toLowerCase()===this.cocos.dll&&item.name===this.cocos.name)return BigInt(this.cocos.address);return this.services.resolve(item);}
  run(shadow,imageBase,liveSp,compilerTop){
   const {e,metadata:m}=this,t=m.tls;
   this.services.modules.set(BigInt(imageBase),'C:\\GeometryDash\\Geode.dll');

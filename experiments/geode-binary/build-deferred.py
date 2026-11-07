@@ -136,6 +136,12 @@ def main():
  timestamp_rva=0xfb22a8;cmp=pe.get_data(0x12f281,6)
  assert cmp[:2]==b'\x3b\x05' and 0x12f287+int.from_bytes(cmp[2:6],'little',signed=True)==timestamp_rva
  game_timestamp=int.from_bytes(header_bytes[int.from_bytes(header_bytes[0x3c:0x40],'little')+8:][:4],'little')
+ cocos=json.loads(Path('integration-input/cocos-binding.json').read_text())
+ assert cocos['gameWasmSha256']==game_headers['gameWasmSha256'] and cocos['dll']=='libcocos2d.dll'
+ assert cocos['name']=='?convertToNodeSpace@CCNode@cocos2d@@QEAA?AVCCPoint@2@AEBV32@@Z'
+ cocos_page=bytes.fromhex(cocos['pageHex']);assert len(cocos_page)==4096 and cocos['pageBase']%4096==0
+ assert cocos['address']==cocos['base']+cocos['rva'] and cocos['pageBase']<=cocos['address']<cocos['pageBase']+4096
+ external={cocos['dll']+'!'+cocos['name']:cocos['address']}
  original=pe.get_memory_mapped_image().ljust(size,b'\0');ctx=pypcode.Context('x86:LE:64:default')
  imports={}
  for group in [getattr(pe,'DIRECTORY_ENTRY_IMPORT',[]),getattr(pe,'DIRECTORY_ENTRY_DELAY_IMPORT',[])]:
@@ -155,12 +161,16 @@ def main():
    file_services=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle','SetCurrentDirectoryW','GetCurrentDirectoryW']
    lifecycle=['_initialize_onexit_table','_register_onexit_function','_execute_onexit_table','WakeAllConditionVariable']
    services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId'])}
-   for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
+   def bound(name):return name.split('!')[-1] in services or name in external
+   for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],external.get(name,0)).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
    initial_timestamp=0 if variant==1 else game_timestamp
    uc.mem_write(image_base+timestamp_rva,initial_timestamp.to_bytes(4,'little'))
    uc.mem_map(game_headers['base'],4096);uc.mem_write(game_headers['base'],header_bytes)
+   for start,length in [(image_base,size),(0x400000,4096),(0x1800000,0x400000),(0x100000,0x10000),(0x120000,0x10000)]:
+    assert not(cocos['pageBase']<start+length and start<cocos['pageBase']+4096),'Cocos page overlaps fixture storage'
+   uc.mem_map(cocos['pageBase'],4096);uc.mem_write(cocos['pageBase'],cocos_page)
    uc.mem_map(0x70000000,4096)
    uc.mem_map(0x1800000,0x400000);heap_at=[0x1800000];allocations={}
    def allocate(n,zero=False):
@@ -209,7 +219,7 @@ def main():
    uc.hook_add(unicorn.UC_HOOK_MEM_WRITE,memory_write)
    # An unresolved function pointer must not silently become a null pointer
    # and change a probe's branch. Catch indirect IAT reads as well as calls.
-   unresolved={image_base+rva:name for rva,name in imports.items() if name.split('!')[-1] not in services}
+   unresolved={image_base+rva:name for rva,name in imports.items() if not bound(name)}
    import_snapshot=[]
    def import_read(emu,_access,address,n,_value,_):
     slot=next((p for p in range(address-7,address+n) if p in unresolved),None)
@@ -411,11 +421,11 @@ def main():
     b=bytes(emu.mem_read(address,min(16,size-rva)))
     if 0x40<=b[0]<=0x4f and b[1]==0x8b and b[2]&0xc7==5:
      slot=rva+7+int.from_bytes(b[3:7],'little',signed=True)
-     if slot in imports and imports[slot].split('!')[-1] not in services:
+     if slot in imports and not bound(imports[slot]):
       boundary.update(rva=rva,service=imports[slot],iatRva=slot,kind='import-address-read');emu.emu_stop();return
     if b[:2] in [b'\xff\x15',b'\xff\x25']:
      slot=rva+6+int.from_bytes(b[2:6],'little',signed=True)
-     if slot in imports and imports[slot].split('!')[-1] not in services:
+     if slot in imports and (not bound(imports[slot]) or imports[slot] in external):
       boundary.update(rva=rva,service=imports[slot],iatRva=slot)
       boundary['arguments']=[hex(emu.reg_read(getattr(x,'UC_X86_REG_'+r))) for r in ['RCX','RDX','R8','R9']]
       if imports[slot].endswith('!CreateFileW'):
@@ -459,6 +469,7 @@ def main():
     if trace and trace[-1]==boundary['rva']:trace.pop()
    if not boundary:raise RuntimeError('No explicit service boundary found')
    assert bytes(uc.mem_read(game_headers['base'],4096))==header_bytes,'Unexpected primary game header mutation'
+   assert bytes(uc.mem_read(cocos['pageBase'],4096))==cocos_page,'Unexpected Cocos code mutation'
    print(json.dumps({'nativeBoundary':boundary,'steps':len(trace),'imageBase':hex(image_base)}),flush=True)
    if image_base==0x2000000 and variant==0:
     print(json.dumps({'callbackInstructions':[str(ctx.disassemble(pe.get_data(rva,16),base_address=preferred+rva,max_instructions=1).instructions[0]) for rva in dict.fromkeys(trace) if 0x12f200<=rva<0x12f400]}),flush=True)
@@ -482,7 +493,7 @@ def main():
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)
  source=lifter.source();(out/'deferred.c').write_text(source)
- manifest={'dllSha256':PIN,'entryRva':0x12f200,'boundaries':boundaries,'uniqueInstructions':len(observed),'gameHeaders':game_headers,'bootstrap':{'timestampRva':timestamp_rva,'gameTimestamp':game_timestamp},
+ manifest={'dllSha256':PIN,'entryRva':0x12f200,'boundaries':boundaries,'uniqueInstructions':len(observed),'gameHeaders':game_headers,'cocos':cocos,'bootstrap':{'timestampRva':timestamp_rva,'gameTimestamp':game_timestamp},
   'instructions':[{'rva':va-preferred,'length':ins.length,'assembly':str(ins)} for va,(ins,_,_) in sorted(lifter.blocks.items())],
   'cases':cases,'gsOffset':2048+ctx.registers['GS_OFFSET'].offset,'onexitTables':[0xfb1960],
   'tls':{'templateRva':tls_rva,'templateSize':tls_size,'zeroFill':tls.SizeOfZeroFill,'indexRva':tls.AddressOfIndex-preferred,'callbacksExecuted':False},
