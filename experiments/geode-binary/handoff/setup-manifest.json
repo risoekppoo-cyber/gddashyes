@@ -1,11 +1,12 @@
 {
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
-  "wasmSha256": "54a46c5d73e252e3e4053b7d87eaf37d336730a2a9a55674d51cb7eb3bc180d5",
+  "wasmSha256": "63622a94d808c5cc1261cee509895db7dda99d5ae7c69667984925d904785652",
   "servicesSha256": "68a8a4a58599f8da0dd0d521471211efa45bd0c0dd2056d58afdf1485e401243",
   "entryRva": 1241600,
-  "stopRva": 1265145,
-  "steps": 10023,
-  "nextService": "KERNEL32.dll!RaiseException",
+  "stopRva": 1240308,
+  "steps": 9633,
+  "nextService": "libcocos2d.dll!?convertToNodeSpace@CCNode@cocos2d@@QEAA?AVCCPoint@2@AEBV32@@Z",
+  "nextBoundaryKind": "import-address-read",
   "bootstrap": {
     "timestampRva": 16458408,
     "gameTimestamp": 1792203143
