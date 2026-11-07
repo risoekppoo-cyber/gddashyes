@@ -160,7 +160,7 @@ def main():
    encoding=['WideCharToMultiByte','MultiByteToWideChar']
    file_services=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle','SetCurrentDirectoryW','GetCurrentDirectoryW']
    lifecycle=['_initialize_onexit_table','_register_onexit_function','_execute_onexit_table','WakeAllConditionVariable']
-   console=['GetStdHandle','GetConsoleMode','SetConsoleMode']
+   console=['GetStdHandle','GetConsoleMode','SetConsoleMode','AttachConsole']
    services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','RaiseException']+console)}
    def bound(name):return name.split('!')[-1] in services or name in external
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],external.get(name,0)).to_bytes(8,'little')
@@ -251,7 +251,9 @@ def main():
       result=0;error=0
       if name=='GetStdHandle':
        if ptr&0xffffffff not in [0xfffffff6,0xfffffff5,0xfffffff4]:result=(1<<64)-1;error=6
-      else:error=6
+      else:
+       if name=='AttachConsole' and ptr&0xffffffff!=0xffffffff:raise RuntimeError('Unsupported native console attach target')
+       error=6
       if error:emu.mem_write(tib+0x68,error.to_bytes(4,'little'))
       emu.reg_write(x.UC_X86_REG_RAX,result)
      elif name=='RaiseException':

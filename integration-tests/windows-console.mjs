@@ -5,4 +5,5 @@ function call(name,a=0,b=0){v.setBigUint64(cpu+8,BigInt(a),true);v.setBigUint64(
 v.setUint32(tib+0x68,123,true);for(const h of [0xfffffff6,0xfffffff5,0xfffffff4])assert.equal(call('GetStdHandle',h),0n);assert.equal(v.getUint32(tib+0x68,true),123);
 assert.equal(call('GetStdHandle',0x1234),0xffffffffffffffffn);assert.equal(v.getUint32(tib+0x68,true),6);
 v.setUint32(out,0xa5a5a5a5,true);assert.equal(call('GetConsoleMode',0,out),0n);assert.equal(v.getUint32(out,true),0xa5a5a5a5);assert.equal(call('SetConsoleMode',0,4),0n);assert.equal(v.getUint32(tib+0x68,true),6);
+assert.equal(call('AttachConsole',0xffffffff),0n);assert.equal(v.getUint32(tib+0x68,true),6);assert.throws(()=>call('AttachConsole',42),/Unsupported guest console attach target/);
 console.log('PASS: native-checked detached standard handles, preserved output, console failures and guest continuation');
