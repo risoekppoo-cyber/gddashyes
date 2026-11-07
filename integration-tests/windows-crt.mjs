@@ -16,5 +16,6 @@ assert.throws(()=>call('memcpy',p+1n,p,4),/Overlapping/);
 const r=call('realloc',p,64);assert.equal(v.getUint8(Number(r)),1);assert.equal(s.heap.has(Number(p)),false);
 call('free',0);call('free',q);assert.throws(()=>call('free',q),/Unowned/);
 assert.equal(call('malloc',0x100000000n),0n);assert.equal(s.errno,12);
+assert.equal(call('isalpha',65),1n);assert.equal(call('isalpha',97),2n);assert.equal(call('isalpha',48),0n);assert.equal(call('tolower',65),97n);assert.equal(call('toupper',97),65n);assert.equal(call('tolower',0xffffffff),0xffffffffn);assert.throws(()=>call('isalpha',256),/Undefined/);
 s.releaseHeap();assert.equal(s.heap.size,0);assert.equal(freed.length,3);
 console.log('PASS: UTF-16/string lengths, byte memory operations, aligned heap ownership, realloc and cleanup');

@@ -48,11 +48,15 @@ class WideLifter(Lifter):
   ins=self.ctx.disassemble(data,base_address=va,max_instructions=1).instructions[0]
   ops=self.ctx.translate(data[:ins.length],base_address=va,max_instructions=1).ops
   emitted=[self.emit_op(op,i,len(ops)) for i,op in enumerate(ops)]
-  # SLEIGH omits architectural AF for these stack ADD/SUB forms.
-  match=re.search(r'\b(SUB|ADD) RSP,0x([0-9a-f]+)',str(ins))
+  # Supply architectural AF where SLEIGH omits it; capture the actual p-code
+  # operands before a destination register can be overwritten.
+  match=re.search(r': (ADD|SUB|CMP|INC|DEC) ',str(ins))
   if match:
-   emitted[0]='uint64_t old_stack=raw_read(cpu+32u,8u);'+emitted[0]
-   emitted[-1]+=f'raw_write(cpu+2564u,((old_stack^UINT64_C({int(match[2],16)})^raw_read(cpu+32u,8u))>>4)&1u,1u);'
+   kind='INT_ADD' if match[1] in ['ADD','INC'] else 'INT_SUB'
+   candidates=[i for i,op in enumerate(ops) if op.opcode.name==kind and op.output.size<=8 and len(op.inputs)==2]
+   if not candidates:raise LiftError('Missing arithmetic p-code for AF: '+str(ins))
+   i=candidates[-1];a,b=[self.expr(v) for v in ops[i].inputs];operator='+' if kind=='INT_ADD' else '-'
+   emitted[i]='{uint64_t af_a='+a+',af_b='+b+';'+emitted[i]+f'raw_write(cpu+2564u,((af_a^af_b^(af_a{operator}af_b))>>4)&1u,1u);'+'}'
   self.blocks[va]=(ins,ops,emitted)
  def source(self):
   s=super().source().replace('uint64_t u_','wide_t u_')
@@ -82,7 +86,8 @@ def main():
     for rel in block.entries:
      if rel.type==10:
       image[rel.rva:rel.rva+8]=((int.from_bytes(image[rel.rva:rel.rva+8],'little')+image_base-preferred)&((1<<64)-1)).to_bytes(8,'little')
-   crt=['wcslen','strlen','memcpy','memmove','memset','memcmp','malloc','calloc','realloc','free']
+   ctype=json.loads((Path(__file__).parent/'ctype-c.mjs').read_text().split('export const CTYPE_C=',1)[1].rstrip().rstrip(';'))
+   crt=['wcslen','strlen','memcpy','memmove','memset','memcmp','malloc','calloc','realloc','free']+list(ctype)
    encoding=['WideCharToMultiByte','MultiByteToWideChar']
    services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding)}
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
@@ -122,7 +127,7 @@ def main():
    xmm=[((i+1)*0x01010101010101010101010101010101)&((1<<128)-1) for i in range(16)]
    for i,value in enumerate(xmm):uc.reg_write(getattr(x,'UC_X86_REG_XMM'+str(i)),value)
    flags=0x202 if not variant else 0xad7;uc.reg_write(x.UC_X86_REG_EFLAGS,flags)
-   trace=[];boundary={};locks=set();service_calls=[];writes=[]
+   trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5]
    def memory_write(emu,_access,address,n,_value,_):
     if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
    uc.hook_add(unicorn.UC_HOOK_MEM_WRITE,memory_write)
@@ -141,7 +146,11 @@ def main():
      elif name=='GetLastError':emu.reg_write(x.UC_X86_REG_RAX,int.from_bytes(emu.mem_read(tib+0x68,4),'little'))
      elif name in crt:
       a=ptr;b=emu.reg_read(x.UC_X86_REG_RDX);c=emu.reg_read(x.UC_X86_REG_R8);result=None
-      if name in ['wcslen','strlen']:
+      if name in ctype:
+       value=a&0xffffffff;value=value-(1<<32) if value>>31 else value
+       if value< -1 or value>255:raise RuntimeError('Undefined native C ctype input')
+       result=ctype[name][value if value>=0 else 256]&0xffffffff
+      elif name in ['wcslen','strlen']:
        stride=2 if name=='wcslen' else 1;n=0
        while int.from_bytes(emu.mem_read(a+n*stride,stride),'little'):n+=1
        result=n
@@ -215,6 +224,13 @@ def main():
      slot=rva+6+int.from_bytes(b[2:6],'little',signed=True)
      if slot in imports and imports[slot].split('!')[-1] not in services:
       boundary.update(rva=rva,service=imports[slot],iatRva=slot);emu.emu_stop();return
+    instruction=str(ctx.disassemble(pe.get_data(rva,16),base_address=preferred+rva,max_instructions=1).instructions[0])
+    mnemonic=instruction.split(': ',1)[1].split(' ',1)[0]
+    if mnemonic in ['ADD','SUB','CMP','ADC','SBB','NEG']:defined_flags[0]=0x8d5
+    elif mnemonic in ['INC','DEC']:defined_flags[0]=(defined_flags[0]&1)|0x8d4
+    elif mnemonic in ['TEST','AND','OR','XOR']:defined_flags[0]=0x8c5
+    elif mnemonic in ['SHL','SHR','SAR','SHLD','SHRD']:defined_flags[0]&=~0x810
+    elif mnemonic in ['MUL','IMUL']:defined_flags[0]&=0x801
     trace.append(rva);observed.add(rva)
     if len(trace)>10000:raise RuntimeError('Native path step limit')
    uc.hook_add(unicorn.UC_HOOK_CODE,hook)
@@ -235,7 +251,7 @@ def main():
    cases.append({'imageBase':image_base,'entryRva':entry_rva,'initial':[hex(v) for v in values],'initialXmm':[hex(v) for v in xmm],'flags':flags,
      'expected':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+r))) for r in REGS],
      'expectedXmm':[hex(uc.reg_read(getattr(x,'UC_X86_REG_XMM'+str(i)))) for i in range(16)],
-     'expectedFlags':uc.reg_read(x.UC_X86_REG_EFLAGS),'stopRva':boundary['rva'],'steps':len(trace),
+     'expectedFlags':uc.reg_read(x.UC_X86_REG_EFLAGS),'definedFlagsMask':defined_flags[0],'stopRva':boundary['rva'],'steps':len(trace),
      'stackBase':stack_base,'stackHex':bytes(uc.mem_read(stack_base,stack_size)).hex(),'dllChanges':changes,
      'tib':tib,'tlsArray':tls_array,'tlsData':tls_data,'tlsHex':bytes(uc.mem_read(tls_data,tls_size+tls.SizeOfZeroFill)).hex(),
      'serviceCalls':service_calls,'stackBelow':sp-min([a for a,b in writes]+[sp]),'stackAbove':max([b for a,b in writes]+[sp])-sp,

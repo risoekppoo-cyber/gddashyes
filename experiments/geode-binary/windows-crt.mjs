@@ -1,5 +1,6 @@
 import {GuestModules} from './windows-modules.mjs';
-export const CRT_NAMES=['wcslen','strlen','memcpy','memmove','memset','memcmp','malloc','calloc','realloc','free'];
+import {CTYPE_C} from './ctype-c.mjs';
+export const CRT_NAMES=['wcslen','strlen','memcpy','memmove','memset','memcmp','malloc','calloc','realloc','free',...Object.keys(CTYPE_C)];
 export class GuestCrt extends GuestModules {
  constructor(memory,addresses,options={}){super(memory,addresses,options);this.allocator=options.allocator;this.heap=new Map();this.errno=0;}
  resolve(item){
@@ -29,7 +30,8 @@ export class GuestCrt extends GuestModules {
   if(!CRT_NAMES.includes(name))return super.invoke(cpu,address);
   let v=new DataView(this.memory.buffer);const a=v.getBigUint64(cpu+8,true),b=v.getBigUint64(cpu+16,true),c=v.getBigUint64(cpu+64,true),sp=v.getBigUint64(cpu+32,true);
   this.range(sp,8);let result;
-  if(name==='malloc')result=this.allocate(a);
+  if(CTYPE_C[name]){const value=Number(BigInt.asIntN(32,a));if(value< -1||value>255)throw Error('Undefined C-locale ctype input');result=BigInt.asUintN(32,BigInt(CTYPE_C[name][value<0?256:value]));}
+  else if(name==='malloc')result=this.allocate(a);
   else if(name==='calloc')result=this.allocate(a*b,true);
   else if(name==='free')this.free(a);
   else if(name==='realloc'){

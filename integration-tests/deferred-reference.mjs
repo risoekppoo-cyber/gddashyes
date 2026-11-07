@@ -41,7 +41,7 @@ for(const [index,c] of manifest.cases.entries()){
  assert.equal(v.getBigUint64(cpu+192,true),stop,`case ${index} stop`);
  c.expected.forEach((value,i)=>assert.equal(v.getBigUint64(cpu+i*8,true),BigInt(value),`case ${index} GPR ${i}`));
  c.expectedXmm.forEach((value,i)=>assert.equal(v.getBigUint64(cpu+512+i*16,true)|(v.getBigUint64(cpu+520+i*16,true)<<64n),BigInt(value),`case ${index} XMM ${i}`));
- for(const bit of [0,2,4,6,7,11])assert.equal(v.getUint8(cpu+2560+bit),(c.expectedFlags>>>bit)&1,`case ${index} flag ${bit}`);
+ for(const bit of [0,2,4,6,7,11])if(c.definedFlagsMask&(1<<bit))assert.equal(v.getUint8(cpu+2560+bit),(c.expectedFlags>>>bit)&1,`case ${index} flag ${bit}`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,c.stackBase,c.stackHex.length/2),Buffer.from(c.stackHex,'hex')),0,`case ${index} native stack`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,c.tlsData,c.tlsHex.length/2),Buffer.from(c.tlsHex,'hex')),0,`case ${index} TLS`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,c.imageBase,image.size),expectedImage),0,`case ${index} DLL writes`);
