@@ -2,10 +2,10 @@
 
 Use current main; earlier source ZIPs are historical. The parent reaches
 _beginthreadex after 12,223 instructions. The real requested callback at RVA
-0x4ffab0 now runs 557 instructions through GuestScheduler, stopping at
-MSVCP140.dll!?__ExceptionPtrCreate@@YAXPEAX@Z (RVA 0xa557f0).
+0x4ffab0 now runs 623 instructions through GuestScheduler, stopping at
+KERNEL32.dll!QueryPerformanceFrequency (RVA 0x512bfc).
 Native worker comparisons pass at two image bases. The browser executed the
-same worker prefix and preserved 138 game frames (12,780 combined instructions). Full loader initialization
+same worker prefix and preserved 149 game frames (12,846 combined instructions). Full loader initialization
 and existing .geode packages remain unsupported.
 
 ## Implemented
@@ -20,9 +20,12 @@ and existing .geode packages remain unsupported.
 
 ## Next small tasks
 
-1. Inspect authoritative MSVC STL/UCRT sources for __ExceptionPtrCreate and its
-   paired lifetime operations. Model real owned exception storage and validate
-   native Windows behavior; do not treat all C++ exceptions as successful no-ops.
+1. Implement the observed performance-clock queries using an explicit monotonic
+   browser clock and consistent integer frequency/counter units. Inspect the
+   Windows contract and capture native behavior before choosing the clock
+   profile. Do not return arbitrary successful constants for unsupported timers.
+   Empty exception_ptr Create/Destroy/Copy/Assign/ToBool are implemented and
+   native-checked; non-empty capture, rethrow and unwinding remain unsupported.
 2. Extend the worker native fixture and translation only through its next observed
    dependency. Keep both image bases, parent/worker isolation and full memory
    comparisons. Stop explicitly when another unknown service is reached.

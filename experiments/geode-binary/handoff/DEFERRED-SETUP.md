@@ -1,12 +1,15 @@
 # Verified startup checkpoint - 7 November 2026
 
 Setup executes 12,223 native startup instructions. Eight native-reference cases
-pass at two image bases. The real Chromium run continued for 138 game frames,
+pass at two image bases. The real Chromium run continued for 149 game frames,
 preserved the original CPU snapshot and restored the live game stack. Full Geode
 initialization and existing .geode package loading remain unsupported.
 
 ## Completed continuation
 
+- Native-checked empty C++ exception-pointer construction, copying, assignment,
+  boolean queries and destruction. Lifetimes and containing heap ownership are
+  tracked; non-empty exceptions remain unsupported. See EMPTY-EXCEPTION-PTR.md.
 - Owned named-pipe server/client endpoints and byte queues, with CRT freopen_s
   preserving FILE identity and the saved stdout descriptor. Text writes convert
   LF to CRLF; pending reads, completed reads, EOF, close and error delivery are
@@ -35,11 +38,11 @@ native Windows probes; they are not claimed as worker activity in the browser.
 The scheduler now executes the real requested callback at RVA 0x4ffab0 in a
 separate context, with the supplied argument and a copied static TLS template.
 The independent native comparison passes at two DLL bases: the worker executes
-557 instructions, including shared-process service calls and its arc-worker-0
+623 instructions, including shared-process service calls and its arc-worker-0
 thread-name event, then pauses at:
 
-    MSVCP140.dll!?__ExceptionPtrCreate@@YAXPEAX@Z
-    Worker stop RVA: 0xa557f0
+    KERNEL32.dll!QueryPerformanceFrequency
+    Worker stop RVA: 0x512bfc
 
 The parent still stops at the actual thread-creation API entry:
 
@@ -66,10 +69,10 @@ the parent's private stack and TIB remain owned by SetupContext. Worker executio
 checks that the parent CPU, stack and TIB stay unchanged. Explicit block/wake
 states exist, but the worker is paused at an unsupported service rather than
 waiting on a running pipe consumer. Root continuation still requires actual
-thread-creation/lifecycle integration and the next C++ runtime dependencies.
+thread-creation/lifecycle integration and the next timing/runtime dependencies.
 
-Report fields worker and totalTranslatedInstructions distinguish the 557 worker
-instructions from the 12,223 parent instructions (12,780 total). The worker report
+Report fields worker and totalTranslatedInstructions distinguish the 623 worker
+instructions from the 12,223 parent instructions (12,846 total). The worker report
 keeps threadCreationImplemented and crtThreadStartupImplemented false. Full
 loader/package-support flags remain false. Raw pointers vary by allocator and
 must not be hard-coded. Full CRT startup, TLS callbacks and arbitrary native
@@ -77,7 +80,7 @@ Cocos method execution remain unfinished.
 
 ## Validation
 
-[Native-reference and real-browser validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42420056396)
+[Native-reference and real-browser validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42421704737)
 passes eight parent cases, two worker cases and the actual-browser preservation check.
 The comparison includes GPRs, XMMs, defined flags, stack, TLS, DLL/heap writes,
 callback registration, stdio/pipe/critical/IOCP state and the exact worker request.
