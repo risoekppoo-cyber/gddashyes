@@ -1,7 +1,7 @@
 # Verified startup checkpoint - 7 November 2026
 
 Setup executes 12,223 native startup instructions. Eight native-reference cases
-pass at two image bases. The real Chromium run continued for 128 game frames,
+pass at two image bases. The real Chromium run continued for 138 game frames,
 preserved the original CPU snapshot and restored the live game stack. Full Geode
 initialization and existing .geode package loading remain unsupported.
 
@@ -26,20 +26,22 @@ initialization and existing .geode package loading remain unsupported.
 The real browser has created and connected the geode-stdout-1 named pipe,
 redirected stdout to its client, preserved the original stdout as descriptor 3,
 initialized an idle critical section and created an empty completion port. The
-startup prefix has not yet run the worker that consumes the pipe. Actual byte
+worker prefix has not yet reached its pipe-consumer loop. Actual byte
 transport and completion delivery are covered by focused tests and independent
 native Windows probes; they are not claimed as worker activity in the browser.
 
 ## Next exact boundary
 
-The scheduler foundation now exists in guest-scheduler.mjs. It owns isolated CPU,
-stack and TIB/TLS allocations and dispatches bounded synchronous slices. It tracks
-runnable, blocked, exited and failed contexts, supports explicit wakeup, restores
-the caller's service context and attempts each allocation's cleanup independently.
-Shared services select per-thread IDs, last-error/errno and lock ownership.
-Focused tests exercise context isolation across memory growth, shared locks and
-failure cleanup. This foundation is not connected to the live startup lift yet;
-its tests do not execute the real Geode worker or establish its CRT entry ABI.
+The scheduler now executes the real requested callback at RVA 0x4ffab0 in a
+separate context, with the supplied argument and a copied static TLS template.
+The independent native comparison passes at two DLL bases: the worker executes
+557 instructions, including shared-process service calls and its arc-worker-0
+thread-name event, then pauses at:
+
+    MSVCP140.dll!?__ExceptionPtrCreate@@YAXPEAX@Z
+    Worker stop RVA: 0xa557f0
+
+The parent still stops at the actual thread-creation API entry:
 
     api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex
     Worker entry RVA: 0x4ffab0
@@ -53,29 +55,38 @@ Native reference and browser agree on the complete call profile:
     initFlags:          0 (start runnable)
     threadIdOutput:     non-null guest stack address
 
-The addressable import trap lets translation reach the actual API entry and
-capture its arguments. It stops before executing a thread API body; no thread
-handle, thread ID or successful creation is fabricated. The report exposes this
-as pendingThreadRequest with threadCreationImplemented=false. Raw argument and
-output addresses vary with the allocator and must not be hard-coded.
+The import trap captures the actual API arguments before any successful return.
+The diagnostic scheduler invokes the native-verified callback prefix under the
+explicit static-TLS model. This does not implement the UCRT thread-start wrapper,
+per-thread CRT initialization, a returned thread handle, join or thread exit.
+No successful _beginthreadex return or thread-ID output write is fabricated.
 
-This checkpoint is not resumable: runtime frees the temporary root CPU shadow
-after recording it. A real cooperative scheduler must retain root/worker CPU
-contexts, own their stacks and TIB/TLS, share process services, and implement
-blocking, wakeup and lifecycle transitions before startup can continue safely.
-Full CRT startup, TLS callbacks and general native Cocos calls also remain
-unfinished. The Cocos address binding does not implement arbitrary method calls.
+The browser retains the child's CPU/stack/TIB/TLS and a copy of the parent's CPU;
+the parent's private stack and TIB remain owned by SetupContext. Worker execution
+checks that the parent CPU, stack and TIB stay unchanged. Explicit block/wake
+states exist, but the worker is paused at an unsupported service rather than
+waiting on a running pipe consumer. Root continuation still requires actual
+thread-creation/lifecycle integration and the next C++ runtime dependencies.
+
+Report fields worker and totalTranslatedInstructions distinguish the 557 worker
+instructions from the 12,223 parent instructions (12,780 total). The worker report
+keeps threadCreationImplemented and crtThreadStartupImplemented false. Full
+loader/package-support flags remain false. Raw pointers vary by allocator and
+must not be hard-coded. Full CRT startup, TLS callbacks and arbitrary native
+Cocos method execution remain unfinished.
 
 ## Validation
 
-[Native-reference and real-browser validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42401498284)
-passes all eight reference cases and the actual-browser preservation check.
+[Native-reference and real-browser validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42420056396)
+passes eight parent cases, two worker cases and the actual-browser preservation check.
 The comparison includes GPRs, XMMs, defined flags, stack, TLS, DLL/heap writes,
 callback registration, stdio/pipe/critical/IOCP state and the exact worker request.
+Two additional worker comparisons check CPU/XMM/defined flags, the full allocated
+heap (including private stack/TIB/TLS), DLL writes and unchanged parent storage.
 The focused service and scheduler-foundation tests pass. Recorded Windows oracles cover pipe/CRT text
 behavior, critical-section recursion, powf and completion-port packet semantics.
 
 Generated setup WASM, bundled services, manifests and result JSON are published
 only after reference and browser validation pass. The launcher revision is
-setup-worker-boundary-20261107. See NEXT-CHAT-TASKS.md for the next small tasks;
+setup-worker-callback-20261107. See NEXT-CHAT-TASKS.md for the next small tasks;
 the older Chat-mode ZIP describes a superseded checkpoint.
