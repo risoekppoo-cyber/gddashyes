@@ -11,7 +11,8 @@ class SetupContext{
  reserve(){
   this.tib=Math.ceil(this.allocate(0x10010)/16)*16;
   this.stack=this.allocate(0x10000);this.stackTop=Math.floor((this.stack+0x10000-128)/16)*16-8;
-  this.services=new this.serviceTypes.ServiceClass(this.e.memory,Object.fromEntries(this.serviceTypes.SERVICE_NAMES.map((n,i)=>[n,this.tib+0xf000+i*16])),{tib:this.tib,allocator:this.e,filesystem:this.serviceTypes.gameFilesystem(globalThis.Module?.FS),input:new this.serviceTypes.BrowserModifiers(globalThis.window)});
+  const decoders=[null,new TextDecoder(),new TextDecoder()];
+  this.services=new this.serviceTypes.ServiceClass(this.e.memory,Object.fromEntries(this.serviceTypes.SERVICE_NAMES.map((n,i)=>[n,this.tib+0xf000+i*16])),{tib:this.tib,allocator:this.e,filesystem:this.serviceTypes.gameFilesystem(globalThis.Module?.FS),input:new this.serviceTypes.BrowserModifiers(globalThis.window),outputSink:(channel,bytes)=>globalThis.console.log(decoders[channel].decode(bytes,{stream:true}))});
   if(this.metadata.cocos){
    this.cocos=this.serviceTypes.inspectCocos(this.e.memory,globalThis.Module.FS);
    for(const key of ['base','imageSize','timestamp','dll','name','rva','address','pageBase','pageHex'])if(this.cocos[key]!==this.metadata.cocos[key])throw Error('Unverified live Cocos binding: '+key);
@@ -50,10 +51,10 @@ class SetupContext{
     if(m.nextDialog&&JSON.stringify(dialog)!==JSON.stringify(m.nextDialog))throw Error('Live loader diagnostic differs from native reference');
     let pipeRequest;
     if(m.nextPipeRequest){const sp=state.getBigUint64(shadow+32,true);this.services.range(sp,64);const p=Number(sp);pipeRequest={path:this.services.wide(state.getBigUint64(shadow+8,true)),openMode:state.getUint32(shadow+16,true),pipeMode:state.getUint32(shadow+64,true),maxInstances:state.getUint32(shadow+72,true),outBufferSize:state.getUint32(p+32,true),inBufferSize:state.getUint32(p+40,true),defaultTimeout:state.getUint32(p+48,true),security:'0x'+state.getBigUint64(p+56,true).toString(16)};if(JSON.stringify(pipeRequest)!==JSON.stringify(m.nextPipeRequest))throw Error('Live named-pipe request differs from native reference');}
-    return {steps,stop,service:m.nextService,dialog,pipeRequest,calls:[...this.services.calls],threadNames:[...(this.services.threadNames||[])],stdioState:this.services.stdioSnapshot?.(),tib:this.tib,isolatedStack:this.stackTop,onexitCallbacks:[...this.services.onexit.values()].reduce((n,t)=>n+t.callbacks.length,0),
+    return {steps,stop,service:m.nextService,dialog,pipeRequest,pipeState:this.services.pipeSnapshot?.(),calls:[...this.services.calls],threadNames:[...(this.services.threadNames||[])],stdioState:this.services.stdioSnapshot?.(),tib:this.tib,isolatedStack:this.stackTop,onexitCallbacks:[...this.services.onexit.values()].reduce((n,t)=>n+t.callbacks.length,0),
      nextArguments:[8,16,64,72].map(o=>'0x'+state.getBigUint64(shadow+o,true).toString(16))};
    }
-   this.services.invoke(shadow,state.getBigUint64(shadow+192,true));pc=state.getBigUint64(shadow+192,true);
+   this.services.invoke(shadow,state.getBigUint64(shadow+192,true));pc=new DataView(e.memory.buffer).getBigUint64(shadow+192,true);
   }
   throw Error('Setup transfer limit');
  }

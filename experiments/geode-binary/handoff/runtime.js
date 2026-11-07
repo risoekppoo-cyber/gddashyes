@@ -16,11 +16,11 @@
   const mapRequested=new URLSearchParams(location.search).get('geodemap')==='1';
   const setupRequested=new URLSearchParams(location.search).get('geodesetup')==='1';
   if(setupRequested&&!mapRequested)throw Error('Setup requires the owned DLL mapping');
-  const setupContext=setupRequested?await (await import(new URL('../setup-context.mjs?rev=setup-stdio-20261107',base).href)).loadSetup(e,helper,base):null;
+  const setupContext=setupRequested?await (await import(new URL('../setup-context.mjs?rev=setup-pipes-20261107',base).href)).loadSetup(e,helper,base):null;
   let mapHelper,preparedImage,mappedImage;
   if(mapRequested){
    if(!root.WestminsterGeodeDllBytes)throw Error('Select the pinned DLL on the mapped check page first');
-   mapHelper=await import(new URL('../owned-image.mjs?rev=setup-stdio-20261107',base).href);
+   mapHelper=await import(new URL('../owned-image.mjs?rev=setup-pipes-20261107',base).href);
    preparedImage=await mapHelper.prepareGeodeImage(await root.WestminsterGeodeDllBytes);
   }
   let observed=false;
@@ -61,6 +61,7 @@
     if(setupResult?.threadNames?.length){report.guestThreadNames=setupResult.threadNames;report.threadNameNotificationHandled=true;}
     if(setupResult?.pipeRequest)report.pendingPipeRequest=setupResult.pipeRequest;
     if(setupResult?.stdioState)report.guestStdioDescriptors=setupResult.stdioState.fds;
+    if(setupResult?.pipeState)report.loggingPipes=setupResult.pipeState;
     if(!cpuBefore.every((b,i)=>new Uint8Array(e.memory.buffer)[cpu+i]===b))throw Error('Original game CPU changed');report.originalGameCpuPreserved=true;
     succeeded=true;
    }catch(error){remember(error);}finally{

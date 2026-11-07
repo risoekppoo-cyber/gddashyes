@@ -162,7 +162,8 @@ def main():
    lifecycle=['_initialize_onexit_table','_register_onexit_function','_execute_onexit_table','WakeAllConditionVariable']
    console=['GetStdHandle','GetConsoleMode','SetConsoleMode','AttachConsole']
    stdio=['__acrt_iob_func','_fileno','_dup','_fdopen','_get_osfhandle','_close']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','RaiseException']+console+stdio+['GetCurrentProcessId'])}
+   pipe_services=['CreateNamedPipeW','ReadFile','WriteFile','GetOverlappedResult','freopen_s','_write']
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services)}
    def bound(name):return name.split('!')[-1] in services or name in external
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],external.get(name,0)).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
@@ -218,6 +219,7 @@ def main():
    uc.mem_write(image_base+0xfb1960,b'\0'*24)
    trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000];cwd=['C:\\GeometryDash'];thread_names={}
    stdio_state={'base':0,'streams':{},'fds':{},'nextHandle':0x61000010}
+   pipe_state={'nextHandle':0x62000000,'pipes':[],'byName':{},'ends':{},'completions':[],'outputs':[]}
    def memory_write(emu,_access,address,n,_value,_):
     if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
    uc.hook_add(unicorn.UC_HOOK_MEM_WRITE,memory_write)
@@ -251,6 +253,45 @@ def main():
      elif name=='GetLastError':emu.reg_write(x.UC_X86_REG_RAX,int.from_bytes(emu.mem_read(tib+0x68,4),'little'))
      elif name=='GetCurrentThreadId':emu.reg_write(x.UC_X86_REG_RAX,1)
      elif name=='GetCurrentProcessId':emu.reg_write(x.UC_X86_REG_RAX,1)
+     elif name in pipe_services:
+      result=0;error=0
+      if name=='CreateNamedPipeW':
+       raw=bytearray()
+       for i in range(32768):
+        ch=bytes(emu.mem_read(ptr+i*2,2))
+        if ch==b'\0\0':break
+        raw.extend(ch)
+       else:raise RuntimeError('Unterminated native pipe name')
+       path=raw.decode('utf-16le');mode=emu.reg_read(x.UC_X86_REG_RDX)&0xffffffff;kind=emu.reg_read(x.UC_X86_REG_R8)&0xffffffff;instances=emu.reg_read(x.UC_X86_REG_R9)&0xffffffff;rsp=emu.reg_read(x.UC_X86_REG_RSP)
+       tail=[int.from_bytes(emu.mem_read(rsp+offset,n),'little') for offset,n in [(40,4),(48,4),(56,4),(64,8)]]
+       if not path.lower().startswith('\\\\.\\pipe\\') or mode!=0x40000001 or kind!=8 or instances!=1 or tail!=[0,1024,0,0]:raise RuntimeError('Unsupported native pipe configuration')
+       key=path.lower()
+       if key in pipe_state['byName']:result=(1<<64)-1;error=231
+       else:
+        result=pipe_state['nextHandle'];pipe_state['nextHandle']+=1
+        item={'name':path,'server':result,'clients':[],'queued':bytearray(),'closed':False,'everConnected':False}
+        pipe_state['pipes'].append(item);pipe_state['byName'][key]=item;pipe_state['ends'][result]=(item,'server')
+      elif name=='freopen_s':
+       def ascii_z(pointer):
+        raw=bytearray()
+        for i in range(32768):
+         ch=bytes(emu.mem_read(pointer+i,1))
+         if ch==b'\0':return raw.decode('ascii')
+         raw.extend(ch)
+        raise RuntimeError('Unterminated native CRT pipe string')
+       path=ascii_z(emu.reg_read(x.UC_X86_REG_RDX));mode=ascii_z(emu.reg_read(x.UC_X86_REG_R8));stream=emu.reg_read(x.UC_X86_REG_R9)
+       if stream not in stdio_state['streams'] or mode not in ['w','wb','wt']:raise RuntimeError('Unsupported native pipe reopen')
+       fd=stdio_state['streams'][stream];item=pipe_state['byName'].get(path.lower())
+       if item and (item['everConnected'] or item['closed']):raise RuntimeError('Native pipe reconnect needs explicit support')
+       stdio_state['fds'].pop(fd,None)
+       if item:
+        handle=pipe_state['nextHandle'];pipe_state['nextHandle']+=1;item['clients'].append(handle);item['everConnected']=True;pipe_state['ends'][handle]=(item,'client')
+        stdio_state['fds'][fd]={'channel':2 if fd==2 else 1,'handle':handle,'pipe':path.lower(),'text':'b' not in mode};emu.mem_write(ptr,stream.to_bytes(8,'little'));result=0
+       else:
+        del stdio_state['streams'][stream];emu.mem_write(ptr,b'\0'*8);result=2
+      else:raise RuntimeError('Reached pipe operation needs native fixture extension: '+name)
+      if error:emu.mem_write(tib+0x68,error.to_bytes(4,'little'))
+      emu.reg_write(x.UC_X86_REG_RAX,result)
      elif name in stdio:
       if not stdio_state['base']:
        stdio_state['base']=allocate(3*88,True)
@@ -552,7 +593,8 @@ def main():
      'serviceCalls':service_calls,'stackBelow':sp-min([a for a,b in writes]+[sp]),'stackAbove':max([b for a,b in writes]+[sp])-sp,
      'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex() if heap_at[0]>0x1800000 else '',
      'onexitCallbacks':[str(callback) for table in onexit.values() for callback in table['callbacks']],'threadNames':list(thread_names.items()),
-     'stdioState':{'streams':[[str(p),fd] for p,fd in stdio_state['streams'].items()],'fds':[[fd,d['channel'],str(d['handle'])] for fd,d in stdio_state['fds'].items()]}})
+     'stdioState':{'streams':[[str(p),fd] for p,fd in stdio_state['streams'].items()],'fds':[[fd,d['channel'],str(d['handle'])] for fd,d in stdio_state['fds'].items()]},
+     'pipeState':{'pipes':[{'name':p['name'],'server':str(p['server']),'clients':[str(h) for h in p['clients']],'queuedHex':p['queued'].hex(),'closed':p['closed'],'everConnected':p['everConnected']} for p in pipe_state['pipes']],'completions':pipe_state['completions'],'outputs':pipe_state['outputs']}})
    boundaries.append(boundary)
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)

@@ -1,0 +1,12 @@
+{
+  "status": "NATIVE_PIPE_CRT_PASS",
+  "freopenPreservesFile": true,
+  "freopenPreservesFd": true,
+  "pendingError": 997,
+  "pendingStatus": 259,
+  "dataHex": "706970650d0a",
+  "completedBytes": 6,
+  "closedError": 109,
+  "closedStatus": 259,
+  "pendingClosedStatus": 3221225803
+}
