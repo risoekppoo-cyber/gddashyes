@@ -3,7 +3,13 @@ on:
   push:
     paths:
       - '.github/workflows/geode-integration.yml'
-      - 'integration-tests/**'
+      - 'integration-tests/TASK_05_tests.cjs'
+      - 'integration-tests/TASK_06_tests.cjs'
+      - 'integration-tests/TASK_08_mock_test.cjs'
+      - 'integration-tests/prologue.mjs'
+      - 'integration-tests/owned-image.mjs'
+      - 'integration-tests/browser-smoke.cjs'
+      - 'integration-tests/memory-intervals*.mjs'
       - 'experiments/geode-binary/handoff/**'
       - 'experiments/geode-binary/owned-image.mjs'
       - 'experiments/geode-binary/mapped/**'

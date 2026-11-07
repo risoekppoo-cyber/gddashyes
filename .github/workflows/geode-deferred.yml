@@ -6,11 +6,13 @@ on:
       - 'experiments/geode-binary/inspect-deferred.py'
       - 'experiments/geode-binary/build-deferred.py'
       - 'integration-tests/deferred-reference.mjs'
+      - 'integration-tests/bundle-services.mjs'
       - 'experiments/geode-binary/windows-srw.mjs'
       - 'experiments/geode-binary/windows-modules.mjs'
       - 'experiments/geode-binary/windows-crt.mjs'
       - 'experiments/geode-binary/windows-encoding.mjs'
       - 'experiments/geode-binary/windows-paths.mjs'
+      - 'experiments/geode-binary/windows-files.mjs'
       - 'experiments/geode-binary/setup-context.mjs'
       - 'experiments/geode-binary/handoff/runtime.js'
   workflow_dispatch:
@@ -35,14 +37,17 @@ jobs:
           python experiments/geode-binary/fetch-startup-dll.py /tmp/Geode.dll
           python experiments/geode-binary/build-deferred.py /tmp/Geode.dll /tmp/deferred
           clang --target=wasm32 -O2 -nostdlib /tmp/deferred/deferred.c -Wl,--no-entry -Wl,--import-memory -Wl,--export=lift_run -Wl,--export=__stack_pointer -Wl,-z,stack-size=65536 -o /tmp/deferred/deferred.wasm
+          node integration-tests/bundle-services.mjs /tmp/deferred
           node integration-tests/deferred-reference.mjs /tmp/deferred
           node integration-tests/windows-srw.mjs
           node integration-tests/windows-modules.mjs
           node integration-tests/windows-crt.mjs
           node integration-tests/windows-encoding.mjs
           node integration-tests/windows-paths.mjs
+          node integration-tests/windows-files.mjs
           cp /tmp/deferred/deferred.wasm experiments/geode-binary/handoff/setup.wasm
           cp /tmp/deferred/runtime-manifest.json experiments/geode-binary/handoff/setup-manifest.json
+          cp /tmp/deferred/services.mjs experiments/geode-binary/handoff/setup-services.mjs
       - name: Test setup in the real browser
         run: |
           npm install --no-save --package-lock=false playwright@1.56.1
@@ -58,7 +63,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -f experiments/geode-binary/handoff/setup.wasm
-          git add experiments/geode-binary/handoff/setup-manifest.json experiments/geode-binary/handoff/setup-reference-result.json experiments/geode-binary/handoff/setup-browser-result.json
+          git add experiments/geode-binary/handoff/setup-manifest.json experiments/geode-binary/handoff/setup-reference-result.json experiments/geode-binary/handoff/setup-browser-result.json experiments/geode-binary/handoff/setup-services.mjs
           git diff --cached --quiet || git commit -m 'Publish native-reference and browser-verified deferred setup module'
           git push origin HEAD:main
       - uses: actions/upload-artifact@v4
@@ -71,4 +76,5 @@ jobs:
             /tmp/deferred/reference-result.json
             /tmp/deferred/deferred.wasm
             /tmp/deferred/runtime-manifest.json
+            /tmp/deferred/services.mjs
             browser-result.json

@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {instantiateStartupLift} from '../experiments/geode-binary/handoff/startup-module.mjs';
 import {mapPe64} from '../experiments/geode-binary/pe-image.mjs';
-import {GuestPaths,CRT_NAMES,ENCODING_NAMES,PATH_NAMES} from '../experiments/geode-binary/windows-paths.mjs';
 const dir=resolve(process.argv[2]),dll=await readFile('/tmp/Geode.dll');
+const {ServiceClass,SERVICE_NAMES}=await import(pathToFileURL(dir+'/services.mjs'));
 const manifest=JSON.parse(await readFile(dir+'/manifest.json'));
 const wasm=await readFile(dir+'/deferred.wasm');
 assert.equal(createHash('sha256').update(dll).digest('hex'),manifest.dllSha256);
@@ -14,7 +15,7 @@ const instance=await instantiateStartupLift(wasm,memory);
 for(const [index,c] of manifest.cases.entries()){
  let heapAt=0x300000;new Uint8Array(memory.buffer,heapAt,0x400000).fill(0);
  const allocator={malloc(n){const p=heapAt;heapAt=Math.ceil((p+n)/8)*8;if(heapAt>0x700000)throw Error('Fixture heap exhausted');return p;},free(){}};
- const services=new GuestPaths(memory,Object.fromEntries(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError',...CRT_NAMES,...ENCODING_NAMES,...PATH_NAMES].map((n,i)=>[n,0x70000000+i*16])),{imageBase:c.imageBase,tib:c.tib,allocator});
+ const services=new ServiceClass(memory,Object.fromEntries(SERVICE_NAMES.map((n,i)=>[n,0x70000000+i*16])),{imageBase:c.imageBase,tib:c.tib,allocator,filesystem:{stat(path){return path.toLowerCase()==='c:\\geometrydash'?{directory:true}:null;}}});
  const image=mapPe64(dll,memory,c.imageBase,{resolveImport:item=>services.resolve(item)}),v=new DataView(memory.buffer);
  const expectedImage=Buffer.from(new Uint8Array(memory.buffer,c.imageBase,image.size));
  for(const change of c.dllChanges)Buffer.from(change.hex,'hex').copy(expectedImage,change.rva);
@@ -50,5 +51,5 @@ for(const [index,c] of manifest.cases.entries()){
 const result={status:'DEFERRED_NATIVE_REFERENCE_PASS',cases:manifest.cases.length,uniqueInstructions:manifest.uniqueInstructions,boundaries:manifest.boundaries,wasmSha256:createHash('sha256').update(wasm).digest('hex'),fullGeodeLoader:false};
 await writeFile(dir+'/reference-result.json',JSON.stringify(result,null,2));
 const first=manifest.cases[0];
-await writeFile(dir+'/runtime-manifest.json',JSON.stringify({dllSha256:manifest.dllSha256,wasmSha256:result.wasmSha256,entryRva:manifest.entryRva,stopRva:first.stopRva,steps:first.steps,nextService:manifest.boundaries[0].service,tls:manifest.tls,gsOffset:manifest.gsOffset},null,2));
+await writeFile(dir+'/runtime-manifest.json',JSON.stringify({dllSha256:manifest.dllSha256,wasmSha256:result.wasmSha256,servicesSha256:createHash('sha256').update(await readFile(dir+'/services.mjs')).digest('hex'),entryRva:manifest.entryRva,stopRva:first.stopRva,steps:first.steps,nextService:manifest.boundaries[0].service,tls:manifest.tls,gsOffset:manifest.gsOffset},null,2));
 console.log(JSON.stringify(result,null,2));

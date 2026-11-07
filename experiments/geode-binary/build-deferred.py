@@ -93,7 +93,8 @@ def main():
    ctype=json.loads((Path(__file__).parent/'ctype-c.mjs').read_text().split('export const CTYPE_C=',1)[1].rstrip().rstrip(';'))
    crt=['wcslen','strlen','memcpy','memmove','memset','memcmp','malloc','calloc','realloc','free']+list(ctype)
    encoding=['WideCharToMultiByte','MultiByteToWideChar']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW'])}
+   file_services=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle']
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services)}
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
@@ -134,7 +135,7 @@ def main():
    xmm=[((i+1)*0x01010101010101010101010101010101)&((1<<128)-1) for i in range(16)]
    for i,value in enumerate(xmm):uc.reg_write(getattr(x,'UC_X86_REG_XMM'+str(i)),value)
    flags=0x202 if not variant else 0xad7;uc.reg_write(x.UC_X86_REG_EFLAGS,flags)
-   trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5]
+   trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000]
    def memory_write(emu,_access,address,n,_value,_):
     if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
    uc.hook_add(unicorn.UC_HOOK_MEM_WRITE,memory_write)
@@ -184,6 +185,32 @@ def main():
        if c:emu.mem_write(a,bytes(emu.mem_read(b,c)))
        result=a
       if result is not None:emu.reg_write(x.UC_X86_REG_RAX,result)
+     elif name in file_services:
+      result=0;error=0
+      if name=='CreateFileW':
+       raw=bytearray();at=ptr
+       while True:
+        ch=bytes(emu.mem_read(at,2));at+=2
+        if ch==b'\0\0':break
+        raw.extend(ch)
+       path=ntpath.normpath(raw.decode('utf-16le'));rsp=emu.reg_read(x.UC_X86_REG_RSP)
+       disposition=int.from_bytes(emu.mem_read(rsp+40,4),'little');flags=int.from_bytes(emu.mem_read(rsp+48,4),'little')
+       if emu.reg_read(x.UC_X86_REG_RDX)!=0 or disposition!=3 or emu.reg_read(x.UC_X86_REG_R9)!=0:raise RuntimeError('Unsupported native file access fixture')
+       if path.lower()!='c:\\geometrydash':result=(1<<64)-1;error=3
+       elif not flags&0x2000000:result=(1<<64)-1;error=5
+       else:result=next_handle[0];next_handle[0]+=1;handles[result]=path
+      elif name=='CloseHandle':
+       if ptr in handles:del handles[ptr];result=1
+       else:error=6
+      elif ptr not in handles:error=6
+      else:
+       output=emu.reg_read(x.UC_X86_REG_RDX);capacity=emu.reg_read(x.UC_X86_REG_R8)&0xffffffff;flags=emu.reg_read(x.UC_X86_REG_R9)
+       if flags not in [0,8]:raise RuntimeError('Unsupported native final path flags')
+       text='\\\\?\\'+handles[ptr];encoded=text.encode('utf-16le');units=len(encoded)//2
+       if capacity<=units:result=units+1
+       else:emu.mem_write(output,encoded+b'\0\0');result=units
+      if error:emu.mem_write(tib+0x68,error.to_bytes(4,'little'))
+      emu.reg_write(x.UC_X86_REG_RAX,result)
      elif name in encoding:
       wide=name=='WideCharToMultiByte';flags=emu.reg_read(x.UC_X86_REG_RDX)&0xffffffff;input_pointer=emu.reg_read(x.UC_X86_REG_R8)
       count=emu.reg_read(x.UC_X86_REG_R9)&0xffffffff;count=count-(1<<32) if count>>31 else count
@@ -256,6 +283,7 @@ def main():
      slot=rva+6+int.from_bytes(b[2:6],'little',signed=True)
      if slot in imports and imports[slot].split('!')[-1] not in services:
       boundary.update(rva=rva,service=imports[slot],iatRva=slot)
+      boundary['arguments']=[hex(emu.reg_read(getattr(x,'UC_X86_REG_'+r))) for r in ['RCX','RDX','R8','R9']]
       if imports[slot].endswith('!CreateFileW'):
        pointer=emu.reg_read(x.UC_X86_REG_RCX);raw=bytearray()
        for i in range(32768):

@@ -9,7 +9,7 @@ export class GuestCrt extends GuestModules {
   }
   return super.resolve(item);
  }
- range(pointer,size){const n=BigInt(size),p=BigInt(pointer),limit=BigInt(this.memory.buffer.byteLength);if(p>limit||n<0n||n>limit-p)throw Error('Guest CRT memory bounds');return Number(p);}
+ range(pointer,size){const n=BigInt(size),p=BigInt(pointer),limit=BigInt(this.memory.buffer.byteLength);if(p===0n&&n>0n||p>limit||n<0n||n>limit-p)throw Error('Guest CRT memory bounds');return Number(p);}
  allocate(size,zero=false){
   const n=BigInt(size);
   if(n>0x7ffffff0n){this.errno=12;return 0n;}
