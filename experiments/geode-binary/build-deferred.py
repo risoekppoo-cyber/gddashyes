@@ -97,6 +97,9 @@ def main():
  data=Path(sys.argv[1]).read_bytes();assert hashlib.sha256(data).hexdigest()==PIN
  out=Path(sys.argv[2]);out.mkdir(parents=True,exist_ok=True)
  pe=pefile.PE(data=data);preferred=pe.OPTIONAL_HEADER.ImageBase;size=pe.OPTIONAL_HEADER.SizeOfImage
+ game_headers=json.loads(Path('integration-input/game-headers.json').read_text())
+ assert game_headers['base']==0x400000 and game_headers['gameWasmSha256']=='523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a'
+ header_bytes=bytes.fromhex(game_headers['hex']);assert len(header_bytes)==4096 and header_bytes[:2]==b'MZ'
  original=pe.get_memory_mapped_image().ljust(size,b'\0');ctx=pypcode.Context('x86:LE:64:default')
  imports={}
  for group in [getattr(pe,'DIRECTORY_ENTRY_IMPORT',[]),getattr(pe,'DIRECTORY_ENTRY_DELAY_IMPORT',[])]:
@@ -119,6 +122,7 @@ def main():
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
+   uc.mem_map(game_headers['base'],4096);uc.mem_write(game_headers['base'],header_bytes)
    uc.mem_map(0x70000000,4096)
    uc.mem_map(0x1800000,0x400000);heap_at=[0x1800000];allocations={}
    def allocate(n,zero=False):
@@ -381,6 +385,7 @@ def main():
     recent=[str(ctx.disassemble(bytes(uc.mem_read(image_base+i,16)),base_address=preferred+i,max_instructions=1).instructions[0]) for i in trace[-6:]]
     raise RuntimeError(f'Native path fault at {fault:#x}; recent {recent}: {error}') from error
    if not boundary:raise RuntimeError('No explicit service boundary found')
+   assert bytes(uc.mem_read(game_headers['base'],4096))==header_bytes,'Unexpected primary game header mutation'
    print(json.dumps({'nativeBoundary':boundary,'steps':len(trace),'imageBase':hex(image_base)}),flush=True)
    # Store only changed DLL bytes; pointers in the reference are base-specific.
    final=bytes(uc.mem_read(image_base,size));changes=[];at=0
@@ -402,7 +407,7 @@ def main():
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)
  source=lifter.source();(out/'deferred.c').write_text(source)
- manifest={'dllSha256':PIN,'entryRva':0x12f200,'boundaries':boundaries,'uniqueInstructions':len(observed),
+ manifest={'dllSha256':PIN,'entryRva':0x12f200,'boundaries':boundaries,'uniqueInstructions':len(observed),'gameHeaders':game_headers,
   'instructions':[{'rva':va-preferred,'length':ins.length,'assembly':str(ins)} for va,(ins,_,_) in sorted(lifter.blocks.items())],
   'cases':cases,'gsOffset':2048+ctx.registers['GS_OFFSET'].offset,'onexitTables':[0xfb1960],
   'tls':{'templateRva':tls_rva,'templateSize':tls_size,'zeroFill':tls.SizeOfZeroFill,'indexRva':tls.AddressOfIndex-preferred,'callbacksExecuted':False},

@@ -7,9 +7,9 @@ const fs=require('node:fs');
  page.on('pageerror',e=>events.push(String(e)));
  page.on('console',m=>{if(m.type()==='error')events.push(m.text().slice(0,800));});
  const started=Date.now();
- const setup=process.env.GEODE_DEFERRED==='1',expected=setup?'LIVE_SETUP_SERVICE_BOUNDARY_PASS':'LIVE_DLL_MAPPING_PROLOGUE_PASS';
+ const setup=process.env.GEODE_DEFERRED==='1',capture=process.env.GEODE_CAPTURE_HEADERS==='1',expected=setup?'LIVE_SETUP_SERVICE_BOUNDARY_PASS':'LIVE_DLL_MAPPING_PROLOGUE_PASS';
  try{
-  await page.addInitScript(()=>{window.WestminsterGeodeDllBytes=fetch('/integration-input/Geode.dll').then(r=>{if(!r.ok)throw Error('Fixture DLL HTTP '+r.status);return r.arrayBuffer();});});
+  await page.addInitScript(()=>{const instantiate=WebAssembly.instantiate;WebAssembly.instantiate=async function(...args){const out=await instantiate.apply(this,args),e=(out.instance||out).exports;if(e?.gd_frames_get&&e.memory)window.__testGameMemory=e.memory;return out;};window.WestminsterGeodeDllBytes=fetch('/integration-input/Geode.dll').then(r=>{if(!r.ok)throw Error('Fixture DLL HTTP '+r.status);return r.arrayBuffer();});});
   await page.goto('http://127.0.0.1:8765/experiments/geode-binary/handoff/?quality=low&geodemap=1'+(setup?'&geodesetup=1':''),{timeout:60000,waitUntil:'domcontentloaded'});
   await page.waitForFunction(expected=>{
    const r=window.WestminsterHandoffReport;
@@ -29,6 +29,10 @@ const fs=require('node:fs');
    return {report:r,images,jspi:typeof WebAssembly.Suspending==='function'};
   });
   if(!result.report.originalGameCpuPreserved||!result.report.liveStackRestored||!result.report.dllMappedIntoLiveGame||!result.report.dllReservation.active)throw Error('DLL mapping or CPU/stack preservation failed');
+  if(capture){
+   const headers=await page.evaluate(()=>{const base=0x400000,memory=window.__testGameMemory,b=new Uint8Array(memory.buffer,base,4096),v=new DataView(b.buffer,b.byteOffset,b.byteLength);if(v.getUint16(0,true)!==0x5a4d)throw Error('Live game DOS header missing');const pe=v.getUint32(0x3c,true);if(pe>3500||v.getUint32(pe,true)!==0x4550)throw Error('Live game PE header missing');return {base,imageSize:v.getUint32(pe+80,true),gameWasmSha256:window.WestminsterHandoffReport.gameModuleSha256,hex:Array.from(b,x=>x.toString(16).padStart(2,'0')).join('')};});
+   fs.writeFileSync('integration-input/game-headers.json',JSON.stringify(headers,null,2));console.log('GAME_HEADERS_FIXTURE '+JSON.stringify(headers));
+  }
   fs.writeFileSync('browser-result.json',JSON.stringify({...result,seconds:(Date.now()-started)/1000,events},null,2));
   console.log(JSON.stringify(result,null,2));
  }catch(error){

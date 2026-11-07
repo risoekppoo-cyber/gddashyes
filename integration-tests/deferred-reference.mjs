@@ -13,6 +13,7 @@ assert.equal(createHash('sha256').update(dll).digest('hex'),manifest.dllSha256);
 const memory=new WebAssembly.Memory({initial:6144,maximum:65536}),cpu=4096;
 const instance=await instantiateStartupLift(wasm,memory);
 for(const [index,c] of manifest.cases.entries()){
+ const gh=manifest.gameHeaders;new Uint8Array(memory.buffer,gh.base,4096).set(Buffer.from(gh.hex,'hex'));
  let heapAt=0x1800000;new Uint8Array(memory.buffer,heapAt,0x400000).fill(0);
  const allocator={malloc(n){const p=heapAt;heapAt=Math.ceil((p+n)/8)*8;if(heapAt>0x1c00000)throw Error('Fixture heap exhausted');return p;},free(){}};
  const services=new ServiceClass(memory,Object.fromEntries(SERVICE_NAMES.map((n,i)=>[n,0x70000000+i*16])),{imageBase:c.imageBase,tib:c.tib,allocator,filesystem:{stat(path){return path.toLowerCase()==='c:\\geometrydash'?{directory:true}:null;}}});
@@ -50,6 +51,7 @@ for(const [index,c] of manifest.cases.entries()){
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,c.imageBase,image.size),expectedImage),0,`case ${index} DLL writes`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,0x1800000,c.heapHex.length/2),Buffer.from(c.heapHex,'hex')),0,`case ${index} heap`);
  assert.deepEqual([...services.onexit.values()].flatMap(t=>t.callbacks).map(String),c.onexitCallbacks,`case ${index} exit callback registrations`);
+ assert.equal(Buffer.compare(Buffer.from(memory.buffer,gh.base,4096),Buffer.from(gh.hex,'hex')),0,`case ${index} primary game headers`);
 }
 const result={status:'DEFERRED_NATIVE_REFERENCE_PASS',cases:manifest.cases.length,uniqueInstructions:manifest.uniqueInstructions,boundaries:manifest.boundaries,wasmSha256:createHash('sha256').update(wasm).digest('hex'),fullGeodeLoader:false};
 await writeFile(dir+'/reference-result.json',JSON.stringify(result,null,2));
