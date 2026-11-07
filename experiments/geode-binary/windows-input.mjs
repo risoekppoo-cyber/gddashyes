@@ -1,5 +1,5 @@
 import {GuestLifecycle} from './windows-lifecycle.mjs';
-export const INPUT_NAMES=['GetAsyncKeyState','ceilf'];
+export const INPUT_NAMES=['GetAsyncKeyState','ceilf','GetModuleHandleW'];
 // Input belongs to this browser document, not the host Windows desktop.
 export class BrowserModifiers{
  constructor(target){
@@ -18,6 +18,7 @@ export class GuestInput extends GuestLifecycle{
  constructor(memory,addresses,options={}){super(memory,addresses,options);this.input=options.input||new BrowserModifiers();}
  resolve(item){if((item.dll.toLowerCase()==='user32.dll'&&item.name==='GetAsyncKeyState')||(/^api-ms-win-crt-math/i.test(item.dll)&&item.name==='ceilf')){const p=this.addresses[item.name];return p===undefined?undefined:BigInt(p);}return super.resolve(item);}
  invoke(cpu,address){
+  if(this.addresses.GetModuleHandleW!==undefined&&BigInt(this.addresses.GetModuleHandleW)===address){const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true);this.range(sp,8);if(v.getBigUint64(cpu+8,true)!==0n)throw Error('Named guest module lookup requires catalogue evidence');v.setBigUint64(cpu,0x400000n,true);this.calls.push('GetModuleHandleW');v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);return;}
   if(this.addresses.ceilf!==undefined&&BigInt(this.addresses.ceilf)===address){const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true);this.range(sp,8);v.setFloat32(cpu+512,Math.ceil(v.getFloat32(cpu+512,true)),true);this.calls.push('ceilf');v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);return;}
   if(this.addresses.GetAsyncKeyState===undefined||BigInt(this.addresses.GetAsyncKeyState)!==address)return super.invoke(cpu,address);
   const v=new DataView(this.memory.buffer),vk=Number(v.getBigUint64(cpu+8,true)&0xffffffffn),sp=v.getBigUint64(cpu+32,true);this.range(sp,8);

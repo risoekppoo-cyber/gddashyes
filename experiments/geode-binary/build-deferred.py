@@ -32,6 +32,12 @@ class WideLifter(Lifter):
  def emit_op(self,op,index,count):
   a=op.inputs;code=op.opcode.name
   if code=='IMARK':return ''
+  if code=='FLOAT_NAN' and a[0].size in [4,8]:
+   value=f'bits_f{a[0].size*8}({self.expr(a[0])})'
+   return self.assign(op.output,f'({value}!={value})')
+  if code in ['FLOAT_EQUAL','FLOAT_NOTEQUAL','FLOAT_LESS','FLOAT_LESSEQUAL'] and a[0].size in [4,8]:
+   operator={'FLOAT_EQUAL':'==','FLOAT_NOTEQUAL':'!=','FLOAT_LESS':'<','FLOAT_LESSEQUAL':'<='}[code];bits=a[0].size*8
+   return self.assign(op.output,f'(bits_f{bits}({self.expr(a[0])}){operator}bits_f{bits}({self.expr(a[1])}))')
   if code=='FLOAT_INT2FLOAT' and op.output.size in [4,8] and a[0].size in [4,8]:
    return self.assign(op.output,f'f{op.output.size*8}_bits((int64_t)sext({self.expr(a[0])},{a[0].size}u))')
   if code in ['FLOAT_ADD','FLOAT_SUB','FLOAT_MULT','FLOAT_DIV'] and op.output.size in [4,8]:
@@ -109,7 +115,7 @@ def main():
    encoding=['WideCharToMultiByte','MultiByteToWideChar']
    file_services=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle','SetCurrentDirectoryW','GetCurrentDirectoryW']
    lifecycle=['_initialize_onexit_table','_register_onexit_function','_execute_onexit_table','WakeAllConditionVariable']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf'])}
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW'])}
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
@@ -171,6 +177,9 @@ def main():
       locks.remove(ptr);emu.mem_write(ptr,b'\0'*8)
      elif name=='SetLastError':emu.mem_write(tib+0x68,(ptr&0xffffffff).to_bytes(4,'little'))
      elif name=='GetLastError':emu.reg_write(x.UC_X86_REG_RAX,int.from_bytes(emu.mem_read(tib+0x68,4),'little'))
+     elif name=='GetModuleHandleW':
+      if ptr:raise RuntimeError('Native fixture named module handle needs catalogue evidence')
+      emu.reg_write(x.UC_X86_REG_RAX,0x400000)
      elif name=='GetAsyncKeyState':
       if ptr not in [16,17,18]:raise RuntimeError('Unsupported native fixture async key')
       emu.reg_write(x.UC_X86_REG_RAX,0) # No browser modifier pressed in the reference fixture.
