@@ -32,6 +32,9 @@ class WideLifter(Lifter):
  def emit_op(self,op,index,count):
   a=op.inputs;code=op.opcode.name
   if code=='IMARK':return ''
+  if code=='INT_SRIGHT' and a[0].size<=8:
+   value,shift=[self.expr(v) for v in a];bits=a[0].size*8
+   return self.assign(op.output,f'({shift}>={bits}u?(({value}>>{bits-1})&1u?mask({a[0].size}u):0u):(uint64_t)((int64_t)sext({value},{a[0].size}u)>>{shift}))')
   if max([v.size for v in a]+([op.output.size] if op.output else [])+[0])<=8:
    return super().emit_op(op,index,count)
   if code=='COPY':return self.assign(op.output,self.expr(a[0]))
@@ -47,7 +50,8 @@ class WideLifter(Lifter):
   data=self.pe.get_data(va-self.base,32)
   ins=self.ctx.disassemble(data,base_address=va,max_instructions=1).instructions[0]
   ops=self.ctx.translate(data[:ins.length],base_address=va,max_instructions=1).ops
-  emitted=[self.emit_op(op,i,len(ops)) for i,op in enumerate(ops)]
+  try:emitted=[self.emit_op(op,i,len(ops)) for i,op in enumerate(ops)]
+  except LiftError as error:raise LiftError(f'{error}; instruction {ins}') from error
   # Supply architectural AF where SLEIGH omits it; capture the actual p-code
   # operands before a destination register can be overwritten.
   match=re.search(r': (ADD|SUB|CMP|INC|DEC) ',str(ins))
@@ -78,9 +82,9 @@ def main():
  for group in [getattr(pe,'DIRECTORY_ENTRY_IMPORT',[]),getattr(pe,'DIRECTORY_ENTRY_DELAY_IMPORT',[])]:
   for desc in group:
    for imp in desc.imports:imports[imp.address-preferred]=desc.dll.decode()+'!'+(imp.name.decode() if imp.name else '#'+str(imp.ordinal))
- cases=[];observed=set();boundaries=[]
+ cases=[];observed=set();boundaries=[];sar_fixture=[None]
  for image_base in [0x2000000,0x16000000]:
-  for variant in range(3):
+  for variant in range(4):
    image=bytearray(original)
    for block in pe.DIRECTORY_ENTRY_BASERELOC:
     for rel in block.entries:
@@ -123,6 +127,9 @@ def main():
    for i,value in {1:0x400000,2:0,4:sp,8:0,9:10}.items():values[i]=value
    entry_rva=0x12df16 if variant==2 else 0x12f200
    if variant==2:values[5]=0x10e000
+   if variant==3:
+    if sar_fixture[0] is None:raise RuntimeError('Reached SAR fixture missing')
+    entry_rva=sar_fixture[0][0];values[9]=0x8000000000000001;values[1]=1
    for reg,value in zip(REGS,values):uc.reg_write(getattr(x,'UC_X86_REG_'+reg),value)
    xmm=[((i+1)*0x01010101010101010101010101010101)&((1<<128)-1) for i in range(16)]
    for i,value in enumerate(xmm):uc.reg_write(getattr(x,'UC_X86_REG_XMM'+str(i)),value)
@@ -242,13 +249,25 @@ def main():
     if not 0<=rva<size:raise RuntimeError(f'Unexpected target {address:#x}')
     if variant==2 and rva==0x12df21:
      boundary.update(rva=rva,service='SIMD fixture stop');emu.emu_stop();return
+    if variant==3 and rva==sar_fixture[0][0]+sar_fixture[0][1]:
+     boundary.update(rva=rva,service='Signed-shift fixture stop');emu.emu_stop();return
     b=bytes(emu.mem_read(address,min(16,size-rva)))
     if b[:2] in [b'\xff\x15',b'\xff\x25']:
      slot=rva+6+int.from_bytes(b[2:6],'little',signed=True)
      if slot in imports and imports[slot].split('!')[-1] not in services:
-      boundary.update(rva=rva,service=imports[slot],iatRva=slot);emu.emu_stop();return
+      boundary.update(rva=rva,service=imports[slot],iatRva=slot)
+      if imports[slot].endswith('!CreateFileW'):
+       pointer=emu.reg_read(x.UC_X86_REG_RCX);raw=bytearray()
+       for i in range(32768):
+        ch=bytes(emu.mem_read(pointer+i*2,2))
+        if ch==b'\0\0':break
+        raw.extend(ch)
+       rsp=emu.reg_read(x.UC_X86_REG_RSP)
+       boundary['fileRequest']={'path':raw.decode('utf-16le'),'access':hex(emu.reg_read(x.UC_X86_REG_RDX)),'share':hex(emu.reg_read(x.UC_X86_REG_R8)),'disposition':int.from_bytes(emu.mem_read(rsp+32,4),'little'),'flags':hex(int.from_bytes(emu.mem_read(rsp+40,4),'little'))}
+      emu.emu_stop();return
     instruction=str(ctx.disassemble(pe.get_data(rva,16),base_address=preferred+rva,max_instructions=1).instructions[0])
     mnemonic=instruction.split(': ',1)[1].split(' ',1)[0]
+    if mnemonic=='SAR' and 'R9' in instruction and sar_fixture[0] is None:sar_fixture[0]=(rva,n)
     if mnemonic in ['ADD','SUB','CMP','ADC','SBB','NEG']:defined_flags[0]=0x8d5
     elif mnemonic in ['INC','DEC']:defined_flags[0]=(defined_flags[0]&1)|0x8d4
     elif mnemonic in ['TEST','AND','OR','XOR']:defined_flags[0]=0x8c5
