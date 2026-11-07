@@ -39,10 +39,11 @@ for(const [index,c] of manifest.cases.entries()){
  new Uint8Array(memory.buffer,c.tlsData,t.templateSize).set(new Uint8Array(memory.buffer,c.imageBase+t.templateRva,t.templateSize));
  v.setUint32(c.imageBase+t.indexRva,0,true);
  const entry=BigInt(c.imageBase+c.entryRva),stop=BigInt(c.imageBase+c.stopRva);
+ const executionStop=c.expectedFault?entry+3n:stop;
  let count=0,pc=entry,completed=false,faultObserved=false;
  try{
  for(let transfers=0;transfers<1000;transfers++){
-  const r=instance.exports.lift_run(cpu,pc,BigInt(c.imageBase),0,stop,20000)>>>0;count+=r&0x7fffffff;
+  const r=instance.exports.lift_run(cpu,pc,BigInt(c.imageBase),0,executionStop,20000)>>>0;count+=r&0x7fffffff;
   if(!(r&0x80000000)){completed=true;break;}
   services.invoke(cpu,v.getBigUint64(cpu+192,true));pc=v.getBigUint64(cpu+192,true);
  }
