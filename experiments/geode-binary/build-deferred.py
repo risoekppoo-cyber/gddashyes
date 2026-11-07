@@ -54,6 +54,11 @@ class WideLifter(Lifter):
    return super().emit_op(op,index,count)
   if code=='COPY':return self.assign(op.output,self.expr(a[0]))
   if code=='INT_ZEXT' and op.output.size==16:return self.assign(op.output,f'(wide_t){self.expr(a[0])}')
+  if code=='INT_SEXT' and op.output.size==16:return self.assign(op.output,f'(wide_t)(__int128)(int64_t)sext({self.expr(a[0])},{a[0].size}u)')
+  if code=='INT_MULT' and op.output.size==16:return self.assign(op.output,f'((wide_t){self.expr(a[0])}*(wide_t){self.expr(a[1])})')
+  if code in ['INT_EQUAL','INT_NOTEQUAL']:
+   operator='==' if code=='INT_EQUAL' else '!='
+   return self.assign(op.output,f'({self.expr(a[0])}{operator}{self.expr(a[1])})')
   if code=='LOAD' and op.output.size==16:return self.assign(op.output,f'guest_read128({self.expr(a[1])},guest_base)')
   if code=='STORE' and a[2].size==16:return f'guest_write128({self.expr(a[1])},{self.expr(a[2])},guest_base);'
   if code in ['INT_XOR','INT_AND','INT_OR']:
@@ -397,6 +402,8 @@ def main():
    if not boundary:raise RuntimeError('No explicit service boundary found')
    assert bytes(uc.mem_read(game_headers['base'],4096))==header_bytes,'Unexpected primary game header mutation'
    print(json.dumps({'nativeBoundary':boundary,'steps':len(trace),'imageBase':hex(image_base)}),flush=True)
+   if image_base==0x2000000 and variant==0:
+    print(json.dumps({'callbackInstructions':[str(ctx.disassemble(pe.get_data(rva,16),base_address=preferred+rva,max_instructions=1).instructions[0]) for rva in dict.fromkeys(trace) if 0x12f200<=rva<0x12f400]}),flush=True)
    # Store only changed DLL bytes; pointers in the reference are base-specific.
    final=bytes(uc.mem_read(image_base,size));changes=[];at=0
    while at<size:
