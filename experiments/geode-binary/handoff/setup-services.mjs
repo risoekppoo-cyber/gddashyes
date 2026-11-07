@@ -329,6 +329,26 @@ class GuestInput extends GuestLifecycle{
  releaseHeap(){this.input.release?.();super.releaseHeap();}
 }
 
+// windows-debugger.mjs
+const DEBUGGER_NAMES=['RaiseException'];
+// The guest debugger consumes only the documented continuable MSVC naming
+// notification. Other exceptions require actual guest exception dispatch.
+class GuestDebugger extends GuestInput{
+ constructor(memory,addresses,options={}){super(memory,addresses,options);this.threadNames=new Map();}
+ invoke(cpu,address){
+  if(this.addresses.RaiseException===undefined||BigInt(this.addresses.RaiseException)!==address)return super.invoke(cpu,address);
+  const v=new DataView(this.memory.buffer),code=v.getUint32(cpu+8,true),flags=v.getUint32(cpu+16,true),count=v.getUint32(cpu+64,true),args=v.getBigUint64(cpu+72,true),sp=v.getBigUint64(cpu+32,true);
+  if(code!==0x406d1388||flags!==0||count!==3)throw Error('Unsupported guest exception 0x'+code.toString(16));
+  const p=this.range(args,24);this.range(sp,8);const id=v.getUint32(p+16,true);
+  if(v.getUint32(p,true)!==0x1000||v.getUint32(p+20,true)!==0||![1,0xffffffff].includes(id))throw Error('Unsupported guest thread-name event');
+  const namePointer=v.getBigUint64(p+8,true);let name='',terminated=false;
+  for(let i=0;i<4096;i++){const c=v.getUint8(this.range(namePointer+BigInt(i),1));if(!c){terminated=true;break;}if(c>=128)throw Error('Unsupported thread-name code page');name+=String.fromCharCode(c);}
+  if(!terminated)throw Error('Unterminated guest thread name');
+  this.threadNames.set(1,name);this.calls.push('RaiseException');
+  v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);
+ }
+}
+
 // game-imports.mjs
 const COCOS_DLL='libcocos2d.dll';
 const COCOS_NODE_SPACE='?convertToNodeSpace@CCNode@cocos2d@@QEAA?AVCCPoint@2@AEBV32@@Z';
@@ -372,5 +392,5 @@ function inspectCocos(memory,fs){
  return {...image,dll:COCOS_DLL,name:COCOS_NODE_SPACE,...target,pageBase,pageHex:Array.from(bytes.subarray(pageBase,pageBase+4096),b=>b.toString(16).padStart(2,'0')).join(''),candidates,primaryIatCount:iat.length};
 }
 
-export {GuestInput as ServiceClass,gameFilesystem,BrowserModifiers,inspectCocos};
-export const SERVICE_NAMES=["AcquireSRWLockExclusive","ReleaseSRWLockExclusive","GetModuleFileNameW","GetLastError","SetLastError",...CRT_NAMES,...ENCODING_NAMES,...PATH_NAMES,...FILE_NAMES,...LIFECYCLE_NAMES,...INPUT_NAMES];
+export {GuestDebugger as ServiceClass,gameFilesystem,BrowserModifiers,inspectCocos};
+export const SERVICE_NAMES=["AcquireSRWLockExclusive","ReleaseSRWLockExclusive","GetModuleFileNameW","GetLastError","SetLastError",...CRT_NAMES,...ENCODING_NAMES,...PATH_NAMES,...FILE_NAMES,...LIFECYCLE_NAMES,...INPUT_NAMES,...DEBUGGER_NAMES];
