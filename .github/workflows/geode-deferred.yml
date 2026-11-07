@@ -50,7 +50,8 @@ jobs:
           cp browser-result.json experiments/geode-binary/handoff/setup-browser-result.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add experiments/geode-binary/handoff/setup.wasm experiments/geode-binary/handoff/setup-manifest.json experiments/geode-binary/handoff/setup-reference-result.json experiments/geode-binary/handoff/setup-browser-result.json
+          git add -f experiments/geode-binary/handoff/setup.wasm
+          git add experiments/geode-binary/handoff/setup-manifest.json experiments/geode-binary/handoff/setup-reference-result.json experiments/geode-binary/handoff/setup-browser-result.json
           git diff --cached --quiet || git commit -m 'Publish native-reference and browser-verified deferred setup module'
           git push origin HEAD:main
       - uses: actions/upload-artifact@v4
@@ -61,4 +62,6 @@ jobs:
             deferred-inspection.json
             /tmp/deferred/manifest.json
             /tmp/deferred/reference-result.json
+            /tmp/deferred/deferred.wasm
+            /tmp/deferred/runtime-manifest.json
             browser-result.json
