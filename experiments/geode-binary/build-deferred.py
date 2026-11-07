@@ -221,6 +221,7 @@ def main():
    # does not execute the DLL's complete CRT entrypoint or TLS callbacks.
    onexit={image_base+0xfb1960:{'callbacks':[],'buffer':0,'capacity':0}}
    uc.mem_write(image_base+0xfb1960,b'\0'*24)
+   current_id=1;worker_mode=False
    trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000];cwd=['C:\\GeometryDash'];thread_names={}
    stdio_state={'base':0,'streams':{},'fds':{},'nextHandle':0x61000010}
    pipe_state={'nextHandle':0x62000000,'pipes':[],'byName':{},'ends':{},'completions':[],'outputs':[]}
@@ -247,6 +248,8 @@ def main():
    def hook(emu,address,n,_):
     if address in services.values():
      name=next(k for k,v in services.items() if v==address);ptr=emu.reg_read(x.UC_X86_REG_RCX)
+     if worker_mode and name in ['ReadFile','WriteFile','GetOverlappedResult','GetQueuedCompletionStatus']:
+      boundary.update(rva=address-image_base,service=name,kind='worker-service-entry',stopService=name);emu.emu_stop();return
      if name=='_beginthreadex':
       rsp=emu.reg_read(x.UC_X86_REG_RSP);start=emu.reg_read(x.UC_X86_REG_R8);argument=emu.reg_read(x.UC_X86_REG_R9);id_out=int.from_bytes(emu.mem_read(rsp+48,8),'little')
       boundary.update(rva=address-image_base,service='api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex',kind='thread-start-request',stopService='_beginthreadex')
@@ -262,7 +265,7 @@ def main():
       locks.remove(ptr);emu.mem_write(ptr,b'\0'*8)
      elif name=='SetLastError':emu.mem_write(tib+0x68,(ptr&0xffffffff).to_bytes(4,'little'))
      elif name=='GetLastError':emu.reg_write(x.UC_X86_REG_RAX,int.from_bytes(emu.mem_read(tib+0x68,4),'little'))
-     elif name=='GetCurrentThreadId':emu.reg_write(x.UC_X86_REG_RAX,1)
+     elif name=='GetCurrentThreadId':emu.reg_write(x.UC_X86_REG_RAX,current_id)
      elif name=='GetCurrentProcessId':emu.reg_write(x.UC_X86_REG_RAX,1)
      elif name=='CloseHandle' and ptr in port_state['ports']:
       del port_state['ports'][ptr];emu.reg_write(x.UC_X86_REG_RAX,1)
@@ -308,12 +311,12 @@ def main():
         if entry['recursion']:raise RuntimeError('Delete owned native critical section')
         del critical_state[ptr];emu.mem_write(ptr,b'\0'*40)
        elif name=='LeaveCriticalSection':
-        if entry['owner']!=1 or not entry['recursion']:raise RuntimeError('Unowned native critical-section leave')
+        if entry['owner']!=current_id or not entry['recursion']:raise RuntimeError('Unowned native critical-section leave')
         entry['recursion']-=1
         if not entry['recursion']:entry['owner']=0
        else:
-        if entry['owner'] not in [0,1]:raise RuntimeError('Native critical section needs a scheduler')
-        entry['owner']=1;entry['recursion']+=1
+        if entry['owner'] not in [0,current_id]:raise RuntimeError('Native critical section needs a scheduler')
+        entry['owner']=current_id;entry['recursion']+=1
         if name=='TryEnterCriticalSection':result=1
       if name!='DeleteCriticalSection':emu.mem_write(ptr,struct.pack('<QiIQQQ',(1<<64)-1,-2 if entry['recursion'] else -1,entry['recursion'],entry['owner'],0,0x20007d0))
       if result is not None:emu.reg_write(x.UC_X86_REG_RAX,result)
@@ -396,14 +399,14 @@ def main():
       flags=emu.reg_read(x.UC_X86_REG_RDX)&0xffffffff;count=emu.reg_read(x.UC_X86_REG_R8)&0xffffffff;args=emu.reg_read(x.UC_X86_REG_R9)
       if ptr&0xffffffff!=0x406d1388 or flags or count!=3:raise RuntimeError('Unsupported native fixture exception')
       kind,pointer,tid,reserved=struct.unpack('<I4xQII',bytes(emu.mem_read(args,24)))
-      if kind!=0x1000 or tid not in [1,0xffffffff] or reserved:raise RuntimeError('Unsupported native thread-name event')
+      if kind!=0x1000 or tid not in [current_id,0xffffffff] or reserved:raise RuntimeError('Unsupported native thread-name event')
       raw=bytearray()
       for i in range(4096):
        char=bytes(emu.mem_read(pointer+i,1))
        if char==b'\0':break
        raw.extend(char)
       else:raise RuntimeError('Unterminated native thread name')
-      thread_names[1]=raw.decode('ascii')
+      thread_names[current_id]=raw.decode('ascii')
      elif name=='GetModuleHandleW':
       if ptr:raise RuntimeError('Native fixture named module handle needs catalogue evidence')
       emu.reg_write(x.UC_X86_REG_RAX,0x400000)
@@ -668,6 +671,38 @@ def main():
      'pipeState':{'pipes':[{'name':p['name'],'server':str(p['server']),'clients':[str(h) for h in p['clients']],'queuedHex':p['queued'].hex(),'closed':p['closed'],'everConnected':p['everConnected']} for p in pipe_state['pipes']],'completions':pipe_state['completions'],'outputs':pipe_state['outputs']},'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],
      'iocpState':{'ports':[{'handle':str(h),'concurrency':p['concurrency'],'queue':[{'bytes':q['bytes'],'key':str(q['key']),'ov':str(q['ov']),'error':q['error']} for q in p['queue']]} for h,p in port_state['ports'].items()],'associations':[[str(h),str(a[0]),str(a[1])] for h,a in port_state['associations'].items()]}})
    boundaries.append(boundary)
+   if variant==0:
+    # Execute the actual requested callback under the explicit static-TLS model.
+    # The parent remains stopped; no _beginthreadex return/handle is fabricated.
+    request=boundary['threadRequest'];worker_entry=int(request['entryAddress'],16);worker_argument=int(request['argument'],16)
+    worker_cpu=allocate(4096,True);tib=allocate(0x4000,True);stack_base=allocate(65536,True);stack_size=65536;sp=((stack_base+stack_size-64)//16)*16-8
+    current_id=2;worker_mode=True;tls_array=tib+0x1000;tls_data=tib+0x2000
+    for offset,value in [(8,stack_base+stack_size),(16,stack_base),(0x30,tib),(0x40,1),(0x48,current_id),(0x58,tls_array)]:uc.mem_write(tib+offset,value.to_bytes(8,'little'))
+    uc.mem_write(tls_array,tls_data.to_bytes(8,'little'));uc.mem_write(tls_data,bytes(image[tls_rva:tls_rva+tls_size]));uc.mem_write(sp,(0x70000ff0).to_bytes(8,'little'))
+    values=[0]*16;values[1]=worker_argument;values[4]=sp
+    for reg,value in zip(REGS,values):uc.reg_write(getattr(x,'UC_X86_REG_'+reg),value)
+    for i in range(16):uc.reg_write(getattr(x,'UC_X86_REG_XMM'+str(i)),0)
+    uc.reg_write(x.UC_X86_REG_GS_BASE,tib);uc.reg_write(x.UC_X86_REG_EFLAGS,2)
+    trace=[];boundary={};import_snapshot=[];service_calls=[];writes=[];defined_flags=[0x8d5]
+    uc.emu_start(worker_entry,0,count=50001)
+    if import_snapshot:
+     for reg,value in import_snapshot:uc.reg_write(reg,value)
+     if trace and trace[-1]==boundary['rva']:trace.pop()
+    if not boundary:raise RuntimeError('Worker has no explicit boundary')
+    expected=[uc.reg_read(getattr(x,'UC_X86_REG_'+r)) for r in REGS];expected_xmm=[uc.reg_read(getattr(x,'UC_X86_REG_XMM'+str(i))) for i in range(16)];expected_flags=uc.reg_read(x.UC_X86_REG_EFLAGS)
+    # Materialize the independent oracle's CPU shadow for heap comparison.
+    for i,value in enumerate(expected):uc.mem_write(worker_cpu+i*8,value.to_bytes(8,'little'))
+    uc.mem_write(worker_cpu+192,uc.reg_read(x.UC_X86_REG_RIP).to_bytes(8,'little'));uc.mem_write(worker_cpu+2328,tib.to_bytes(8,'little'))
+    for i,value in enumerate(expected_xmm):uc.mem_write(worker_cpu+512+i*16,value.to_bytes(16,'little'))
+    for bit in [0,2,4,6,7,11]:uc.mem_write(worker_cpu+2560+bit,bytes([(expected_flags>>bit)&1]))
+    final=bytes(uc.mem_read(image_base,size));changes=[];at=0
+    while at<size:
+     if final[at]==image[at]:at+=1;continue
+     start=at
+     while at<size and final[at]!=image[at]:at+=1
+     changes.append({'rva':start,'hex':final[start:at].hex()})
+    cases[-1]['worker']={'id':2,'cpu':worker_cpu,'tib':tib,'stack':stack_base,'entryRva':worker_entry-image_base,'argument':hex(worker_argument),'returnAddress':'0x70000ff0','boundary':boundary,'steps':len(trace),'expected':[hex(n) for n in expected],'expectedXmm':[hex(n) for n in expected_xmm],'expectedFlags':expected_flags,'definedFlagsMask':defined_flags[0],'dllChanges':changes,'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'serviceCalls':service_calls,'threadNames':list(thread_names.items()),'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()]}
+    print(json.dumps({'workerBoundary':boundary,'steps':len(trace),'imageBase':hex(image_base)}),flush=True)
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)
  source=lifter.source();(out/'deferred.c').write_text(source)

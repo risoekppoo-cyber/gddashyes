@@ -1,10 +1,11 @@
 // Cooperative, synchronous scheduling foundation. No _beginthreadex shim is
 // installed here: the real worker closure and CRT trampoline remain unverified.
 export class GuestScheduler {
- constructor(services,{quantum=1000}={}){
+ constructor(services,{quantum=1000,firstId=1}={}){
   if(typeof SharedArrayBuffer!=='undefined'&&services.memory.buffer instanceof SharedArrayBuffer)throw Error('Guest scheduler requires non-shared memory');
   if(!Number.isInteger(quantum)||quantum<1||quantum>20000)throw Error('Invalid scheduler quantum');
-  this.services=services;this.quantum=quantum;this.threads=new Map();this.nextId=1;this.running=false;this.disposed=false;
+  if(!Number.isInteger(firstId)||firstId<1||firstId>0xffffffff)throw Error('Invalid first guest thread ID');
+  this.services=services;this.quantum=quantum;this.threads=new Map();this.nextId=firstId;this.running=false;this.disposed=false;
  }
  createContext({entry,argument=0n,returnAddress,tlsTemplate=new Uint8Array(),tlsZeroFill=0,stackSize=65536}={}){
   if(this.disposed||this.running)throw Error('Cannot create context in this scheduler state');
