@@ -1,29 +1,33 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
   "cases": 8,
-  "uniqueInstructions": 2274,
+  "uniqueInstructions": 4355,
   "boundaries": [
     {
-      "rva": 1241513,
-      "service": "USER32.dll!GetAsyncKeyState",
-      "iatRva": 15258944,
+      "rva": 1265145,
+      "service": "KERNEL32.dll!RaiseException",
+      "iatRva": 15260160,
       "arguments": [
-        "0x12",
-        "0x30",
-        "0x1800390",
-        "0xf"
+        "0x406d1388",
+        "0x0",
+        "0x3",
+        "0x10eb28"
       ]
     },
     {
-      "rva": 1241513,
-      "service": "USER32.dll!GetAsyncKeyState",
-      "iatRva": 15258944,
+      "rva": 1208561,
+      "service": "USER32.dll!MessageBoxW",
+      "iatRva": 15259088,
       "arguments": [
-        "0x12",
-        "0x30",
-        "0x1800390",
-        "0xf"
-      ]
+        "0x0",
+        "0x1801cb0",
+        "0x1801db0",
+        "0x10"
+      ],
+      "dialog": {
+        "text": "Geometry Dash is outdated!\nGeode requires GD 2.2091 but you have 2.2091.\nPlease, update Geometry Dash to 2.2091.",
+        "caption": "Unable to Load Geode!"
+      }
     },
     {
       "rva": 1236769,
@@ -34,26 +38,30 @@
       "service": "Signed-shift fixture stop"
     },
     {
-      "rva": 1241513,
-      "service": "USER32.dll!GetAsyncKeyState",
-      "iatRva": 15258944,
+      "rva": 1265145,
+      "service": "KERNEL32.dll!RaiseException",
+      "iatRva": 15260160,
       "arguments": [
-        "0x12",
-        "0x30",
-        "0x1800390",
-        "0xf"
+        "0x406d1388",
+        "0x0",
+        "0x3",
+        "0x10eb28"
       ]
     },
     {
-      "rva": 1241513,
-      "service": "USER32.dll!GetAsyncKeyState",
-      "iatRva": 15258944,
+      "rva": 1208561,
+      "service": "USER32.dll!MessageBoxW",
+      "iatRva": 15259088,
       "arguments": [
-        "0x12",
-        "0x30",
-        "0x1800390",
-        "0xf"
-      ]
+        "0x0",
+        "0x1801cb0",
+        "0x1801db0",
+        "0x10"
+      ],
+      "dialog": {
+        "text": "Geometry Dash is outdated!\nGeode requires GD 2.2091 but you have 2.2091.\nPlease, update Geometry Dash to 2.2091.",
+        "caption": "Unable to Load Geode!"
+      }
     },
     {
       "rva": 1236769,
@@ -64,6 +72,6 @@
       "service": "Signed-shift fixture stop"
     }
   ],
-  "wasmSha256": "457260f8f41b34428f3b3f57da5ba6f32b5aaf011d4b8d1de293fa1b517a319a",
+  "wasmSha256": "54a46c5d73e252e3e4053b7d87eaf37d336730a2a9a55674d51cb7eb3bc180d5",
   "fullGeodeLoader": false
 }
