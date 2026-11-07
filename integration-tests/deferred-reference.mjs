@@ -4,7 +4,7 @@ import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {instantiateStartupLift} from '../experiments/geode-binary/handoff/startup-module.mjs';
 import {mapPe64} from '../experiments/geode-binary/pe-image.mjs';
-import {GuestSrw} from '../experiments/geode-binary/windows-srw.mjs';
+import {GuestModules} from '../experiments/geode-binary/windows-modules.mjs';
 const dir=resolve(process.argv[2]),dll=await readFile('/tmp/Geode.dll');
 const manifest=JSON.parse(await readFile(dir+'/manifest.json'));
 const wasm=await readFile(dir+'/deferred.wasm');
@@ -12,7 +12,7 @@ assert.equal(createHash('sha256').update(dll).digest('hex'),manifest.dllSha256);
 const memory=new WebAssembly.Memory({initial:6144,maximum:65536}),cpu=4096;
 const instance=await instantiateStartupLift(wasm,memory);
 for(const [index,c] of manifest.cases.entries()){
- const services=new GuestSrw(memory,{AcquireSRWLockExclusive:0x70000000,ReleaseSRWLockExclusive:0x70000010});
+ const services=new GuestModules(memory,Object.fromEntries(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError'].map((n,i)=>[n,0x70000000+i*16])),{imageBase:c.imageBase,tib:c.tib});
  const image=mapPe64(dll,memory,c.imageBase,{resolveImport:item=>services.resolve(item)}),v=new DataView(memory.buffer);
  const expectedImage=Buffer.from(new Uint8Array(memory.buffer,c.imageBase,image.size));
  for(const change of c.dllChanges)Buffer.from(change.hex,'hex').copy(expectedImage,change.rva);

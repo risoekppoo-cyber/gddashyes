@@ -7,6 +7,7 @@ on:
       - 'experiments/geode-binary/build-deferred.py'
       - 'integration-tests/deferred-reference.mjs'
       - 'experiments/geode-binary/windows-srw.mjs'
+      - 'experiments/geode-binary/windows-modules.mjs'
       - 'experiments/geode-binary/setup-context.mjs'
       - 'experiments/geode-binary/handoff/runtime.js'
   workflow_dispatch:
@@ -34,6 +35,7 @@ jobs:
           clang --target=wasm32 -O2 -nostdlib /tmp/deferred/deferred.c -Wl,--no-entry -Wl,--import-memory -Wl,--export=lift_run -Wl,--export=__stack_pointer -Wl,-z,stack-size=65536 -o /tmp/deferred/deferred.wasm
           node integration-tests/deferred-reference.mjs /tmp/deferred
           node integration-tests/windows-srw.mjs
+          node integration-tests/windows-modules.mjs
           cp /tmp/deferred/deferred.wasm experiments/geode-binary/handoff/setup.wasm
           cp /tmp/deferred/runtime-manifest.json experiments/geode-binary/handoff/setup-manifest.json
       - name: Test setup in the real browser

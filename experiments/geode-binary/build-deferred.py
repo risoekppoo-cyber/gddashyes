@@ -82,7 +82,7 @@ def main():
     for rel in block.entries:
      if rel.type==10:
       image[rel.rva:rel.rva+8]=((int.from_bytes(image[rel.rva:rel.rva+8],'little')+image_base-preferred)&((1<<64)-1)).to_bytes(8,'little')
-   services={'AcquireSRWLockExclusive':0x70000000,'ReleaseSRWLockExclusive':0x70000010}
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError'])}
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
@@ -115,13 +115,26 @@ def main():
    def hook(emu,address,n,_):
     if address in services.values():
      name=next(k for k,v in services.items() if v==address);ptr=emu.reg_read(x.UC_X86_REG_RCX)
-     value=int.from_bytes(emu.mem_read(ptr,8),'little')
      if name=='AcquireSRWLockExclusive':
+      value=int.from_bytes(emu.mem_read(ptr,8),'little')
       if ptr in locks or value!=0:raise RuntimeError('Unsupported contended native lock')
       locks.add(ptr);emu.mem_write(ptr,(1).to_bytes(8,'little'))
-     else:
+     elif name=='ReleaseSRWLockExclusive':
+      value=int.from_bytes(emu.mem_read(ptr,8),'little')
       if ptr not in locks or value!=1:raise RuntimeError('Unowned native lock release')
       locks.remove(ptr);emu.mem_write(ptr,b'\0'*8)
+     elif name=='SetLastError':emu.mem_write(tib+0x68,(ptr&0xffffffff).to_bytes(4,'little'))
+     elif name=='GetLastError':emu.reg_write(x.UC_X86_REG_RAX,int.from_bytes(emu.mem_read(tib+0x68,4),'little'))
+     else:
+      path={0:'C:\\GeometryDash\\GeometryDash.exe',0x400000:'C:\\GeometryDash\\GeometryDash.exe',image_base:'C:\\GeometryDash\\Geode.dll'}.get(ptr)
+      capacity=emu.reg_read(x.UC_X86_REG_R8)&0xffffffff;result=0;error=0
+      if path is None:error=126
+      elif capacity==0:error=122
+      else:
+       encoded=path.encode('utf-16le');result=min(len(encoded)//2,capacity)
+       emu.mem_write(emu.reg_read(x.UC_X86_REG_RDX),encoded[:(capacity-1)*2]+b'\0\0')
+       if len(encoded)//2>=capacity:error=122
+      emu.reg_write(x.UC_X86_REG_RAX,result);emu.mem_write(tib+0x68,error.to_bytes(4,'little'))
      service_calls.append(name)
      rsp=emu.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(emu.mem_read(rsp,8),'little')
      emu.reg_write(x.UC_X86_REG_RSP,rsp+8);emu.reg_write(x.UC_X86_REG_RIP,ret);return
