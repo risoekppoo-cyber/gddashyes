@@ -1,37 +1,37 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
   "cases": 6,
-  "uniqueInstructions": 115,
+  "uniqueInstructions": 541,
   "boundaries": [
     {
-      "rva": 5310187,
-      "service": "KERNEL32.dll!WideCharToMultiByte",
-      "iatRva": 15260584
+      "rva": 5299909,
+      "service": "KERNEL32.dll!GetFullPathNameW",
+      "iatRva": 15259744
     },
     {
-      "rva": 5310187,
-      "service": "KERNEL32.dll!WideCharToMultiByte",
-      "iatRva": 15260584
+      "rva": 5299909,
+      "service": "KERNEL32.dll!GetFullPathNameW",
+      "iatRva": 15259744
     },
     {
       "rva": 1236769,
       "service": "SIMD fixture stop"
     },
     {
-      "rva": 5310187,
-      "service": "KERNEL32.dll!WideCharToMultiByte",
-      "iatRva": 15260584
+      "rva": 5299909,
+      "service": "KERNEL32.dll!GetFullPathNameW",
+      "iatRva": 15259744
     },
     {
-      "rva": 5310187,
-      "service": "KERNEL32.dll!WideCharToMultiByte",
-      "iatRva": 15260584
+      "rva": 5299909,
+      "service": "KERNEL32.dll!GetFullPathNameW",
+      "iatRva": 15259744
     },
     {
       "rva": 1236769,
       "service": "SIMD fixture stop"
     }
   ],
-  "wasmSha256": "b8edaf62d210a06073748c80a84cd7389842ca558d2a4ceaf65f617f846a01fc",
+  "wasmSha256": "621c9d73f55968fad73a0f64def3e4871ffc5d7d8df3930635cd32988b9bc0fe",
   "fullGeodeLoader": false
 }
