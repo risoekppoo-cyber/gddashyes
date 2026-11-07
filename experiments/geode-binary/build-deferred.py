@@ -83,7 +83,8 @@ def main():
      if rel.type==10:
       image[rel.rva:rel.rva+8]=((int.from_bytes(image[rel.rva:rel.rva+8],'little')+image_base-preferred)&((1<<64)-1)).to_bytes(8,'little')
    crt=['wcslen','strlen','memcpy','memmove','memset','memcmp','malloc','calloc','realloc','free']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt)}
+   encoding=['WideCharToMultiByte','MultiByteToWideChar']
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding)}
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
@@ -161,12 +162,37 @@ def main():
        result=a
       elif name=='memcmp':
        left=bytes(emu.mem_read(a,c)) if c else b'';right=bytes(emu.mem_read(b,c)) if c else b''
-       result=next((x-y for x,y in zip(left,right) if x!=y),0)&((1<<64)-1)
+       result=next((-1 if x<y else 1 for x,y in zip(left,right) if x!=y),0)&0xffffffff
       else:
        if name=='memcpy' and a!=b and a<b+c and b<a+c:raise RuntimeError('Overlapping native memcpy fixture')
        if c:emu.mem_write(a,bytes(emu.mem_read(b,c)))
        result=a
       if result is not None:emu.reg_write(x.UC_X86_REG_RAX,result)
+     elif name in encoding:
+      wide=name=='WideCharToMultiByte';flags=emu.reg_read(x.UC_X86_REG_RDX)&0xffffffff;input_pointer=emu.reg_read(x.UC_X86_REG_R8)
+      count=emu.reg_read(x.UC_X86_REG_R9)&0xffffffff;count=count-(1<<32) if count>>31 else count
+      rsp=emu.reg_read(x.UC_X86_REG_RSP);output=int.from_bytes(emu.mem_read(rsp+40,8),'little')
+      capacity=int.from_bytes(emu.mem_read(rsp+48,4),'little',signed=True);result=0;error=0
+      if ptr!=65001:raise RuntimeError(f'Unsupported native code page {ptr}')
+      if flags not in [0,0x80 if wide else 8]:error=1004
+      elif not input_pointer or count==0 or count< -1 or capacity<0 or capacity>0 and not output or input_pointer==output or wide and any(emu.mem_read(rsp+56,16)):error=87
+      else:
+       stride=2 if wide else 1;n=count
+       if n==-1:
+        n=0
+        while True:
+         value=int.from_bytes(emu.mem_read(input_pointer+n*stride,stride),'little');n+=1
+         if not value:break
+       raw=bytes(emu.mem_read(input_pointer,n*stride))
+       try:
+        text=raw.decode('utf-16le' if wide else 'utf-8','strict' if flags else 'replace')
+        encoded=text.encode('utf-8' if wide else 'utf-16le');units=len(encoded)//(1 if wide else 2)
+        if capacity==0:result=units
+        elif capacity<units:error=122
+        else:emu.mem_write(output,encoded);result=units
+       except UnicodeError:error=1113
+      if error:emu.mem_write(tib+0x68,error.to_bytes(4,'little'))
+      emu.reg_write(x.UC_X86_REG_RAX,result)
      else:
       path={0:'C:\\GeometryDash\\GeometryDash.exe',0x400000:'C:\\GeometryDash\\GeometryDash.exe',image_base:'C:\\GeometryDash\\Geode.dll'}.get(ptr)
       capacity=emu.reg_read(x.UC_X86_REG_R8)&0xffffffff;result=0;error=0

@@ -10,6 +10,7 @@ const p=call('malloc',32);assert.equal(p%16n,0n);
 call('memset',p,123,32);assert.equal(v.getUint8(Number(p)+31),123);
 const q=call('calloc',16,2);assert.equal(v.getUint8(Number(q)),0);
 call('memcpy',q,p,32);assert.equal(call('memcmp',p,q,32),0n);
+v.setUint8(Number(p),1);v.setUint8(Number(q),2);assert.equal(call('memcmp',p,q,1),0xffffffffn);assert.equal(call('memcmp',q,p,1),1n);
 new Uint8Array(memory.buffer,Number(p),8).set([1,2,3,4,5,6,7,8]);call('memmove',p+2n,p,6);assert.deepEqual([...new Uint8Array(memory.buffer,Number(p),8)],[1,2,1,2,3,4,5,6]);
 assert.throws(()=>call('memcpy',p+1n,p,4),/Overlapping/);
 const r=call('realloc',p,64);assert.equal(v.getUint8(Number(r)),1);assert.equal(s.heap.has(Number(p)),false);

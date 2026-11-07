@@ -1,4 +1,4 @@
-import {GuestCrt,CRT_NAMES} from './windows-crt.mjs';
+import {GuestEncoding,CRT_NAMES,ENCODING_NAMES} from './windows-encoding.mjs';
 export async function loadSetup(e,helper,base){
  const [m,bytes]=await Promise.all([fetch(new URL('setup-manifest.json',base)).then(r=>{if(!r.ok)throw Error('Setup manifest HTTP '+r.status);return r.json();}),fetch(new URL('setup.wasm',base)).then(r=>{if(!r.ok)throw Error('Setup WASM HTTP '+r.status);return r.arrayBuffer();})]);
  const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),x=>x.toString(16).padStart(2,'0')).join('');
@@ -11,7 +11,7 @@ class SetupContext{
  reserve(){
   this.tib=Math.ceil(this.allocate(0x10010)/16)*16;
   this.stack=this.allocate(0x10000);this.stackTop=Math.floor((this.stack+0x10000-128)/16)*16-8;
-  this.services=new GuestCrt(this.e.memory,Object.fromEntries(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError',...CRT_NAMES].map((n,i)=>[n,this.tib+0xf000+i*16])),{tib:this.tib,allocator:this.e});
+  this.services=new GuestEncoding(this.e.memory,Object.fromEntries(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError',...CRT_NAMES,...ENCODING_NAMES].map((n,i)=>[n,this.tib+0xf000+i*16])),{tib:this.tib,allocator:this.e});
  }
  resolveImport(item){return this.services.resolve(item);}
  run(shadow,imageBase,liveSp,compilerTop){

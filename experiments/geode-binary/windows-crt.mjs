@@ -50,7 +50,7 @@ export class GuestCrt extends GuestModules {
    if(name==='memset')bytes.fill(Number(b&255n),p,p+n);
    else{
     const q=this.range(b,c);
-    if(name==='memcmp'){let difference=0;for(let i=0;i<n;i++)if(bytes[p+i]!==bytes[q+i]){difference=bytes[p+i]-bytes[q+i];break;}result=BigInt.asUintN(64,BigInt(difference));}
+    if(name==='memcmp'){let difference=0;for(let i=0;i<n;i++)if(bytes[p+i]!==bytes[q+i]){difference=bytes[p+i]<bytes[q+i]?-1:1;break;}result=BigInt.asUintN(32,BigInt(difference));}
     else{if(name==='memcpy'&&p<q+n&&q<p+n&&p!==q)throw Error('Overlapping guest memcpy');bytes.copyWithin(p,q,q+n);}
    }
    result??=a;
