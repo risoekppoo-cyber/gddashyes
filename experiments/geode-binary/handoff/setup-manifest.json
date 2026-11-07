@@ -1,7 +1,7 @@
 {
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
-  "wasmSha256": "8af6d346ed5e427c4a1aaf043a1c7ebea1293b47bd47678938cb3fc78dd4b6dc",
-  "servicesSha256": "067c7f00e27ebb908f282048eb7b5ab19a256b2b1b8d422a1efff70eeb5f0f27",
+  "wasmSha256": "97c15f169200c1f2ce307f10c06ca37764b16af5b56701ddec6801be0df9a67c",
+  "servicesSha256": "b5415ca3aefc4beb412f70a95efe8eeff4e721d0866431e868775c4458ae6820",
   "entryRva": 1241600,
   "stopRva": 1845494864,
   "steps": 12223,
@@ -21,10 +21,11 @@
   },
   "nextBoundaryKind": "thread-start-request",
   "worker": {
+    "clockDependent": true,
     "entryRva": 5241520,
-    "steps": 623,
-    "stopRva": 5319676,
-    "nextService": "KERNEL32.dll!QueryPerformanceFrequency",
+    "steps": 1654,
+    "stopRva": 10836112,
+    "nextService": "MSVCP140.dll!_Mtx_lock",
     "nextBoundaryKind": "service-call"
   },
   "cocos": {

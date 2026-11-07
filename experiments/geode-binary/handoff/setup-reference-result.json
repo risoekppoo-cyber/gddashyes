@@ -1,38 +1,39 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
-  "cases": 8,
+  "divisionCases": 1032,
+  "cases": 36,
   "workerCases": 2,
   "workerBoundaries": [
     {
       "imageBase": 33554432,
-      "rva": 5319676,
-      "service": "KERNEL32.dll!QueryPerformanceFrequency",
-      "iatRva": 15260152,
+      "rva": 10836112,
+      "service": "MSVCP140.dll!_Mtx_lock",
+      "iatRva": 15261928,
       "arguments": [
-        "0x2fbc460",
-        "0x18038c0",
-        "0x1816730",
-        "0x18167c8"
+        "0x1801260",
+        "0x39c128",
+        "0x39c128",
+        "0x64"
       ],
-      "steps": 623,
+      "steps": 1654,
       "entryRva": 5241520
     },
     {
       "imageBase": 369098752,
-      "rva": 5319676,
-      "service": "KERNEL32.dll!QueryPerformanceFrequency",
-      "iatRva": 15260152,
+      "rva": 10836112,
+      "service": "MSVCP140.dll!_Mtx_lock",
+      "iatRva": 15261928,
       "arguments": [
-        "0x16fbc460",
-        "0x18038c0",
-        "0x1816730",
-        "0x18167c8"
+        "0x1801260",
+        "0x39c128",
+        "0x39c128",
+        "0x64"
       ],
-      "steps": 623,
+      "steps": 1654,
       "entryRva": 5241520
     }
   ],
-  "uniqueInstructions": 5831,
+  "uniqueInstructions": 6391,
   "boundaries": [
     {
       "rva": 1845494864,
@@ -76,6 +77,68 @@
       "service": "Signed-shift fixture stop"
     },
     {
+      "rva": 5178898,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5178898,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5178898,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5178895,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5178895,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5179217,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5179214,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5307504,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5307502,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5307530,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5307530,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5307530,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5307527,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5307527,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
       "rva": 1509950544,
       "service": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
       "kind": "thread-start-request",
@@ -115,8 +178,70 @@
     {
       "rva": 2054349,
       "service": "Signed-shift fixture stop"
+    },
+    {
+      "rva": 5178898,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5178898,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5178898,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5178895,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5178895,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5179217,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5179214,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5307504,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5307502,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5307530,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5307530,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5307530,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5307527,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5307527,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
     }
   ],
-  "wasmSha256": "8af6d346ed5e427c4a1aaf043a1c7ebea1293b47bd47678938cb3fc78dd4b6dc",
+  "wasmSha256": "97c15f169200c1f2ce307f10c06ca37764b16af5b56701ddec6801be0df9a67c",
   "fullGeodeLoader": false
 }
