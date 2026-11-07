@@ -84,6 +84,17 @@ def main():
    for rva in imports:image[rva:rva+8]=b'\0'*8
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
+   # One explicit static-TLS fixture. This models template/zero-fill storage,
+   # not TLS callback execution, Windows threading, or completed CRT startup.
+   tls=pe.DIRECTORY_ENTRY_TLS.struct
+   tls_rva=tls.StartAddressOfRawData-preferred;tls_size=tls.EndAddressOfRawData-tls.StartAddressOfRawData
+   if tls_size+tls.SizeOfZeroFill>4096:raise RuntimeError('TLS fixture exceeds bounded reservation')
+   tib=0x120000;tls_array=tib+0x1000;tls_data=tib+0x2000
+   uc.mem_map(tib,0x10000)
+   uc.mem_write(tib+0x58,tls_array.to_bytes(8,'little'));uc.mem_write(tls_array,tls_data.to_bytes(8,'little'))
+   uc.mem_write(tls_data,bytes(image[tls_rva:tls_rva+tls_size]))
+   uc.mem_write(image_base+tls.AddressOfIndex-preferred,b'\0'*4)
+   uc.reg_write(x.UC_X86_REG_GS_BASE,tib)
    stack_base=0x100000;stack_size=0x10000;sp=0x10f008
    uc.mem_map(stack_base,stack_size);uc.mem_write(stack_base,b'\xa5'*stack_size)
    values=[((i+1)*0x1111111111111111+variant)&((1<<64)-1) for i in range(16)]
@@ -107,7 +118,8 @@ def main():
    try:uc.emu_start(image_base+0x12f200,0,count=10001)
    except unicorn.UcError as error:
     fault=uc.reg_read(x.UC_X86_REG_RIP)
-    raise RuntimeError(f'Native path fault at {fault:#x}; last RVAs {[hex(i) for i in trace[-6:]]}: {error}') from error
+    recent=[str(ctx.disassemble(bytes(uc.mem_read(image_base+i,16)),base_address=preferred+i,max_instructions=1).instructions[0]) for i in trace[-6:]]
+    raise RuntimeError(f'Native path fault at {fault:#x}; recent {recent}: {error}') from error
    if not boundary:raise RuntimeError('No explicit service boundary found')
    # Store only changed DLL bytes; pointers in the reference are base-specific.
    final=bytes(uc.mem_read(image_base,size));changes=[];at=0
@@ -120,14 +132,17 @@ def main():
      'expected':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+r))) for r in REGS],
      'expectedXmm':[hex(uc.reg_read(getattr(x,'UC_X86_REG_XMM'+str(i)))) for i in range(16)],
      'expectedFlags':uc.reg_read(x.UC_X86_REG_EFLAGS),'stopRva':boundary['rva'],'steps':len(trace),
-     'stackBase':stack_base,'stackHex':bytes(uc.mem_read(stack_base,stack_size)).hex(),'dllChanges':changes})
+     'stackBase':stack_base,'stackHex':bytes(uc.mem_read(stack_base,stack_size)).hex(),'dllChanges':changes,
+     'tib':tib,'tlsArray':tls_array,'tlsData':tls_data,'tlsHex':bytes(uc.mem_read(tls_data,tls_size+tls.SizeOfZeroFill)).hex()})
    boundaries.append(boundary)
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)
  source=lifter.source();(out/'deferred.c').write_text(source)
  manifest={'dllSha256':PIN,'entryRva':0x12f200,'boundaries':boundaries,'uniqueInstructions':len(observed),
   'instructions':[{'rva':va-preferred,'length':ins.length,'assembly':str(ins)} for va,(ins,_,_) in sorted(lifter.blocks.items())],
-  'cases':cases,'generatedCsha256':hashlib.sha256(source.encode()).hexdigest(),'fullGeodeLoader':False}
+  'cases':cases,'gsOffset':2048+ctx.registers['GS_OFFSET'].offset,
+  'tls':{'templateRva':tls_rva,'templateSize':tls_size,'zeroFill':tls.SizeOfZeroFill,'indexRva':tls.AddressOfIndex-preferred,'callbacksExecuted':False},
+  'generatedCsha256':hashlib.sha256(source.encode()).hexdigest(),'fullGeodeLoader':False}
  (out/'manifest.json').write_text(json.dumps(manifest,indent=2))
  print(json.dumps({k:v for k,v in manifest.items() if k not in ['instructions','cases']},indent=2))
 if __name__=='__main__':main()
