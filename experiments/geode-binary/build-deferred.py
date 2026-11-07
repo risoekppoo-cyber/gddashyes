@@ -168,7 +168,7 @@ def main():
    critical_names=['InitializeCriticalSection','EnterCriticalSection','LeaveCriticalSection','TryEnterCriticalSection','DeleteCriticalSection','InitializeConditionVariable','WakeConditionVariable']
    iocp_names=['CreateIoCompletionPort','PostQueuedCompletionStatus','GetQueuedCompletionStatus']
    exception_names=['?__ExceptionPtrCreate@@YAXPEAX@Z','?__ExceptionPtrDestroy@@YAXPEAX@Z','?__ExceptionPtrCopy@@YAXPEAXPEBX@Z','?__ExceptionPtrAssign@@YAXPEAXPEBX@Z','?__ExceptionPtrToBool@@YA_NPEBX@Z']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','powf','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services+critical_names+iocp_names+['_beginthreadex']+exception_names)}
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','powf','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services+critical_names+iocp_names+['_beginthreadex']+exception_names+['QueryPerformanceFrequency','QueryPerformanceCounter'])}
    def bound(name):return name.split('!')[-1] in services or name in external
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],external.get(name,0)).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
@@ -229,7 +229,7 @@ def main():
    trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000];cwd=['C:\\GeometryDash'];thread_names={}
    stdio_state={'base':0,'streams':{},'fds':{},'nextHandle':0x61000010}
    pipe_state={'nextHandle':0x62000000,'pipes':[],'byName':{},'ends':{},'completions':[],'outputs':[]}
-   critical_state={};exception_state=set()
+   critical_state={};exception_state=set();clock_value=[1000000000];clock_reads=[0]
    port_state={'next':0x63000000,'ports':{},'associations':{}}
    def memory_write(emu,_access,address,n,_value,_):
     if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
@@ -259,7 +259,11 @@ def main():
       boundary.update(rva=address-image_base,service='api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex',kind='thread-start-request',stopService='_beginthreadex')
       boundary['threadRequest']={'security':hex(ptr),'stackSize':emu.reg_read(x.UC_X86_REG_RDX)&0xffffffff,'entryAddress':hex(start),'entryRva':start-image_base if image_base<=start<image_base+size else None,'argument':hex(argument),'argumentIsNull':argument==0,'initFlags':int.from_bytes(emu.mem_read(rsp+40,4),'little'),'threadIdOutput':hex(id_out),'threadIdOutputIsNull':id_out==0,'threadCreationImplemented':False}
       emu.emu_stop();return
-     if name in exception_names:
+     if name in ['QueryPerformanceFrequency','QueryPerformanceCounter']:
+      if name=='QueryPerformanceFrequency':value=10000000
+      else:clock_value[0]+=10000;clock_reads[0]+=1;value=clock_value[0]
+      emu.mem_write(ptr,value.to_bytes(8,'little',signed=True));emu.reg_write(x.UC_X86_REG_RAX,1)
+     elif name in exception_names:
       if ptr%8:raise RuntimeError('Unaligned native exception_ptr')
       op=exception_names.index(name)
       def empty_exception(p):
@@ -685,7 +689,7 @@ def main():
      'tib':tib,'tlsArray':tls_array,'tlsData':tls_data,'tlsHex':bytes(uc.mem_read(tls_data,tls_size+tls.SizeOfZeroFill)).hex(),
      'serviceCalls':service_calls,'stackBelow':sp-min([a for a,b in writes]+[sp]),'stackAbove':max([b for a,b in writes]+[sp])-sp,
      'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex() if heap_at[0]>0x1800000 else '',
-     'exceptionState':[str(p) for p in sorted(exception_state)],'onexitCallbacks':[str(callback) for table in onexit.values() for callback in table['callbacks']],'threadNames':list(thread_names.items()),
+     'performanceClock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_value[0]) if clock_reads[0] else None},'exceptionState':[str(p) for p in sorted(exception_state)],'onexitCallbacks':[str(callback) for table in onexit.values() for callback in table['callbacks']],'threadNames':list(thread_names.items()),
      'stdioState':{'streams':[[str(p),fd] for p,fd in stdio_state['streams'].items()],'fds':[[fd,d['channel'],str(d['handle'])] for fd,d in stdio_state['fds'].items()]},
      'pipeState':{'pipes':[{'name':p['name'],'server':str(p['server']),'clients':[str(h) for h in p['clients']],'queuedHex':p['queued'].hex(),'closed':p['closed'],'everConnected':p['everConnected']} for p in pipe_state['pipes']],'completions':pipe_state['completions'],'outputs':pipe_state['outputs']},'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],
      'iocpState':{'ports':[{'handle':str(h),'concurrency':p['concurrency'],'queue':[{'bytes':q['bytes'],'key':str(q['key']),'ov':str(q['ov']),'error':q['error']} for q in p['queue']]} for h,p in port_state['ports'].items()],'associations':[[str(h),str(a[0]),str(a[1])] for h,a in port_state['associations'].items()]}})
@@ -720,12 +724,12 @@ def main():
      start=at
      while at<size and final[at]!=image[at]:at+=1
      changes.append({'rva':start,'hex':final[start:at].hex()})
-    cases[-1]['worker']={'id':2,'cpu':worker_cpu,'tib':tib,'stack':stack_base,'entryRva':worker_entry-image_base,'argument':hex(worker_argument),'returnAddress':'0x120ff0','boundary':boundary,'steps':len(trace),'expected':[hex(n) for n in expected],'expectedXmm':[hex(n) for n in expected_xmm],'expectedFlags':expected_flags,'definedFlagsMask':defined_flags[0],'dllChanges':changes,'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'serviceCalls':service_calls,'threadNames':list(thread_names.items()),'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],'exceptionState':[str(p) for p in sorted(exception_state)]}
+    cases[-1]['worker']={'id':2,'cpu':worker_cpu,'tib':tib,'stack':stack_base,'entryRva':worker_entry-image_base,'argument':hex(worker_argument),'returnAddress':'0x120ff0','boundary':boundary,'steps':len(trace),'expected':[hex(n) for n in expected],'expectedXmm':[hex(n) for n in expected_xmm],'expectedFlags':expected_flags,'definedFlagsMask':defined_flags[0],'dllChanges':changes,'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'serviceCalls':service_calls,'threadNames':list(thread_names.items()),'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],'performanceClock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_value[0]) if clock_reads[0] else None},'exceptionState':[str(p) for p in sorted(exception_state)]}
     print(json.dumps({'workerBoundary':boundary,'steps':len(trace),'imageBase':hex(image_base)}),flush=True)
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)
  source=lifter.source();(out/'deferred.c').write_text(source)
- manifest={'dllSha256':PIN,'entryRva':0x12f200,'boundaries':boundaries,'uniqueInstructions':len(observed),'gameHeaders':game_headers,'cocos':cocos,'bootstrap':{'timestampRva':timestamp_rva,'gameTimestamp':game_timestamp},
+ manifest={'performanceClock':{'frequency':10000000,'initial':1000000000,'increment':10000},'dllSha256':PIN,'entryRva':0x12f200,'boundaries':boundaries,'uniqueInstructions':len(observed),'gameHeaders':game_headers,'cocos':cocos,'bootstrap':{'timestampRva':timestamp_rva,'gameTimestamp':game_timestamp},
   'instructions':[{'rva':va-preferred,'length':ins.length,'assembly':str(ins)} for va,(ins,_,_) in sorted(lifter.blocks.items())],
   'cases':cases,'gsOffset':2048+ctx.registers['GS_OFFSET'].offset,'onexitTables':[0xfb1960],
   'tls':{'templateRva':tls_rva,'templateSize':tls_size,'zeroFill':tls.SizeOfZeroFill,'indexRva':tls.AddressOfIndex-preferred,'callbacksExecuted':False},

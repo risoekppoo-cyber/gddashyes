@@ -84,7 +84,7 @@ class SetupContext{
   for(const [snapshot,pointer] of [[before,rootCpu],[parentStack,this.stack],[parentTib,this.tib]])if(!snapshot.every((b,i)=>new Uint8Array(e.memory.buffer)[pointer+i]===b))throw Error('Worker changed parent CPU/stack/TIB');
   // Keep an owned parent snapshot: the handoff frees its temporary CPU shadow.
   this.savedRoot=Number(s.allocate(4096n));if(!this.savedRoot)throw Error('Could not retain parent CPU');new Uint8Array(e.memory.buffer,this.savedRoot,4096).set(before);
-  return {status:'WORKER_CALLBACK_BOUNDARY_PASS',id:thread.id,entryRva:w.entryRva,instructions:thread.steps,nextRequiredService:w.nextService,nextBoundaryKind:w.nextBoundaryKind,rootCpuPreserved:true,rootCpuRetained:true,contextRetained:true,threadCreationImplemented:false,crtThreadStartupImplemented:false,executedServices:s.calls.slice(oldCalls)};
+  return {status:'WORKER_CALLBACK_BOUNDARY_PASS',id:thread.id,entryRva:w.entryRva,instructions:thread.steps,nextRequiredService:w.nextService,nextBoundaryKind:w.nextBoundaryKind,rootCpuPreserved:true,rootCpuRetained:true,contextRetained:true,threadCreationImplemented:false,crtThreadStartupImplemented:false,performanceClock:s.clockSnapshot?.(),executedServices:s.calls.slice(oldCalls)};
  }
  release(){let first;try{this.scheduler?.dispose();}catch(error){first=error;}try{this.services?.releaseHeap();}catch(error){first??=error;}for(const p of this.allocations.splice(0)){try{this.e.free(p);}catch(error){first??=error;}}if(first)throw first;}
 }

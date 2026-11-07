@@ -18,7 +18,8 @@ for(const [index,c] of manifest.cases.entries()){
  const gh=manifest.gameHeaders;new Uint8Array(memory.buffer,gh.base,4096).set(Buffer.from(gh.hex,'hex'));
  let heapAt=0x1800000;new Uint8Array(memory.buffer,heapAt,0x400000).fill(0);
  const allocator={malloc(n){const p=heapAt;heapAt=Math.ceil((p+n)/8)*8;if(heapAt>0x1c00000)throw Error('Fixture heap exhausted');return p;},free(){}};
- const services=new ServiceClass(memory,Object.fromEntries(SERVICE_NAMES.map((n,i)=>[n,0x70000000+i*16])),{imageBase:c.imageBase,tib:c.tib,allocator,filesystem:{stat(path){return path.toLowerCase()==='c:\\geometrydash'?{directory:true}:null;}}});
+ let clockTicks=BigInt(manifest.performanceClock.initial);const performanceClock={frequency:BigInt(manifest.performanceClock.frequency),counter(){clockTicks+=BigInt(manifest.performanceClock.increment);return clockTicks;}};
+ const services=new ServiceClass(memory,Object.fromEntries(SERVICE_NAMES.map((n,i)=>[n,0x70000000+i*16])),{imageBase:c.imageBase,tib:c.tib,allocator,performanceClock,filesystem:{stat(path){return path.toLowerCase()==='c:\\geometrydash'?{directory:true}:null;}}});
  const image=mapPe64(dll,memory,c.imageBase,{resolveImport:item=>item.dll.toLowerCase()===cc.dll&&item.name===cc.name?BigInt(cc.address):services.resolve(item)}),v=new DataView(memory.buffer);
  const baselineImage=Buffer.from(new Uint8Array(memory.buffer,c.imageBase,image.size)),expectedImage=Buffer.from(baselineImage);
  v.setUint32(c.imageBase+manifest.bootstrap.timestampRva,c.initialTimestamp,true);
@@ -56,6 +57,7 @@ for(const [index,c] of manifest.cases.entries()){
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,c.imageBase,image.size),expectedImage),0,`case ${index} DLL writes`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,0x1800000,c.heapHex.length/2),Buffer.from(c.heapHex,'hex')),0,`case ${index} heap`);
  assert.deepEqual([...services.onexit.values()].flatMap(t=>t.callbacks).map(String),c.onexitCallbacks,`case ${index} exit callback registrations`);
+ assert.deepEqual(services.clockSnapshot(),c.performanceClock,'parent performance-clock state');
  assert.deepEqual(services.exceptionSnapshot().sort((a,b)=>Number(a)-Number(b)),c.exceptionState,'parent exception_ptr state');
  assert.deepEqual([...services.threadNames],c.threadNames,`case ${index} delivered thread names`);
  assert.deepEqual(services.stdioSnapshot(),c.stdioState,`case ${index} stdio object and descriptor ownership`);
@@ -82,7 +84,7 @@ for(const [index,c] of manifest.cases.entries()){
   assert.equal(services.threadState,previous);assert.deepEqual(Buffer.from(memory.buffer,cpu,4096),rootCpu,'root CPU unchanged by actual worker');assert.deepEqual(Buffer.from(memory.buffer,c.stackBase,65536),rootStack,'root stack preserved');assert.deepEqual(Buffer.from(memory.buffer,c.tib,65536),rootTib,'root TIB preserved');
   w.expected.forEach((n,i)=>assert.equal(v.getBigUint64(thread.cpu+i*8,true),BigInt(n),`worker GPR ${i}`));
   w.expectedXmm.forEach((n,i)=>assert.equal(v.getBigUint64(thread.cpu+512+i*16,true)|(v.getBigUint64(thread.cpu+520+i*16,true)<<64n),BigInt(n),`worker XMM ${i}`));
-  assert.equal(v.getBigUint64(thread.cpu+192,true),workerStop);assert.deepEqual(services.calls.slice(oldCalls),w.serviceCalls);assert.deepEqual([...services.threadNames],w.threadNames);assert.deepEqual(services.criticalSnapshot(),w.criticalState);assert.deepEqual(services.exceptionSnapshot().sort((a,b)=>Number(a)-Number(b)),w.exceptionState,'worker exception_ptr state');
+  assert.equal(v.getBigUint64(thread.cpu+192,true),workerStop);assert.deepEqual(services.calls.slice(oldCalls),w.serviceCalls);assert.deepEqual([...services.threadNames],w.threadNames);assert.deepEqual(services.criticalSnapshot(),w.criticalState);assert.deepEqual(services.exceptionSnapshot().sort((a,b)=>Number(a)-Number(b)),w.exceptionState,'worker exception_ptr state');assert.deepEqual(services.clockSnapshot(),w.performanceClock,'worker performance-clock state');
   const expectedHeap=Buffer.from(w.heapHex,'hex');
   for(const bit of [0,2,4,6,7,11]){const actual=v.getUint8(thread.cpu+2560+bit);if(w.definedFlagsMask&(1<<bit))assert.equal(actual,(w.expectedFlags>>>bit)&1,`worker flag ${bit}`);else expectedHeap[thread.cpu-0x1800000+2560+bit]=actual;}
   assert.deepEqual(Buffer.from(memory.buffer,0x1800000,expectedHeap.length),expectedHeap,'worker heap, CPU, stack and TIB/TLS writes');

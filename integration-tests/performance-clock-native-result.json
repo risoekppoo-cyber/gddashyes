@@ -1,0 +1,12 @@
+{
+  "status": "PERFORMANCE_CLOCK_NATIVE_PASS",
+  "frequency": 10000000,
+  "frequencyStable": true,
+  "counterNondecreasing": true,
+  "counterAdvanced": true,
+  "outputBytes": 8,
+  "guardsPreserved": true,
+  "elapsedSeconds": 0.0300506,
+  "hostElapsedSeconds": 0.030056799994781613,
+  "invalidPointersTested": false
+}
