@@ -3,7 +3,7 @@
 
 Unknown instructions/services remain fatal. No Windows API success stubs.
 """
-import hashlib,json,re,sys,ntpath
+import hashlib,json,re,sys,ntpath,struct,math
 from pathlib import Path
 import pefile,pypcode,unicorn
 from unicorn import x86_const as x
@@ -32,6 +32,15 @@ class WideLifter(Lifter):
  def emit_op(self,op,index,count):
   a=op.inputs;code=op.opcode.name
   if code=='IMARK':return ''
+  if code=='FLOAT_INT2FLOAT' and op.output.size in [4,8] and a[0].size in [4,8]:
+   return self.assign(op.output,f'f{op.output.size*8}_bits((int64_t)sext({self.expr(a[0])},{a[0].size}u))')
+  if code in ['FLOAT_ADD','FLOAT_SUB','FLOAT_MULT','FLOAT_DIV'] and op.output.size in [4,8]:
+   operator={'FLOAT_ADD':'+','FLOAT_SUB':'-','FLOAT_MULT':'*','FLOAT_DIV':'/'}[code];bits=op.output.size*8
+   return self.assign(op.output,f'f{bits}_bits(bits_f{bits}({self.expr(a[0])}){operator}bits_f{bits}({self.expr(a[1])}))')
+  if code=='FLOAT_FLOAT2FLOAT' and a[0].size in [4,8] and op.output.size in [4,8]:
+   return self.assign(op.output,f'f{op.output.size*8}_bits(bits_f{a[0].size*8}({self.expr(a[0])}))')
+  if code=='FLOAT_TRUNC' and a[0].size in [4,8] and op.output.size in [4,8]:
+   return self.assign(op.output,f'float_trunc(bits_f{a[0].size*8}({self.expr(a[0])}),{op.output.size}u)')
   if code=='INT_SRIGHT' and a[0].size<=8:
    value,shift=[self.expr(v) for v in a];bits=a[0].size*8
    return self.assign(op.output,f'({shift}>={bits}u?(({value}>>{bits-1})&1u?mask({a[0].size}u):0u):(uint64_t)((int64_t)sext({value},{a[0].size}u)>>{shift}))')
@@ -67,6 +76,11 @@ class WideLifter(Lifter):
   return s.replace('__attribute__((visibility("default")))',WIDE+'\n__attribute__((visibility("default")))')
 
 WIDE='''typedef unsigned __int128 wide_t;
+static inline uint64_t f32_bits(float f){union{float f;uint32_t u;}v={.f=f};return v.u;}
+static inline uint64_t f64_bits(double f){union{double f;uint64_t u;}v={.f=f};return v.u;}
+static inline float bits_f32(uint64_t u){union{float f;uint32_t u;}v={.u=(uint32_t)u};return v.f;}
+static inline double bits_f64(uint64_t u){union{double f;uint64_t u;}v={.u=u};return v.f;}
+static inline uint64_t float_trunc(double f,uint32_t size){double bound=size==4u?2147483648.0:9223372036854775808.0;if(!(f>=-bound&&f<bound))return size==4u?UINT64_C(0x80000000):UINT64_C(0x8000000000000000);return (uint64_t)(int64_t)f&mask(size);}
 static inline wide_t raw_read128(uint64_t p){return (wide_t)raw_read(p,8u)|((wide_t)raw_read(p+8u,8u)<<64);}
 static inline void raw_write128(uint64_t p,wide_t v){raw_write(p,(uint64_t)v,8u);raw_write(p+8u,(uint64_t)(v>>64),8u);}
 static inline wide_t guest_read128(uint64_t p,uint32_t b){if(p>UINT32_MAX-15u){lift_fault(3u,p,0);__builtin_trap();}return raw_read128(p+b);}
@@ -95,7 +109,7 @@ def main():
    encoding=['WideCharToMultiByte','MultiByteToWideChar']
    file_services=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle','SetCurrentDirectoryW','GetCurrentDirectoryW']
    lifecycle=['_initialize_onexit_table','_register_onexit_function','_execute_onexit_table','WakeAllConditionVariable']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState'])}
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf'])}
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
@@ -160,6 +174,11 @@ def main():
      elif name=='GetAsyncKeyState':
       if ptr not in [16,17,18]:raise RuntimeError('Unsupported native fixture async key')
       emu.reg_write(x.UC_X86_REG_RAX,0) # No browser modifier pressed in the reference fixture.
+     elif name=='ceilf':
+      bits=emu.reg_read(x.UC_X86_REG_XMM0);value=struct.unpack('<f',(bits&0xffffffff).to_bytes(4,'little'))[0]
+      result=float(math.ceil(value)) if math.isfinite(value) and value!=0 else value
+      if -1<value<0:result=-0.0
+      emu.reg_write(x.UC_X86_REG_XMM0,(bits&~0xffffffff)|int.from_bytes(struct.pack('<f',result),'little'))
      elif name in crt:
       a=ptr;b=emu.reg_read(x.UC_X86_REG_RDX);c=emu.reg_read(x.UC_X86_REG_R8);result=None
       if name in ctype:
