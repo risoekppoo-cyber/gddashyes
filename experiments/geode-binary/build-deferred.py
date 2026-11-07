@@ -207,6 +207,21 @@ def main():
    def memory_write(emu,_access,address,n,_value,_):
     if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
    uc.hook_add(unicorn.UC_HOOK_MEM_WRITE,memory_write)
+   # An unresolved function pointer must not silently become a null pointer
+   # and change a probe's branch. Catch indirect IAT reads as well as calls.
+   unresolved={image_base+rva:name for rva,name in imports.items() if name.split('!')[-1] not in services}
+   import_snapshot=[]
+   def import_read(emu,_access,address,n,_value,_):
+    slot=next((p for p in range(address-7,address+n) if p in unresolved),None)
+    if slot is None:return
+    pc=emu.reg_read(x.UC_X86_REG_RIP);rva=pc-image_base
+    ins=str(ctx.disassemble(pe.get_data(rva,16),base_address=preferred+rva,max_instructions=1).instructions[0])
+    if not re.search(r': MOV(?:ZX|SX|SXD|UPS|APS|DQA|DQU|Q|D)? (?:[RE][A-Z0-9]+|XMM[0-9]+),',ins):raise RuntimeError('Unresolved import read needs an explicit pre-instruction boundary: '+ins)
+    regs=[getattr(x,'UC_X86_REG_'+r) for r in REGS]+[getattr(x,'UC_X86_REG_XMM'+str(i)) for i in range(16)]+[x.UC_X86_REG_EFLAGS,x.UC_X86_REG_RIP]
+    import_snapshot.extend((reg,emu.reg_read(reg)) for reg in regs)
+    boundary.update(rva=rva,service=unresolved[slot],iatRva=slot-image_base,kind='import-address-read')
+    emu.emu_stop()
+   uc.hook_add(unicorn.UC_HOOK_MEM_READ,import_read)
    def hook(emu,address,n,_):
     if address in services.values():
      name=next(k for k,v in services.items() if v==address);ptr=emu.reg_read(x.UC_X86_REG_RCX)
@@ -420,6 +435,8 @@ def main():
          raw.extend(char)
         raise RuntimeError('Unterminated guest dialog text')
        boundary['dialog']={'text':wide_text(emu.reg_read(x.UC_X86_REG_RDX)),'caption':wide_text(emu.reg_read(x.UC_X86_REG_R8))}
+      if imports[slot].endswith('!RaiseException'):
+       boundary['exception']={'code':hex(emu.reg_read(x.UC_X86_REG_RCX)&0xffffffff),'flags':emu.reg_read(x.UC_X86_REG_RDX)&0xffffffff,'argumentCount':emu.reg_read(x.UC_X86_REG_R8)&0xffffffff}
       emu.emu_stop();return
     instruction=str(ctx.disassemble(pe.get_data(rva,16),base_address=preferred+rva,max_instructions=1).instructions[0])
     mnemonic=instruction.split(': ',1)[1].split(' ',1)[0]
@@ -437,6 +454,9 @@ def main():
     fault=uc.reg_read(x.UC_X86_REG_RIP)
     recent=[str(ctx.disassemble(bytes(uc.mem_read(image_base+i,16)),base_address=preferred+i,max_instructions=1).instructions[0]) for i in trace[-6:]]
     raise RuntimeError(f'Native path fault at {fault:#x}; recent {recent}: {error}') from error
+   if import_snapshot:
+    for reg,value in import_snapshot:uc.reg_write(reg,value)
+    if trace and trace[-1]==boundary['rva']:trace.pop()
    if not boundary:raise RuntimeError('No explicit service boundary found')
    assert bytes(uc.mem_read(game_headers['base'],4096))==header_bytes,'Unexpected primary game header mutation'
    print(json.dumps({'nativeBoundary':boundary,'steps':len(trace),'imageBase':hex(image_base)}),flush=True)
