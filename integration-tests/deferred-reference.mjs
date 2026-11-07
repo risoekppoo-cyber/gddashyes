@@ -99,7 +99,25 @@ for(const [index,c] of manifest.cases.entries()){
  }
 
 }
-const result={status:'DEFERRED_NATIVE_REFERENCE_PASS',cases:manifest.cases.length,workerCases:manifest.cases.filter(c=>c.worker).length,workerBoundaries:manifest.cases.filter(c=>c.worker).map(c=>({imageBase:c.imageBase,...c.worker.boundary,steps:c.worker.steps,entryRva:c.worker.entryRva})),uniqueInstructions:manifest.uniqueInstructions,boundaries:manifest.boundaries,wasmSha256:createHash('sha256').update(wasm).digest('hex'),fullGeodeLoader:false};
+// Differential checks execute the actual lifted DIV instructions. BigInt is
+// the independent arithmetic oracle; no division algorithm is copied here.
+let divisionCases=0,seed=0x123456789abcdefn;
+const random64=()=>{seed=BigInt.asUintN(64,seed^(seed<<13n));seed=BigInt.asUintN(64,seed^(seed>>7n));seed=BigInt.asUintN(64,seed^(seed<<17n));return seed;};
+for(const [rva,width,operand,length] of [[0x4f060f,32,64,3],[0x4f074e,32,72,3],[0x50fc6e,32,56,2],[0x50fc87,64,56,3]]){
+ const bits=BigInt(width),mask=(1n<<bits)-1n,v=new DataView(memory.buffer),imageBase=BigInt(manifest.cases[0].imageBase),entry=imageBase+BigInt(rva);
+ for(let i=0;i<256;i++){
+  const divisor=(random64()&mask)||1n,high=random64()%divisor,low=random64()&mask,numerator=(high<<bits)|low;
+  new Uint8Array(memory.buffer,cpu,4096).fill(0);v.setBigUint64(cpu,low,true);v.setBigUint64(cpu+16,high,true);v.setBigUint64(cpu+operand,divisor,true);
+  if(width===32){v.setBigUint64(cpu,low|((random64()&mask)<<32n),true);v.setBigUint64(cpu+16,high|((random64()&mask)<<32n),true);v.setBigUint64(cpu+operand,divisor|((random64()&mask)<<32n),true);}
+  assert.equal(instance.exports.lift_run(cpu,entry,imageBase,0,entry+BigInt(length),2),1);
+  assert.equal(v.getBigUint64(cpu,true),numerator/divisor,'differential quotient');assert.equal(v.getBigUint64(cpu+16,true),numerator%divisor,'differential remainder');divisionCases++;
+ }
+ for(const [high,divisor] of [[0n,0n],[2n,2n]]){
+  new Uint8Array(memory.buffer,cpu,4096).fill(0);v.setBigUint64(cpu,123n,true);v.setBigUint64(cpu+16,high,true);v.setBigUint64(cpu+operand,divisor,true);v.setBigUint64(cpu+192,entry,true);
+  const before=Buffer.from(memory.buffer,cpu,4096).slice();assert.throws(()=>instance.exports.lift_run(cpu,entry,imageBase,0,entry+BigInt(length),2),/Startup lift fault 5 /);assert.deepEqual(Buffer.from(memory.buffer,cpu,4096),before,'divide fault preserves complete CPU shadow');divisionCases++;
+ }
+}
+const result={status:'DEFERRED_NATIVE_REFERENCE_PASS',divisionCases,cases:manifest.cases.length,workerCases:manifest.cases.filter(c=>c.worker).length,workerBoundaries:manifest.cases.filter(c=>c.worker).map(c=>({imageBase:c.imageBase,...c.worker.boundary,steps:c.worker.steps,entryRva:c.worker.entryRva})),uniqueInstructions:manifest.uniqueInstructions,boundaries:manifest.boundaries,wasmSha256:createHash('sha256').update(wasm).digest('hex'),fullGeodeLoader:false};
 await writeFile(dir+'/reference-result.json',JSON.stringify(result,null,2));
 const first=manifest.cases[0];
 await writeFile(dir+'/runtime-manifest.json',JSON.stringify({dllSha256:manifest.dllSha256,wasmSha256:result.wasmSha256,servicesSha256:createHash('sha256').update(await readFile(dir+'/services.mjs')).digest('hex'),entryRva:manifest.entryRva,stopRva:first.stopRva,steps:first.steps,nextService:manifest.boundaries[0].service,stopService:manifest.boundaries[0].stopService,nextThreadRequest:manifest.boundaries[0].threadRequest,nextBoundaryKind:manifest.boundaries[0].kind,worker:first.worker?{clockDependent:first.worker.performanceClock.counterReads>0,entryRva:first.worker.entryRva,steps:first.worker.steps,stopRva:first.worker.boundary.rva,stopService:first.worker.boundary.stopService,nextService:first.worker.boundary.service,nextBoundaryKind:first.worker.boundary.kind||'service-call'}:undefined,nextDialog:manifest.boundaries[0].dialog,nextPipeRequest:manifest.boundaries[0].pipeRequest,cocos:manifest.cocos,bootstrap:manifest.bootstrap,tls:manifest.tls,gsOffset:manifest.gsOffset,onexitTables:manifest.onexitTables},null,2));
