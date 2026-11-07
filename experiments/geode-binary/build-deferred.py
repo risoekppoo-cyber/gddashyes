@@ -58,6 +58,8 @@ class WideLifter(Lifter):
    return self.assign(op.output,f'({shift}>={bits}u?(({value}>>{bits-1})&1u?mask({a[0].size}u):0u):(uint64_t)((int64_t)sext({value},{a[0].size}u)>>{shift}))')
   if max([v.size for v in a]+([op.output.size] if op.output else [])+[0])<=8:
    return super().emit_op(op,index,count)
+  if code in ['INT_LEFT','INT_RIGHT'] and op.output.size==16:
+   return self.assign(op.output,f'wide_shift({self.expr(a[0])},{self.expr(a[1])},{1 if code=="INT_RIGHT" else 0}u)')
   if code=='COPY':return self.assign(op.output,self.expr(a[0]))
   if code=='INT_ZEXT' and op.output.size==16:return self.assign(op.output,f'(wide_t){self.expr(a[0])}')
   if code=='INT_SEXT' and op.output.size==16:return self.assign(op.output,f'(wide_t)(__int128)(int64_t)sext({self.expr(a[0])},{a[0].size}u)')
@@ -125,6 +127,15 @@ switch((pc-image_base)>>8){
 WIDE='''static inline uint64_t unsigned_divrem(uint64_t a,uint64_t b,uint32_t remainder){if(!b){lift_fault(5u,b,0);__builtin_trap();}return remainder?a%b:a/b;}
 typedef unsigned __int128 wide_t;
 typedef union {wide_t value;struct{uint64_t lo,hi;}words;} wide_words;
+static inline wide_t wide_shift(wide_t value,uint64_t n,uint32_t right){
+ wide_words x={.value=value},r;
+ if(!n)return value;
+ if(n>=128){r.words.lo=0;r.words.hi=0;}
+ else if(right){if(n>=64){r.words.lo=x.words.hi>>(n-64);r.words.hi=0;}else{r.words.lo=(x.words.lo>>n)|(x.words.hi<<(64-n));r.words.hi=x.words.hi>>n;}}
+ else{if(n>=64){r.words.lo=0;r.words.hi=x.words.lo<<(n-64);}else{r.words.lo=x.words.lo<<n;r.words.hi=(x.words.hi<<n)|(x.words.lo>>(64-n));}}
+ return r.value;
+}
+
 static inline wide_t unsigned_divrem128(wide_t dividend,wide_t divisor,uint32_t remainder){
  wide_words a={.value=dividend},b={.value=divisor};uint64_t r=a.words.hi,q=0;
  if(b.words.hi||!b.words.lo||r>=b.words.lo){lift_fault(5u,b.words.lo,0);__builtin_trap();}
@@ -759,6 +770,9 @@ def main():
     cases[-1]['worker']={'id':2,'cpu':worker_cpu,'tib':tib,'stack':stack_base,'entryRva':worker_entry-image_base,'argument':hex(worker_argument),'returnAddress':'0x120ff0','boundary':boundary,'steps':len(trace),'expected':[hex(n) for n in expected],'expectedXmm':[hex(n) for n in expected_xmm],'expectedFlags':expected_flags,'definedFlagsMask':defined_flags[0],'dllChanges':changes,'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'serviceCalls':service_calls,'threadNames':list(thread_names.items()),'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],'performanceClock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_value[0]) if clock_reads[0] else None},'exceptionState':[str(p) for p in sorted(exception_state)]}
     print(json.dumps({'workerBoundary':boundary,'steps':len(trace),'imageBase':hex(image_base)}),flush=True)
  lifter=WideLifter(pe)
+ for rva in sorted(observed):
+  raw=pe.get_data(rva,16);instruction=ctx.disassemble(raw,base_address=preferred+rva,max_instructions=1).instructions[0]
+  if ': DIV ' in str(instruction):print(json.dumps({'divisionPcode':{'rva':rva,'assembly':str(instruction),'ops':[str(op) for op in ctx.translate(raw[:instruction.length],base_address=preferred+rva,max_instructions=1).ops]}}),flush=True)
  for rva in sorted(observed):lifter.add(preferred+rva)
  source=lifter.source();(out/'deferred.c').write_text(source)
  manifest={'performanceClock':{'frequency':10000000,'initial':1000000000,'increment':10000},'dllSha256':PIN,'entryRva':0x12f200,'boundaries':boundaries,'uniqueInstructions':len(observed),'gameHeaders':game_headers,'cocos':cocos,'bootstrap':{'timestampRva':timestamp_rva,'gameTimestamp':game_timestamp},
