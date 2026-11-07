@@ -4,7 +4,7 @@ Use current main. Earlier module lookup, thread naming, stdio, named-pipe and
 completion-port setup tasks are complete; the older source ZIP is historical.
 
 Verified checkpoint: 12,223 native startup instructions, eight passing reference
-cases, 136 Chromium game frames, preserved game CPU and restored live stack.
+cases, 128 Chromium game frames, preserved game CPU and restored live stack.
 Full loader initialization and existing .geode packages remain unsupported.
 
 ## Next implementation: real guest worker execution

@@ -1,7 +1,7 @@
 # Verified startup checkpoint - 7 November 2026
 
 Setup executes 12,223 native startup instructions. Eight native-reference cases
-pass at two image bases. The real Chromium run continued for 136 game frames,
+pass at two image bases. The real Chromium run continued for 128 game frames,
 preserved the original CPU snapshot and restored the live game stack. Full Geode
 initialization and existing .geode package loading remain unsupported.
 
@@ -68,11 +68,11 @@ unfinished. The Cocos address binding does not implement arbitrary method calls.
 
 ## Validation
 
-[Native-reference and real-browser validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42398749388)
+[Native-reference and real-browser validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42401498284)
 passes all eight reference cases and the actual-browser preservation check.
 The comparison includes GPRs, XMMs, defined flags, stack, TLS, DLL/heap writes,
 callback registration, stdio/pipe/critical/IOCP state and the exact worker request.
-The focused service tests pass. Recorded Windows oracles cover pipe/CRT text
+The focused service and scheduler-foundation tests pass. Recorded Windows oracles cover pipe/CRT text
 behavior, critical-section recursion, powf and completion-port packet semantics.
 
 Generated setup WASM, bundled services, manifests and result JSON are published
