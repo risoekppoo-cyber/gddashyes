@@ -3,7 +3,7 @@
 
 Unknown instructions/services remain fatal. No Windows API success stubs.
 """
-import hashlib,json,re,sys
+import hashlib,json,re,sys,ntpath
 from pathlib import Path
 import pefile,pypcode,unicorn
 from unicorn import x86_const as x
@@ -89,7 +89,7 @@ def main():
    ctype=json.loads((Path(__file__).parent/'ctype-c.mjs').read_text().split('export const CTYPE_C=',1)[1].rstrip().rstrip(';'))
    crt=['wcslen','strlen','memcpy','memmove','memset','memcmp','malloc','calloc','realloc','free']+list(ctype)
    encoding=['WideCharToMultiByte','MultiByteToWideChar']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding)}
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW'])}
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
@@ -201,6 +201,29 @@ def main():
         else:emu.mem_write(output,encoded);result=units
        except UnicodeError:error=1113
       if error:emu.mem_write(tib+0x68,error.to_bytes(4,'little'))
+      emu.reg_write(x.UC_X86_REG_RAX,result)
+     elif name=='GetFullPathNameW':
+      raw=bytearray();at=ptr
+      while True:
+       c=bytes(emu.mem_read(at,2));at+=2
+       if c==b'\0\0':break
+       raw.extend(c)
+      text=raw.decode('utf-16le');capacity=emu.reg_read(x.UC_X86_REG_RDX)&0xffffffff
+      output=emu.reg_read(x.UC_X86_REG_R8);part=emu.reg_read(x.UC_X86_REG_R9);result=0
+      if not text:emu.mem_write(tib+0x68,(123).to_bytes(4,'little'))
+      else:
+       text=text.replace('/','\\')
+       if text.startswith('\\\\'):raise RuntimeError('Unconfigured native UNC/device path')
+       full=ntpath.normpath(ntpath.join('C:\\GeometryDash',text))
+       if text.endswith('\\') and not full.endswith('\\'):full+='\\'
+       elif not full.endswith('\\'):full=full.rstrip(' .')
+       encoded=full.encode('utf-16le');units=len(encoded)//2
+       if capacity<=units:result=units+1
+       else:
+        emu.mem_write(output,encoded+b'\0\0');result=units
+        if part:
+         value=0 if full.endswith('\\') else output+len(full[:full.rfind('\\')+1].encode('utf-16le'))
+         emu.mem_write(part,value.to_bytes(8,'little'))
       emu.reg_write(x.UC_X86_REG_RAX,result)
      else:
       path={0:'C:\\GeometryDash\\GeometryDash.exe',0x400000:'C:\\GeometryDash\\GeometryDash.exe',image_base:'C:\\GeometryDash\\Geode.dll'}.get(ptr)

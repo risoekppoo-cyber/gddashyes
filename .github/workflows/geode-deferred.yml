@@ -10,6 +10,7 @@ on:
       - 'experiments/geode-binary/windows-modules.mjs'
       - 'experiments/geode-binary/windows-crt.mjs'
       - 'experiments/geode-binary/windows-encoding.mjs'
+      - 'experiments/geode-binary/windows-paths.mjs'
       - 'experiments/geode-binary/setup-context.mjs'
       - 'experiments/geode-binary/handoff/runtime.js'
   workflow_dispatch:
@@ -39,6 +40,7 @@ jobs:
           node integration-tests/windows-modules.mjs
           node integration-tests/windows-crt.mjs
           node integration-tests/windows-encoding.mjs
+          node integration-tests/windows-paths.mjs
           cp /tmp/deferred/deferred.wasm experiments/geode-binary/handoff/setup.wasm
           cp /tmp/deferred/runtime-manifest.json experiments/geode-binary/handoff/setup-manifest.json
       - name: Test setup in the real browser

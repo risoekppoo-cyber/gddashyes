@@ -4,7 +4,7 @@ import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {instantiateStartupLift} from '../experiments/geode-binary/handoff/startup-module.mjs';
 import {mapPe64} from '../experiments/geode-binary/pe-image.mjs';
-import {GuestEncoding,CRT_NAMES,ENCODING_NAMES} from '../experiments/geode-binary/windows-encoding.mjs';
+import {GuestPaths,CRT_NAMES,ENCODING_NAMES,PATH_NAMES} from '../experiments/geode-binary/windows-paths.mjs';
 const dir=resolve(process.argv[2]),dll=await readFile('/tmp/Geode.dll');
 const manifest=JSON.parse(await readFile(dir+'/manifest.json'));
 const wasm=await readFile(dir+'/deferred.wasm');
@@ -14,7 +14,7 @@ const instance=await instantiateStartupLift(wasm,memory);
 for(const [index,c] of manifest.cases.entries()){
  let heapAt=0x300000;new Uint8Array(memory.buffer,heapAt,0x400000).fill(0);
  const allocator={malloc(n){const p=heapAt;heapAt=Math.ceil((p+n)/8)*8;if(heapAt>0x700000)throw Error('Fixture heap exhausted');return p;},free(){}};
- const services=new GuestEncoding(memory,Object.fromEntries(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError',...CRT_NAMES,...ENCODING_NAMES].map((n,i)=>[n,0x70000000+i*16])),{imageBase:c.imageBase,tib:c.tib,allocator});
+ const services=new GuestPaths(memory,Object.fromEntries(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError',...CRT_NAMES,...ENCODING_NAMES,...PATH_NAMES].map((n,i)=>[n,0x70000000+i*16])),{imageBase:c.imageBase,tib:c.tib,allocator});
  const image=mapPe64(dll,memory,c.imageBase,{resolveImport:item=>services.resolve(item)}),v=new DataView(memory.buffer);
  const expectedImage=Buffer.from(new Uint8Array(memory.buffer,c.imageBase,image.size));
  for(const change of c.dllChanges)Buffer.from(change.hex,'hex').copy(expectedImage,change.rva);
