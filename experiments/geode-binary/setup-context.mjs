@@ -54,12 +54,37 @@ class SetupContext{
     if(m.nextPipeRequest){const sp=state.getBigUint64(shadow+32,true);this.services.range(sp,64);const p=Number(sp);pipeRequest={path:this.services.wide(state.getBigUint64(shadow+8,true)),openMode:state.getUint32(shadow+16,true),pipeMode:state.getUint32(shadow+64,true),maxInstances:state.getUint32(shadow+72,true),outBufferSize:state.getUint32(p+32,true),inBufferSize:state.getUint32(p+40,true),defaultTimeout:state.getUint32(p+48,true),security:'0x'+state.getBigUint64(p+56,true).toString(16)};if(JSON.stringify(pipeRequest)!==JSON.stringify(m.nextPipeRequest))throw Error('Live named-pipe request differs from native reference');}
     const threadRequest=m.stopService==='_beginthreadex'?this.services.readThreadRequest(shadow,imageBase):undefined;
     if(m.nextThreadRequest)for(const key of ['security','stackSize','entryRva','argumentIsNull','initFlags','threadIdOutputIsNull','threadCreationImplemented'])if(threadRequest[key]!==m.nextThreadRequest[key])throw Error('Live worker request differs from native reference: '+key);
-    return {steps,stop,service:m.nextService,dialog,pipeRequest,threadRequest,pipeState:this.services.pipeSnapshot?.(),iocpState:this.services.iocpSnapshot?.(),criticalState:this.services.criticalSnapshot?.(),calls:[...this.services.calls],threadNames:[...(this.services.threadNames||[])],stdioState:this.services.stdioSnapshot?.(),tib:this.tib,isolatedStack:this.stackTop,onexitCallbacks:[...this.services.onexit.values()].reduce((n,t)=>n+t.callbacks.length,0),
+    const worker=m.worker?this.runWorker(shadow,imageBase,threadRequest,compilerTop):undefined;
+    return {steps,stop,service:m.nextService,dialog,pipeRequest,threadRequest,worker,pipeState:this.services.pipeSnapshot?.(),iocpState:this.services.iocpSnapshot?.(),criticalState:this.services.criticalSnapshot?.(),calls:[...this.services.calls],threadNames:[...(this.services.threadNames||[])],stdioState:this.services.stdioSnapshot?.(),tib:this.tib,isolatedStack:this.stackTop,onexitCallbacks:[...this.services.onexit.values()].reduce((n,t)=>n+t.callbacks.length,0),
      nextArguments:[8,16,64,72].map(o=>'0x'+state.getBigUint64(shadow+o,true).toString(16))};
    }
    this.services.invoke(shadow,state.getBigUint64(shadow+192,true));pc=new DataView(e.memory.buffer).getBigUint64(shadow+192,true);
   }
   throw Error('Setup transfer limit');
  }
- release(){let first;try{this.services?.releaseHeap();}catch(error){first=error;}for(const p of this.allocations.splice(0)){try{this.e.free(p);}catch(error){first??=error;}}if(first)throw first;}
+ runWorker(rootCpu,imageBase,request,compilerTop){
+  const {e,metadata:m}=this,w=m.worker,s=this.services;
+  if(this.scheduler||!request||request.entryRva!==w.entryRva||request.security!=='0x0'||request.stackSize!==0||request.initFlags!==0)throw Error('Unverified worker call profile');
+  this.scheduler=new this.serviceTypes.GuestScheduler(s,{quantum:20000,firstId:2});
+  const before=new Uint8Array(e.memory.buffer,rootCpu,4096).slice(),oldCalls=s.calls.length,parentStack=new Uint8Array(e.memory.buffer,this.stack,65536).slice(),parentTib=new Uint8Array(e.memory.buffer,this.tib,65536).slice();
+  const thread=this.scheduler.createContext({entry:BigInt(imageBase+w.entryRva),argument:BigInt(request.argument),returnAddress:BigInt(this.tib+0xeff0),tlsTemplate:new Uint8Array(e.memory.buffer,imageBase+m.tls.templateRva,m.tls.templateSize),tlsZeroFill:m.tls.zeroFill});
+  const stop=w.stopService?BigInt(s.addresses[w.stopService]):BigInt(imageBase+w.stopRva);
+  this.aux.exports.__stack_pointer.value=compilerTop;let completed=false;
+  this.scheduler.runRound((thread,budget)=>{
+   let pc=BigInt(imageBase+w.entryRva),steps=0;
+   for(let transfers=0;transfers<1000;transfers++){
+    if(steps>=budget)throw Error('Worker instruction quantum exhausted');
+    const r=this.aux.exports.lift_run(thread.cpu,pc,BigInt(imageBase),0,stop,budget-steps)>>>0;steps+=r&0x7fffffff;
+    const v=new DataView(e.memory.buffer);
+    if(!(r&0x80000000)){if(steps!==w.steps||v.getBigUint64(thread.cpu+192,true)!==stop)throw Error('Unexpected worker boundary');completed=true;break;}
+    s.invoke(thread.cpu,v.getBigUint64(thread.cpu+192,true));pc=new DataView(e.memory.buffer).getBigUint64(thread.cpu+192,true);
+   }
+   if(!completed)throw Error('Worker transfer budget exhausted');return {steps,state:'blocked',waitKey:'verified-worker-boundary'};
+  });
+  for(const [snapshot,pointer] of [[before,rootCpu],[parentStack,this.stack],[parentTib,this.tib]])if(!snapshot.every((b,i)=>new Uint8Array(e.memory.buffer)[pointer+i]===b))throw Error('Worker changed parent CPU/stack/TIB');
+  // Keep an owned parent snapshot: the handoff frees its temporary CPU shadow.
+  this.savedRoot=Number(s.allocate(4096n));if(!this.savedRoot)throw Error('Could not retain parent CPU');new Uint8Array(e.memory.buffer,this.savedRoot,4096).set(before);
+  return {status:'WORKER_CALLBACK_BOUNDARY_PASS',id:thread.id,entryRva:w.entryRva,instructions:thread.steps,nextRequiredService:w.nextService,nextBoundaryKind:w.nextBoundaryKind,rootCpuPreserved:true,rootCpuRetained:true,contextRetained:true,threadCreationImplemented:false,crtThreadStartupImplemented:false,executedServices:s.calls.slice(oldCalls)};
+ }
+ release(){let first;try{this.scheduler?.dispose();}catch(error){first=error;}try{this.services?.releaseHeap();}catch(error){first??=error;}for(const p of this.allocations.splice(0)){try{this.e.free(p);}catch(error){first??=error;}}if(first)throw first;}
 }

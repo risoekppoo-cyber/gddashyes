@@ -29,6 +29,7 @@ const fs=require('node:fs');
    return {report:r,images,jspi:typeof WebAssembly.Suspending==='function'};
   });
   if(!result.report.originalGameCpuPreserved||!result.report.liveStackRestored||!result.report.dllMappedIntoLiveGame||!result.report.dllReservation.active)throw Error('DLL mapping or CPU/stack preservation failed');
+  if(setup){const w=result.report.worker;if(!w||w.status!=='WORKER_CALLBACK_BOUNDARY_PASS'||w.instructions!==557||w.id!==2||!w.rootCpuPreserved||!w.rootCpuRetained||!w.contextRetained||w.threadCreationImplemented!==false||w.crtThreadStartupImplemented!==false)throw Error('Actual worker callback or retained context validation failed');}
   if(capture){
    const headers=await page.evaluate(()=>{const base=0x400000,memory=window.__testGameMemory,b=new Uint8Array(memory.buffer,base,4096),v=new DataView(b.buffer,b.byteOffset,b.byteLength);if(v.getUint16(0,true)!==0x5a4d)throw Error('Live game DOS header missing');const pe=v.getUint32(0x3c,true);if(pe>3500||v.getUint32(pe,true)!==0x4550)throw Error('Live game PE header missing');return {base,imageSize:v.getUint32(pe+80,true),gameWasmSha256:window.WestminsterHandoffReport.gameModuleSha256,hex:Array.from(b,x=>x.toString(16).padStart(2,'0')).join('')};});
    fs.writeFileSync('integration-input/game-headers.json',JSON.stringify(headers,null,2));console.log('GAME_HEADERS_FIXTURE '+JSON.stringify(headers));

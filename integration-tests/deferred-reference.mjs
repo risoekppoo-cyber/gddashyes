@@ -65,7 +65,7 @@ for(const [index,c] of manifest.cases.entries()){
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,gh.base,4096),Buffer.from(gh.hex,'hex')),0,`case ${index} primary game headers`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,cc.pageBase,4096),Buffer.from(cc.pageHex,'hex')),0,`case ${index} Cocos code`);
  if(c.worker){
-  const w=c.worker,scheduler=new GuestScheduler(services,{quantum:20000,firstId:2}),rootCpu=Buffer.from(memory.buffer,cpu,4096).slice(),previous=services.threadState,oldCalls=services.calls.length;
+  const w=c.worker,scheduler=new GuestScheduler(services,{quantum:20000,firstId:2}),rootCpu=Buffer.from(memory.buffer,cpu,4096).slice(),previous=services.threadState,oldCalls=services.calls.length,rootStack=Buffer.from(memory.buffer,c.stackBase,65536).slice(),rootTib=Buffer.from(memory.buffer,c.tib,65536).slice();
   const thread=scheduler.createContext({entry:BigInt(c.imageBase+w.entryRva),argument:BigInt(w.argument),returnAddress:BigInt(w.returnAddress),tlsTemplate:new Uint8Array(memory.buffer,c.imageBase+t.templateRva,t.templateSize),tlsZeroFill:t.zeroFill});
   assert.equal(thread.cpu,w.cpu);assert.equal(thread.tib,w.tib);assert.equal(thread.stack,w.stack);
   const workerStop=BigInt(c.imageBase+w.boundary.rva);let completed=false;
@@ -78,7 +78,7 @@ for(const [index,c] of manifest.cases.entries()){
    }
    assert.equal(completed,true);assert.equal(steps,w.steps);return {steps,state:'blocked',waitKey:'verified-worker-boundary'};
   });
-  assert.equal(services.threadState,previous);assert.deepEqual(Buffer.from(memory.buffer,cpu,4096),rootCpu,'root CPU unchanged by actual worker');
+  assert.equal(services.threadState,previous);assert.deepEqual(Buffer.from(memory.buffer,cpu,4096),rootCpu,'root CPU unchanged by actual worker');assert.deepEqual(Buffer.from(memory.buffer,c.stackBase,65536),rootStack,'root stack preserved');assert.deepEqual(Buffer.from(memory.buffer,c.tib,65536),rootTib,'root TIB preserved');
   w.expected.forEach((n,i)=>assert.equal(v.getBigUint64(thread.cpu+i*8,true),BigInt(n),`worker GPR ${i}`));
   w.expectedXmm.forEach((n,i)=>assert.equal(v.getBigUint64(thread.cpu+512+i*16,true)|(v.getBigUint64(thread.cpu+520+i*16,true)<<64n),BigInt(n),`worker XMM ${i}`));
   assert.equal(v.getBigUint64(thread.cpu+192,true),workerStop);assert.deepEqual(services.calls.slice(oldCalls),w.serviceCalls);assert.deepEqual([...services.threadNames],w.threadNames);assert.deepEqual(services.criticalSnapshot(),w.criticalState);
@@ -95,5 +95,5 @@ for(const [index,c] of manifest.cases.entries()){
 const result={status:'DEFERRED_NATIVE_REFERENCE_PASS',cases:manifest.cases.length,workerCases:manifest.cases.filter(c=>c.worker).length,workerBoundaries:manifest.cases.filter(c=>c.worker).map(c=>({imageBase:c.imageBase,...c.worker.boundary,steps:c.worker.steps,entryRva:c.worker.entryRva})),uniqueInstructions:manifest.uniqueInstructions,boundaries:manifest.boundaries,wasmSha256:createHash('sha256').update(wasm).digest('hex'),fullGeodeLoader:false};
 await writeFile(dir+'/reference-result.json',JSON.stringify(result,null,2));
 const first=manifest.cases[0];
-await writeFile(dir+'/runtime-manifest.json',JSON.stringify({dllSha256:manifest.dllSha256,wasmSha256:result.wasmSha256,servicesSha256:createHash('sha256').update(await readFile(dir+'/services.mjs')).digest('hex'),entryRva:manifest.entryRva,stopRva:first.stopRva,steps:first.steps,nextService:manifest.boundaries[0].service,stopService:manifest.boundaries[0].stopService,nextThreadRequest:manifest.boundaries[0].threadRequest,nextBoundaryKind:manifest.boundaries[0].kind,nextDialog:manifest.boundaries[0].dialog,nextPipeRequest:manifest.boundaries[0].pipeRequest,cocos:manifest.cocos,bootstrap:manifest.bootstrap,tls:manifest.tls,gsOffset:manifest.gsOffset,onexitTables:manifest.onexitTables},null,2));
+await writeFile(dir+'/runtime-manifest.json',JSON.stringify({dllSha256:manifest.dllSha256,wasmSha256:result.wasmSha256,servicesSha256:createHash('sha256').update(await readFile(dir+'/services.mjs')).digest('hex'),entryRva:manifest.entryRva,stopRva:first.stopRva,steps:first.steps,nextService:manifest.boundaries[0].service,stopService:manifest.boundaries[0].stopService,nextThreadRequest:manifest.boundaries[0].threadRequest,nextBoundaryKind:manifest.boundaries[0].kind,worker:first.worker?{entryRva:first.worker.entryRva,steps:first.worker.steps,stopRva:first.worker.boundary.rva,stopService:first.worker.boundary.stopService,nextService:first.worker.boundary.service,nextBoundaryKind:first.worker.boundary.kind||'service-call'}:undefined,nextDialog:manifest.boundaries[0].dialog,nextPipeRequest:manifest.boundaries[0].pipeRequest,cocos:manifest.cocos,bootstrap:manifest.bootstrap,tls:manifest.tls,gsOffset:manifest.gsOffset,onexitTables:manifest.onexitTables},null,2));
 console.log(JSON.stringify(result,null,2));

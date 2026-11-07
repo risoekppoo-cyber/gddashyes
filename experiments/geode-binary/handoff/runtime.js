@@ -16,11 +16,11 @@
   const mapRequested=new URLSearchParams(location.search).get('geodemap')==='1';
   const setupRequested=new URLSearchParams(location.search).get('geodesetup')==='1';
   if(setupRequested&&!mapRequested)throw Error('Setup requires the owned DLL mapping');
-  const setupContext=setupRequested?await (await import(new URL('../setup-context.mjs?rev=setup-worker-boundary-20261107',base).href)).loadSetup(e,helper,base):null;
+  const setupContext=setupRequested?await (await import(new URL('../setup-context.mjs?rev=setup-worker-callback-20261107',base).href)).loadSetup(e,helper,base):null;
   let mapHelper,preparedImage,mappedImage;
   if(mapRequested){
    if(!root.WestminsterGeodeDllBytes)throw Error('Select the pinned DLL on the mapped check page first');
-   mapHelper=await import(new URL('../owned-image.mjs?rev=setup-worker-boundary-20261107',base).href);
+   mapHelper=await import(new URL('../owned-image.mjs?rev=setup-worker-callback-20261107',base).href);
    preparedImage=await mapHelper.prepareGeodeImage(await root.WestminsterGeodeDllBytes);
   }
   let observed=false;
@@ -44,13 +44,13 @@
     shadow=e.malloc(4096);compiler=e.malloc(65536);if(!shadow||!compiler)throw Error('Could not reserve isolated translator state');
     if([[shadow,4096],[compiler,65536]].some(([p,n])=>p<stackLinear+544&&p+n>stackLinear))throw Error('Translator allocation overlaps live stack');
     report.memoryLayout={memoryBytes:e.memory.buffer.byteLength,guestBase,cpuLinear:cpu,cpuSnapshotBytes:208,stackWindowLinear:[stackLinear,stackLinear+544],shadowLinear:[shadow,shadow+4096],compilerLinear:[compiler,compiler+65536],guestReservationVerified:false};
-    const v=new DataView(e.memory.buffer);saved=new Uint8Array(e.memory.buffer,stackLinear,544).slice();const cpuBefore=new Uint8Array(e.memory.buffer,cpu,208).slice();new Uint8Array(e.memory.buffer,shadow,4096).fill(0);new Uint8Array(e.memory.buffer,shadow,128).set(cpuBefore.subarray(0,128));
+    let v=new DataView(e.memory.buffer);saved=new Uint8Array(e.memory.buffer,stackLinear,544).slice();const cpuBefore=new Uint8Array(e.memory.buffer,cpu,208).slice();new Uint8Array(e.memory.buffer,shadow,4096).fill(0);new Uint8Array(e.memory.buffer,shadow,128).set(cpuBefore.subarray(0,128));
     for(const [from,to] of [[160,2560],[162,2562],[164,2564],[166,2566],[167,2567],[171,2571]])v.setUint8(shadow+to,v.getUint8(cpu+from));
     if(!(aux.exports.__stack_pointer instanceof WebAssembly.Global))throw Error('Missing isolated compiler stack');aux.exports.__stack_pointer.value=(compiler+65536)&~15;
     const entry=BigInt(imageBase+m.entry-0x2000000),stop=BigInt(imageBase+m.stop-0x2000000);
     if(mapRequested){const code=new Uint8Array(e.memory.buffer,guestBase+Number(entry),m.nativeBytesHex.length/2);if(Array.from(code,x=>x.toString(16).padStart(2,'0')).join('')!==m.nativeBytesHex)throw Error('Mapped callback instruction bytes mismatch');}
     let setupResult;
-    if(setupContext)setupResult=setupContext.run(shadow,imageBase,Number(sp),(compiler+65536)&~15);
+    if(setupContext){setupResult=setupContext.run(shadow,imageBase,Number(sp),(compiler+65536)&~15);v=new DataView(e.memory.buffer);}
     else{
      const result=aux.exports.lift_run(shadow,entry,BigInt(imageBase),guestBase,stop,32)>>>0;
      if((result&0x7fffffff)!==14||v.getBigUint64(shadow+192,true)!==stop)throw Error('Deferred prologue did not stop before its first call');
@@ -65,6 +65,7 @@
     if(setupResult?.iocpState)report.ioCompletionPorts=setupResult.iocpState;
     if(setupResult?.criticalState)report.guestCriticalSections=setupResult.criticalState;
     if(setupResult?.threadRequest)report.pendingThreadRequest=setupResult.threadRequest;
+    if(setupResult?.worker){report.worker=setupResult.worker;report.totalTranslatedInstructions=setupResult.steps+setupResult.worker.instructions;}
     if(!cpuBefore.every((b,i)=>new Uint8Array(e.memory.buffer)[cpu+i]===b))throw Error('Original game CPU changed');report.originalGameCpuPreserved=true;
     succeeded=true;
    }catch(error){remember(error);}finally{
