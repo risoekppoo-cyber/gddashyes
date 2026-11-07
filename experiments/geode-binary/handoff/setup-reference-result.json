@@ -1,17 +1,17 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
   "cases": 8,
-  "uniqueInstructions": 5147,
+  "uniqueInstructions": 5528,
   "boundaries": [
     {
-      "rva": 5307017,
-      "service": "KERNEL32.dll!InitializeConditionVariable",
-      "iatRva": 15259944,
+      "rva": 5215240,
+      "service": "KERNEL32.dll!CreateIoCompletionPort",
+      "iatRva": 15259376,
       "arguments": [
-        "0x18014e8",
+        "0xffffffffffffffff",
         "0x0",
-        "0x11",
-        "0x10"
+        "0x0",
+        "0x0"
       ]
     },
     {
@@ -38,14 +38,14 @@
       "service": "Signed-shift fixture stop"
     },
     {
-      "rva": 5307017,
-      "service": "KERNEL32.dll!InitializeConditionVariable",
-      "iatRva": 15259944,
+      "rva": 5215240,
+      "service": "KERNEL32.dll!CreateIoCompletionPort",
+      "iatRva": 15259376,
       "arguments": [
-        "0x18014e8",
+        "0xffffffffffffffff",
         "0x0",
-        "0x11",
-        "0x10"
+        "0x0",
+        "0x0"
       ]
     },
     {
@@ -72,6 +72,6 @@
       "service": "Signed-shift fixture stop"
     }
   ],
-  "wasmSha256": "d316a76da93c4857217c120bbd7a635482a4103e483a6962df1f36ec896b9232",
+  "wasmSha256": "84a0394de10533fb15bad94b8080fc1fde6ee18f9e142211bc5acb39ff820b5a",
   "fullGeodeLoader": false
 }

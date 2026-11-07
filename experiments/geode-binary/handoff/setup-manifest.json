@@ -1,11 +1,11 @@
 {
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
-  "wasmSha256": "d316a76da93c4857217c120bbd7a635482a4103e483a6962df1f36ec896b9232",
-  "servicesSha256": "6866a46dbd57d087f650861b584f52b5a15a5bad48a84b65883156c9d8bfca06",
+  "wasmSha256": "84a0394de10533fb15bad94b8080fc1fde6ee18f9e142211bc5acb39ff820b5a",
+  "servicesSha256": "22ce6412a699637e255702e08f3362d8ae272fcc5834bb6ba345b34225e7c1cb",
   "entryRva": 1241600,
-  "stopRva": 5307017,
-  "steps": 11554,
-  "nextService": "KERNEL32.dll!InitializeConditionVariable",
+  "stopRva": 5215240,
+  "steps": 12056,
+  "nextService": "KERNEL32.dll!CreateIoCompletionPort",
   "cocos": {
     "base": 268435456,
     "pe": 312,
