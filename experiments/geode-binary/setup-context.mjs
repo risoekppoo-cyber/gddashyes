@@ -17,6 +17,10 @@ class SetupContext{
  run(shadow,imageBase,liveSp,compilerTop){
   const {e,metadata:m}=this,t=m.tls;
   this.services.modules.set(BigInt(imageBase),'C:\\GeometryDash\\Geode.dll');
+  const game=new DataView(e.memory.buffer),pe=game.getUint32(0x40003c,true),stamp=game.getUint32(0x400000+pe+8,true);
+  if(pe>3500||game.getUint16(0x400000,true)!==0x5a4d||game.getUint32(0x400000+pe,true)!==0x4550||stamp!==m.bootstrap.gameTimestamp)throw Error('Unverified primary game PE header');
+  if(m.bootstrap.timestampRva!==0xfb22a8)throw Error('Unverified pinned bootstrap timestamp location');
+  game.setUint32(imageBase+m.bootstrap.timestampRva,stamp,true);
   for(const rva of m.onexitTables)this.services.initializeOnexit(BigInt(imageBase+rva));
   if(t.templateSize+t.zeroFill>4096||t.templateRva+t.templateSize>17035264||t.indexRva+4>17035264)throw Error('Setup TLS template bounds');
   new Uint8Array(e.memory.buffer,this.tib,0x10000).fill(0);

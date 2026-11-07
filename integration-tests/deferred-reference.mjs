@@ -19,6 +19,7 @@ for(const [index,c] of manifest.cases.entries()){
  const services=new ServiceClass(memory,Object.fromEntries(SERVICE_NAMES.map((n,i)=>[n,0x70000000+i*16])),{imageBase:c.imageBase,tib:c.tib,allocator,filesystem:{stat(path){return path.toLowerCase()==='c:\\geometrydash'?{directory:true}:null;}}});
  const image=mapPe64(dll,memory,c.imageBase,{resolveImport:item=>services.resolve(item)}),v=new DataView(memory.buffer);
  const expectedImage=Buffer.from(new Uint8Array(memory.buffer,c.imageBase,image.size));
+ v.setUint32(c.imageBase+manifest.bootstrap.timestampRva,c.initialTimestamp,true);
  for(const rva of manifest.onexitTables)services.initializeOnexit(BigInt(c.imageBase+rva));
  for(const change of c.dllChanges)Buffer.from(change.hex,'hex').copy(expectedImage,change.rva);
  new Uint8Array(memory.buffer,cpu,4096).fill(0);
@@ -56,5 +57,5 @@ for(const [index,c] of manifest.cases.entries()){
 const result={status:'DEFERRED_NATIVE_REFERENCE_PASS',cases:manifest.cases.length,uniqueInstructions:manifest.uniqueInstructions,boundaries:manifest.boundaries,wasmSha256:createHash('sha256').update(wasm).digest('hex'),fullGeodeLoader:false};
 await writeFile(dir+'/reference-result.json',JSON.stringify(result,null,2));
 const first=manifest.cases[0];
-await writeFile(dir+'/runtime-manifest.json',JSON.stringify({dllSha256:manifest.dllSha256,wasmSha256:result.wasmSha256,servicesSha256:createHash('sha256').update(await readFile(dir+'/services.mjs')).digest('hex'),entryRva:manifest.entryRva,stopRva:first.stopRva,steps:first.steps,nextService:manifest.boundaries[0].service,nextDialog:manifest.boundaries[0].dialog,tls:manifest.tls,gsOffset:manifest.gsOffset,onexitTables:manifest.onexitTables},null,2));
+await writeFile(dir+'/runtime-manifest.json',JSON.stringify({dllSha256:manifest.dllSha256,wasmSha256:result.wasmSha256,servicesSha256:createHash('sha256').update(await readFile(dir+'/services.mjs')).digest('hex'),entryRva:manifest.entryRva,stopRva:first.stopRva,steps:first.steps,nextService:manifest.boundaries[0].service,nextBoundaryKind:manifest.boundaries[0].kind,nextDialog:manifest.boundaries[0].dialog,bootstrap:manifest.bootstrap,tls:manifest.tls,gsOffset:manifest.gsOffset,onexitTables:manifest.onexitTables},null,2));
 console.log(JSON.stringify(result,null,2));

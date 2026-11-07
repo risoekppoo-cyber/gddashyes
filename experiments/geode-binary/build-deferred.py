@@ -88,6 +88,9 @@ class WideLifter(Lifter):
   return s.replace('__attribute__((visibility("default")))',WIDE+'\n__attribute__((visibility("default")))')
 
 WIDE='''typedef unsigned __int128 wide_t;
+typedef union {wide_t value;struct{uint64_t lo,hi;}words;} wide_words;
+wide_t __multi3(wide_t a,wide_t b){wide_words x={.value=a},y={.value=b},r;uint64_t a0=(uint32_t)x.words.lo,a1=x.words.lo>>32,b0=(uint32_t)y.words.lo,b1=y.words.lo>>32,p=a0*b0,t=a1*b0+(p>>32),u=a0*b1+(uint32_t)t;r.words.lo=(u<<32)|(uint32_t)p;r.words.hi=a1*b1+(t>>32)+(u>>32)+x.words.lo*y.words.hi+x.words.hi*y.words.lo;return r.value;}
+wide_t __lshrti3(wide_t value,int n){wide_words x={.value=value},r;if(n<=0)return value;if(n>=128){r.words.lo=0;r.words.hi=0;}else if(n>=64){r.words.lo=x.words.hi>>(n-64);r.words.hi=0;}else{r.words.lo=(x.words.lo>>n)|(x.words.hi<<(64-n));r.words.hi=x.words.hi>>n;}return r.value;}
 static inline uint64_t f32_bits(float f){union{float f;uint32_t u;}v={.f=f};return v.u;}
 static inline uint64_t f64_bits(double f){union{double f;uint64_t u;}v={.f=f};return v.u;}
 static inline float bits_f32(uint64_t u){union{float f;uint32_t u;}v={.u=(uint32_t)u};return v.f;}
@@ -106,6 +109,9 @@ def main():
  game_headers=json.loads(Path('integration-input/game-headers.json').read_text())
  assert game_headers['base']==0x400000 and game_headers['gameWasmSha256']=='523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a'
  header_bytes=bytes.fromhex(game_headers['hex']);assert len(header_bytes)==4096 and header_bytes[:2]==b'MZ'
+ timestamp_rva=0xfb22a8;cmp=pe.get_data(0x12f281,6)
+ assert cmp[:2]==b'\x3b\x05' and 0x12f287+int.from_bytes(cmp[2:6],'little',signed=True)==timestamp_rva
+ game_timestamp=int.from_bytes(header_bytes[int.from_bytes(header_bytes[0x3c:0x40],'little')+8:][:4],'little')
  original=pe.get_memory_mapped_image().ljust(size,b'\0');ctx=pypcode.Context('x86:LE:64:default')
  imports={}
  for group in [getattr(pe,'DIRECTORY_ENTRY_IMPORT',[]),getattr(pe,'DIRECTORY_ENTRY_DELAY_IMPORT',[])]:
@@ -128,6 +134,8 @@ def main():
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
+   initial_timestamp=0 if variant==1 else game_timestamp
+   uc.mem_write(image_base+timestamp_rva,initial_timestamp.to_bytes(4,'little'))
    uc.mem_map(game_headers['base'],4096);uc.mem_write(game_headers['base'],header_bytes)
    uc.mem_map(0x70000000,4096)
    uc.mem_map(0x1800000,0x400000);heap_at=[0x1800000];allocations={}
@@ -360,6 +368,10 @@ def main():
     if variant==3 and rva==sar_fixture[0][0]+sar_fixture[0][1]:
      boundary.update(rva=rva,service='Signed-shift fixture stop');emu.emu_stop();return
     b=bytes(emu.mem_read(address,min(16,size-rva)))
+    if 0x40<=b[0]<=0x4f and b[1]==0x8b and b[2]&0xc7==5:
+     slot=rva+7+int.from_bytes(b[3:7],'little',signed=True)
+     if slot in imports and imports[slot].split('!')[-1] not in services:
+      boundary.update(rva=rva,service=imports[slot],iatRva=slot,kind='import-address-read');emu.emu_stop();return
     if b[:2] in [b'\xff\x15',b'\xff\x25']:
      slot=rva+6+int.from_bytes(b[2:6],'little',signed=True)
      if slot in imports and imports[slot].split('!')[-1] not in services:
@@ -411,7 +423,7 @@ def main():
     start=at
     while at<size and final[at]!=image[at]:at+=1
     changes.append({'rva':start,'hex':final[start:at].hex()})
-   cases.append({'imageBase':image_base,'entryRva':entry_rva,'initial':[hex(v) for v in values],'initialXmm':[hex(v) for v in xmm],'flags':flags,
+   cases.append({'imageBase':image_base,'entryRva':entry_rva,'initialTimestamp':initial_timestamp,'initial':[hex(v) for v in values],'initialXmm':[hex(v) for v in xmm],'flags':flags,
      'expected':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+r))) for r in REGS],
      'expectedXmm':[hex(uc.reg_read(getattr(x,'UC_X86_REG_XMM'+str(i)))) for i in range(16)],
      'expectedFlags':uc.reg_read(x.UC_X86_REG_EFLAGS),'definedFlagsMask':defined_flags[0],'stopRva':boundary['rva'],'steps':len(trace),
@@ -424,7 +436,7 @@ def main():
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)
  source=lifter.source();(out/'deferred.c').write_text(source)
- manifest={'dllSha256':PIN,'entryRva':0x12f200,'boundaries':boundaries,'uniqueInstructions':len(observed),'gameHeaders':game_headers,
+ manifest={'dllSha256':PIN,'entryRva':0x12f200,'boundaries':boundaries,'uniqueInstructions':len(observed),'gameHeaders':game_headers,'bootstrap':{'timestampRva':timestamp_rva,'gameTimestamp':game_timestamp},
   'instructions':[{'rva':va-preferred,'length':ins.length,'assembly':str(ins)} for va,(ins,_,_) in sorted(lifter.blocks.items())],
   'cases':cases,'gsOffset':2048+ctx.registers['GS_OFFSET'].offset,'onexitTables':[0xfb1960],
   'tls':{'templateRva':tls_rva,'templateSize':tls_size,'zeroFill':tls.SizeOfZeroFill,'indexRva':tls.AddressOfIndex-preferred,'callbacksExecuted':False},
