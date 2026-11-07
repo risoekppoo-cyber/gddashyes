@@ -1,45 +1,62 @@
 # Current continuation
 
-Tasks 13-16 from the earlier source ZIP have been completed directly in this
-repository. Do not repeat their old module lookup and thread-naming work.
-The old ZIP is a historical snapshot; use current main for further changes.
+Use current main. Earlier module lookup, thread naming, stdio, named-pipe and
+completion-port setup tasks are complete; the older source ZIP is historical.
 
-Current verified checkpoint: 11,073 native startup instructions; eight reference
-cases pass; Chromium continues beyond 120 frames. Full loader initialization and
-existing .geode packages remain unsupported.
+Verified checkpoint: 12,223 native startup instructions, eight passing reference
+cases, 136 Chromium game frames, preserved game CPU and restored live stack.
+Full loader initialization and existing .geode packages remain unsupported.
 
-## Next implementation: asynchronous logging pipe
+## Next implementation: real guest worker execution
 
-The exact stop is CreateNamedPipeW at Geode RVA 0x125ff1. Read pendingPipeRequest
-in the current setup-browser-result.json or nextPipeRequest in setup-manifest.json
-for the actual complete request. Source behavior is in upstream Geode
-loader/src/platform/windows/console.cpp at v6.0.0-alpha.1.
+The exact stop is _beginthreadex at the API entry. Worker entry RVA is 0x4ffab0.
+Read pendingThreadRequest in handoff/setup-browser-result.json and
+nextThreadRequest in handoff/setup-manifest.json. Creation is not implemented.
+Do not turn the diagnostic trap into a successful stub.
 
-1. Design an owned in-memory pipe namespace and endpoint/handle lifecycle for
-   the observed inbound, overlapped, byte-stream, local-only request.
-2. Implement and test server creation plus the paired client/reopen operation
-   required by freopen_s. Preserve descriptor duplication: the saved old stdout
-   must continue to reference its original channel.
-3. Implement actual queued writes, reads, EOF/close behavior and the necessary
-   asynchronous completion/consumer integration. Reject unsupported modes and
-   operations explicitly. Do not return successful dummy handles or consume
-   bytes without delivering them.
-4. Extend the native service fixture independently, compare pipe/stdio state,
-   rerun the existing reference and Chromium checks, and stop at the next
-   unsupported dependency.
+Keep each change small and validate it before extending the translated prefix:
 
-Relevant files:
+1. Separate shared process services/handles from per-thread state. Give each
+   thread its own CPU shadow, stack, TIB/TLS, last-error value and lifecycle.
+   Preserve existing pipe, stdio, heap and completion-port ownership. Inspect
+   the actual worker entry/CRT trampoline before assuming its entry ABI.
+2. Introduce a cooperative scheduler with bounded instruction slices and owned
+   thread contexts. Retain the root CPU at a yield; the current runtime frees
+   its temporary shadow after the checkpoint and cannot resume it. Validate
+   alternating contexts, register/TLS isolation and failure cleanup first.
+3. Implement the observed _beginthreadex request: allocate a real runnable
+   worker, execute the actual translated entry and preserve its argument, publish
+   an owned handle and write its real guest ID. Translate the worker closure
+   with independent native evidence; stop on its first unsupported dependency.
+4. Add genuine blocked/runnable transitions for completion-port dequeue and
+   overlapped pipe reads. Connect writes/close to completion and wakeup. Verify
+   pending, ready, failed and EOF paths without polling loops or dropped bytes.
+5. Continue the main startup thread and implement only its next observed
+   lifecycle dependencies. Add exit/join/handle cleanup when exercised. Preserve
+   game responsiveness across scheduler yields and page disposal.
+6. Compare independent native traces and shared/per-thread state, then run the
+   real-browser integration. Publish the next precise boundary and keep loader
+   and package-support flags false until those operations actually work.
+
+## Relevant files
+
+- experiments/geode-binary/thread-boundary.mjs
+- experiments/geode-binary/windows-pipes.mjs
+- experiments/geode-binary/windows-iocp.mjs
+- experiments/geode-binary/windows-critical.mjs
 - experiments/geode-binary/windows-stdio.mjs
-- experiments/geode-binary/windows-console.mjs
-- experiments/geode-binary/windows-files.mjs
 - experiments/geode-binary/build-deferred.py
 - experiments/geode-binary/setup-context.mjs
+- experiments/geode-binary/handoff/runtime.js
 - integration-tests/bundle-services.mjs
 - integration-tests/deferred-reference.mjs
 - integration-tests/browser-smoke.cjs
+- integration-tests/{pipes,critical,iocp}-native.py and recorded result JSON
 - .github/workflows/geode-deferred.yml
 
-Preserve allocator ownership, the game CPU snapshot/stack, unresolved import-read
-stops, the real Cocos binding and rejection of arbitrary exceptions. Keep full
-loader/package-support flags false. Report actual commands/results; use NOT_RUN
-for unavailable execution. A mocked trace alone is insufficient validation.
+Preserve the original game CPU/stack, allocator ownership, unresolved-import
+stops, verified Cocos binding and explicit rejection of arbitrary exceptions.
+The LOCK/UNLOCK profile currently permits only one non-shared guest CPU; a
+cooperative scheduler must not silently enable parallel shared-memory execution.
+Do not infer unused memory from zero bytes. Report actual commands/results and
+use NOT_RUN for unavailable execution. A mocked trace alone is insufficient.

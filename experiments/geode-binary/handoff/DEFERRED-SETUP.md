@@ -1,68 +1,72 @@
 # Verified startup checkpoint - 7 November 2026
 
-The current setup executes 11,073 native instructions. Native-reference and real
-Chromium checks pass; the game continues for at least 120 frames, with the
-original CPU snapshot preserved and the live stack restored. Full Geode
+Setup executes 12,223 native startup instructions. Eight native-reference cases
+pass at two image bases. The real Chromium run continued for 136 game frames,
+preserved the original CPU snapshot and restored the live game stack. Full Geode
 initialization and existing .geode package loading remain unsupported.
 
 ## Completed continuation
 
-- Located the actual Cocos2d image at guest base 0x10000000. Its identity and
-  mapping are corroborated by 856 primary-game import references.
-- Resolved convertToNodeSpace to RVA 0x2e90, guest address 0x10002e90. The live
-  module, export and captured code page are validated before binding. Native
-  reference tests use the same captured bytes; other unresolved probes stop.
-- Delivered the documented MSVC thread-name event (0x406d1388) to a bounded guest
-  debugger. The observed thread is 1, named Main. A real Windows exception probe
-  verifies continuation after handling this exact event. Other exceptions,
-  noncontinuable events and foreign thread identities remain rejected.
-- Added detached-console query/attach semantics. Windows standard handles are
-  absent in this browser profile; failures report proper errors and do not claim
-  console output succeeded.
-- Added owned opaque FILE identities, standard descriptors, duplication,
-  fdopen/get_osfhandle/close and logical process identity. Duplicate descriptors
-  own distinct handles to the same channel. Native Windows probes and unit tests
-  check the identity/ownership rules. This does not claim a full UCRT FILE layout
-  or working redirected output.
+- Owned named-pipe server/client endpoints and byte queues, with CRT freopen_s
+  preserving FILE identity and the saved stdout descriptor. Text writes convert
+  LF to CRLF; pending reads, completed reads, EOF, close and error delivery are
+  implemented for the supported pipe profile.
+- Completion-port creation, pipe association, posted packets, read-completion
+  packets and nonblocking dequeue. Empty polls preserve the Windows-observed
+  outputs. Blocking waits explicitly require a scheduler.
+- Critical-section initialization, recursive ownership, try/enter/leave/delete,
+  and condition-variable initialization/wakes when there are no waiters.
+  Contention and blocking remain unsupported.
+- Observed LOCK/UNLOCK translation under a strictly non-shared, single-CPU
+  profile, plus the finite positive powf range exercised by startup.
+- The earlier live Cocos export binding, thread-name event, detached-console
+  queries, owned FILE/descriptors, allocator ownership, static TLS template,
+  timestamp bootstrap and onexit registration remain verified.
 
-The primary game timestamp bootstrap, static TLS template, partial TIB, onexit
-registration and allocator-owned DLL/stack/heap remain in place. Full CRT startup,
-TLS callbacks and general native threading are still unfinished. Binding the
-Cocos export for address inspection does not implement arbitrary native Cocos
-method execution.
+The real browser has created and connected the geode-stdout-1 named pipe,
+redirected stdout to its client, preserved the original stdout as descriptor 3,
+initialized an idle critical section and created an empty completion port. The
+startup prefix has not yet run the worker that consumes the pipe. Actual byte
+transport and completion delivery are covered by focused tests and independent
+native Windows probes; they are not claimed as worker activity in the browser.
 
 ## Next exact boundary
 
-    KERNEL32.dll!CreateNamedPipeW
-    Geode instruction RVA: 0x125ff1
+    api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex
+    Worker entry RVA: 0x4ffab0
 
-The native fixture and real browser agree on the complete request:
+Native reference and browser agree on the complete call profile:
 
-    path:            \\.\pipe\geode-stdout-1
-    openMode:        0x40000001 (inbound, overlapped)
-    pipeMode:        0x8 (local clients only)
-    maxInstances:    1
-    outBufferSize:   0
-    inBufferSize:    1024
-    defaultTimeout:  0
-    security:        null
+    security:           null
+    stackSize:          0 (default)
+    entry:              imageBase + 0x4ffab0
+    argument:           non-null owned guest object
+    initFlags:          0 (start runnable)
+    threadIdOutput:     non-null guest stack address
 
-The report exposes pendingPipeRequest, guestThreadNames, boundGameImports and
-guestStdioDescriptors. This operation is not implemented. The next phase needs
-real queued pipe endpoints, CRT reopen ownership and asynchronous completion/
-consumer behavior; returning a dummy successful handle would invalidate startup.
+The addressable import trap lets translation reach the actual API entry and
+capture its arguments. It stops before executing a thread API body; no thread
+handle, thread ID or successful creation is fabricated. The report exposes this
+as pendingThreadRequest with threadCreationImplemented=false. Raw argument and
+output addresses vary with the allocator and must not be hard-coded.
+
+This checkpoint is not resumable: runtime frees the temporary root CPU shadow
+after recording it. A real cooperative scheduler must retain root/worker CPU
+contexts, own their stacks and TIB/TLS, share process services, and implement
+blocking, wakeup and lifecycle transitions before startup can continue safely.
+Full CRT startup, TLS callbacks and general native Cocos calls also remain
+unfinished. The Cocos address binding does not implement arbitrary method calls.
 
 ## Validation
 
-[Native reference and Chromium validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42389806053)
-passes eight cases at two Geode image bases. It checks registers, XMMs, defined
-flags, stack, TLS, DLL/heap writes, callback registration, thread-name delivery,
-stdio object/descriptor ownership and unchanged captured Cocos code.
+[Native-reference and real-browser validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42398749388)
+passes all eight reference cases and the actual-browser preservation check.
+The comparison includes GPRs, XMMs, defined flags, stack, TLS, DLL/heap writes,
+callback registration, stdio/pipe/critical/IOCP state and the exact worker request.
+The focused service tests pass. Recorded Windows oracles cover pipe/CRT text
+behavior, critical-section recursion, powf and completion-port packet semantics.
 
-The ordinary handoff regression checks also pass. The workflow publishes
-generated code and evidence only after reference and actual-browser checks pass.
-The launcher uses the setup-stdio-20261107 revision.
-
-Tasks 13-16 from the earlier Chat-mode pack have been completed directly. See
-NEXT-CHAT-TASKS.md for the current remaining scope. The older ZIP records the
-previous checkpoint and should not be used to restart those completed tasks.
+Generated setup WASM, bundled services, manifests and result JSON are published
+only after reference and browser validation pass. The launcher revision is
+setup-worker-boundary-20261107. See NEXT-CHAT-TASKS.md for the next small tasks;
+the older Chat-mode ZIP describes a superseded checkpoint.
