@@ -9,6 +9,7 @@ class SetupContext{
  constructor(e,m,aux,services){this.e=e;this.metadata=m;this.aux=aux;this.serviceTypes=services;this.allocations=[];}
  allocate(size){const p=this.e.malloc(size);if(!Number.isSafeInteger(p)||p<=0||p+size>this.e.memory.buffer.byteLength)throw Error('Setup reservation failed');this.allocations.push(p);return p;}
  reserve(){
+  if(typeof SharedArrayBuffer!=='undefined'&&this.e.memory.buffer instanceof SharedArrayBuffer)throw Error('Startup atomic profile requires one non-shared guest CPU');
   this.tib=Math.ceil(this.allocate(0x10010)/16)*16;
   this.stack=this.allocate(0x10000);this.stackTop=Math.floor((this.stack+0x10000-128)/16)*16-8;
   const decoders=[null,new TextDecoder(),new TextDecoder()];

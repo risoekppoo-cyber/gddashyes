@@ -32,6 +32,8 @@ class WideLifter(Lifter):
  def emit_op(self,op,index,count):
   a=op.inputs;code=op.opcode.name
   if code=='IMARK':return ''
+  if code=='CALLOTHER' and str(op).strip() in ['LOCK()','UNLOCK()']:
+   return '__atomic_signal_fence(5);' # One non-shared, synchronous guest CPU.
   if code=='FLOAT_NAN' and a[0].size in [4,8]:
    value=f'bits_f{a[0].size*8}({self.expr(a[0])})'
    return self.assign(op.output,f'({value}!={value})')
@@ -163,7 +165,7 @@ def main():
    console=['GetStdHandle','GetConsoleMode','SetConsoleMode','AttachConsole']
    stdio=['__acrt_iob_func','_fileno','_dup','_fdopen','_get_osfhandle','_close']
    pipe_services=['CreateNamedPipeW','ReadFile','WriteFile','GetOverlappedResult','freopen_s','_write']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services)}
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','powf','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services)}
    def bound(name):return name.split('!')[-1] in services or name in external
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],external.get(name,0)).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
@@ -350,6 +352,13 @@ def main():
       bits=emu.reg_read(x.UC_X86_REG_XMM0);value=struct.unpack('<f',(bits&0xffffffff).to_bytes(4,'little'))[0]
       result=float(math.ceil(value)) if math.isfinite(value) and value!=0 else value
       if -1<value<0:result=-0.0
+      emu.reg_write(x.UC_X86_REG_XMM0,(bits&~0xffffffff)|int.from_bytes(struct.pack('<f',result),'little'))
+     elif name=='powf':
+      bits=emu.reg_read(x.UC_X86_REG_XMM0);a=struct.unpack('<f',(bits&0xffffffff).to_bytes(4,'little'))[0];b=struct.unpack('<f',(emu.reg_read(x.UC_X86_REG_XMM1)&0xffffffff).to_bytes(4,'little'))[0]
+      if not(math.isfinite(a) and math.isfinite(b) and a>0):raise RuntimeError('Unsupported native powf domain')
+      result=struct.unpack('<f',struct.pack('<f',math.pow(a,b)))[0]
+      if not math.isfinite(result) or result==0:raise RuntimeError('Unsupported native powf range')
+      if image_base==0x2000000 and variant==0:print(json.dumps({'powfReference':{'a':a,'b':b,'result':result}}),flush=True)
       emu.reg_write(x.UC_X86_REG_XMM0,(bits&~0xffffffff)|int.from_bytes(struct.pack('<f',result),'little'))
      elif name in crt:
       a=ptr;b=emu.reg_read(x.UC_X86_REG_RDX);c=emu.reg_read(x.UC_X86_REG_R8);result=None

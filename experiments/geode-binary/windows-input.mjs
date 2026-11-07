@@ -1,5 +1,5 @@
 import {GuestLifecycle} from './windows-lifecycle.mjs';
-export const INPUT_NAMES=['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId'];
+export const INPUT_NAMES=['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','powf'];
 // Input belongs to this browser document, not the host Windows desktop.
 export class BrowserModifiers{
  constructor(target){
@@ -16,8 +16,9 @@ export class BrowserModifiers{
 }
 export class GuestInput extends GuestLifecycle{
  constructor(memory,addresses,options={}){super(memory,addresses,options);this.input=options.input||new BrowserModifiers();}
- resolve(item){if((item.dll.toLowerCase()==='user32.dll'&&item.name==='GetAsyncKeyState')||(/^api-ms-win-crt-math/i.test(item.dll)&&item.name==='ceilf')){const p=this.addresses[item.name];return p===undefined?undefined:BigInt(p);}return super.resolve(item);}
+ resolve(item){if((item.dll.toLowerCase()==='user32.dll'&&item.name==='GetAsyncKeyState')||(/^api-ms-win-crt-math/i.test(item.dll)&&['ceilf','powf'].includes(item.name))){const p=this.addresses[item.name];return p===undefined?undefined:BigInt(p);}return super.resolve(item);}
  invoke(cpu,address){
+  if(this.addresses.powf!==undefined&&BigInt(this.addresses.powf)===address){const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true),a=v.getFloat32(cpu+512,true),b=v.getFloat32(cpu+528,true);this.range(sp,8);if(!Number.isFinite(a)||!Number.isFinite(b)||a<=0)throw Error('Unsupported guest powf domain');const result=Math.fround(Math.pow(a,b));if(!Number.isFinite(result)||result===0)throw Error('Unsupported guest powf range');v.setFloat32(cpu+512,result,true);this.calls.push('powf');v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);return;}
   if(this.addresses.GetCurrentThreadId!==undefined&&BigInt(this.addresses.GetCurrentThreadId)===address){const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true);this.range(sp,8);v.setBigUint64(cpu,1n,true);this.calls.push('GetCurrentThreadId');v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);return;}
   if(this.addresses.GetModuleHandleW!==undefined&&BigInt(this.addresses.GetModuleHandleW)===address){const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true);this.range(sp,8);if(v.getBigUint64(cpu+8,true)!==0n)throw Error('Named guest module lookup requires catalogue evidence');v.setBigUint64(cpu,0x400000n,true);this.calls.push('GetModuleHandleW');v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);return;}
   if(this.addresses.ceilf!==undefined&&BigInt(this.addresses.ceilf)===address){const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true);this.range(sp,8);v.setFloat32(cpu+512,Math.ceil(v.getFloat32(cpu+512,true)),true);this.calls.push('ceilf');v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);return;}
