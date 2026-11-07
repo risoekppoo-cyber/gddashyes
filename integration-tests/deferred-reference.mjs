@@ -39,7 +39,7 @@ for(const [index,c] of manifest.cases.entries()){
  new Uint8Array(memory.buffer,c.tlsData,t.templateSize).set(new Uint8Array(memory.buffer,c.imageBase+t.templateRva,t.templateSize));
  v.setUint32(c.imageBase+t.indexRva,0,true);
  const entry=BigInt(c.imageBase+c.entryRva),stop=BigInt(c.imageBase+c.stopRva);
- const executionStop=c.expectedFault?entry+3n:stop;
+ const executionStop=c.expectedFault?entry+BigInt(c.instructionLength):stop;
  let count=0,pc=entry,completed=false,faultObserved=false;
  try{
  for(let transfers=0;transfers<1000;transfers++){
