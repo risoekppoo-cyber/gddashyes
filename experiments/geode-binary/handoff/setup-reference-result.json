@@ -1,13 +1,25 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
   "cases": 8,
-  "uniqueInstructions": 5597,
+  "uniqueInstructions": 5616,
   "boundaries": [
     {
-      "rva": 5167022,
+      "rva": 1845494864,
       "service": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
-      "iatRva": 15263576,
-      "kind": "import-address-read"
+      "kind": "thread-start-request",
+      "stopService": "_beginthreadex",
+      "threadRequest": {
+        "security": "0x0",
+        "stackSize": 0,
+        "entryAddress": "0x24ffab0",
+        "entryRva": 5241520,
+        "argument": "0x1801890",
+        "argumentIsNull": false,
+        "initFlags": 0,
+        "threadIdOutput": "0x10e508",
+        "threadIdOutputIsNull": false,
+        "threadCreationImplemented": false
+      }
     },
     {
       "rva": 1208561,
@@ -33,10 +45,22 @@
       "service": "Signed-shift fixture stop"
     },
     {
-      "rva": 5167022,
+      "rva": 1509950544,
       "service": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
-      "iatRva": 15263576,
-      "kind": "import-address-read"
+      "kind": "thread-start-request",
+      "stopService": "_beginthreadex",
+      "threadRequest": {
+        "security": "0x0",
+        "stackSize": 0,
+        "entryAddress": "0x164ffab0",
+        "entryRva": 5241520,
+        "argument": "0x1801890",
+        "argumentIsNull": false,
+        "initFlags": 0,
+        "threadIdOutput": "0x10e508",
+        "threadIdOutputIsNull": false,
+        "threadCreationImplemented": false
+      }
     },
     {
       "rva": 1208561,
@@ -62,6 +86,6 @@
       "service": "Signed-shift fixture stop"
     }
   ],
-  "wasmSha256": "b6f860ce2f3b9e70dddfd35f52b805b3dab9af708dfb9f988aaeafb404d6509d",
+  "wasmSha256": "b54da95666fa2282dcaf7dd934865a8baae12bb8ed1ece341d7212648890becc",
   "fullGeodeLoader": false
 }

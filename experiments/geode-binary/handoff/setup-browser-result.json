@@ -7,7 +7,7 @@
     "deferredLoaderInitialized": false,
     "callbackPrologueExecuted": true,
     "callbackPrologueOnly": false,
-    "gameFrames": 125,
+    "gameFrames": 136,
     "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
     "sourceDllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
     "gameModuleSha256": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
@@ -22,7 +22,7 @@
       "linearEnd": 374665216,
       "active": true
     },
-    "unresolvedImportCount": 1941,
+    "unresolvedImportCount": 1940,
     "dllRelocations": 56939,
     "memoryLayout": {
       "memoryBytes": 377487360,
@@ -43,12 +43,12 @@
       ],
       "guestReservationVerified": false
     },
-    "instructions": 12193,
+    "instructions": 12223,
     "stoppedBeforeFirstCall": false,
     "liveGuestBase": "0x0",
     "liveStack": "0x13efefe0",
     "gameStartupTarget": "0xa74a90",
-    "callbackStop": "0x159fd7ae",
+    "callbackStop": "0x154fea10",
     "arguments": [
       "0x400000",
       "0x0",
@@ -57,12 +57,12 @@
     ],
     "sharedGameMemory": true,
     "nextRequiredService": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
-    "nextBoundaryKind": "import-address-read",
+    "nextBoundaryKind": "thread-start-request",
     "nextServiceArguments": [
       "0x0",
       "0x0",
-      "0x0",
-      "0x0"
+      "0x15a0fab0",
+      "0x16570b50"
     ],
     "executedServices": [
       "AcquireSRWLockExclusive",
@@ -277,6 +277,7 @@
       "malloc",
       "malloc",
       "CreateIoCompletionPort",
+      "malloc",
       "malloc"
     ],
     "staticTlsTemplateInitialized": true,
@@ -338,6 +339,35 @@
       "completions": [],
       "outputs": []
     },
+    "ioCompletionPorts": {
+      "ports": [
+        {
+          "handle": "1660944384",
+          "concurrency": 0,
+          "queue": []
+        }
+      ],
+      "associations": []
+    },
+    "guestCriticalSections": [
+      [
+        374802288,
+        0,
+        0
+      ]
+    ],
+    "pendingThreadRequest": {
+      "security": "0x0",
+      "stackSize": 0,
+      "entryAddress": "0x15a0fab0",
+      "entryRva": 5241520,
+      "argument": "0x16570b50",
+      "argumentIsNull": false,
+      "initFlags": 0,
+      "threadIdOutput": "0x1550ea48",
+      "threadIdOutputIsNull": false,
+      "threadCreationImplemented": false
+    },
     "originalGameCpuPreserved": true,
     "liveStackRestored": true,
     "gameContinuedAfterHandoff": true
@@ -366,6 +396,6 @@
     }
   ],
   "jspi": true,
-  "seconds": 14.902,
+  "seconds": 17.807,
   "events": []
 }
