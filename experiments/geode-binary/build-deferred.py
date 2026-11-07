@@ -82,11 +82,24 @@ def main():
     for rel in block.entries:
      if rel.type==10:
       image[rel.rva:rel.rva+8]=((int.from_bytes(image[rel.rva:rel.rva+8],'little')+image_base-preferred)&((1<<64)-1)).to_bytes(8,'little')
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError'])}
+   crt=['wcslen','strlen','memcpy','memmove','memset','memcmp','malloc','calloc','realloc','free']
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt)}
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
    uc.mem_map(0x70000000,4096)
+   uc.mem_map(0x300000,0x400000);heap_at=[0x300000];allocations={}
+   def allocate(n,zero=False):
+    if n>0x7ffffff0:return 0
+    capacity=max(1,n)+15;raw=heap_at[0];heap_at[0]=(raw+capacity+7)&~7
+    if heap_at[0]>0x700000:raise RuntimeError('Native fixture heap exhausted')
+    pointer=(raw+15)&~15;allocations[pointer]=n
+    if zero and n:uc.mem_write(pointer,b'\0'*n)
+    return pointer
+   def free(pointer):
+    if pointer:
+     if pointer not in allocations:raise RuntimeError('Unowned native fixture free')
+     del allocations[pointer]
    # One explicit static-TLS fixture. This models template/zero-fill storage,
    # not TLS callback execution, Windows threading, or completed CRT startup.
    tls=pe.DIRECTORY_ENTRY_TLS.struct
@@ -125,6 +138,35 @@ def main():
       locks.remove(ptr);emu.mem_write(ptr,b'\0'*8)
      elif name=='SetLastError':emu.mem_write(tib+0x68,(ptr&0xffffffff).to_bytes(4,'little'))
      elif name=='GetLastError':emu.reg_write(x.UC_X86_REG_RAX,int.from_bytes(emu.mem_read(tib+0x68,4),'little'))
+     elif name in crt:
+      a=ptr;b=emu.reg_read(x.UC_X86_REG_RDX);c=emu.reg_read(x.UC_X86_REG_R8);result=None
+      if name in ['wcslen','strlen']:
+       stride=2 if name=='wcslen' else 1;n=0
+       while int.from_bytes(emu.mem_read(a+n*stride,stride),'little'):n+=1
+       result=n
+      elif name=='malloc':result=allocate(a)
+      elif name=='calloc':result=allocate(a*b,True)
+      elif name=='free':free(a)
+      elif name=='realloc':
+       if not a:result=allocate(b)
+       elif not b:free(a);result=0
+       else:
+        if a not in allocations:raise RuntimeError('Unowned native fixture realloc')
+        n=min(allocations[a],b);result=allocate(b)
+        if result:
+         if n:emu.mem_write(result,bytes(emu.mem_read(a,n)))
+         free(a)
+      elif name=='memset':
+       if c:emu.mem_write(a,bytes([b&255])*c)
+       result=a
+      elif name=='memcmp':
+       left=bytes(emu.mem_read(a,c)) if c else b'';right=bytes(emu.mem_read(b,c)) if c else b''
+       result=next((x-y for x,y in zip(left,right) if x!=y),0)&((1<<64)-1)
+      else:
+       if name=='memcpy' and a!=b and a<b+c and b<a+c:raise RuntimeError('Overlapping native memcpy fixture')
+       if c:emu.mem_write(a,bytes(emu.mem_read(b,c)))
+       result=a
+      if result is not None:emu.reg_write(x.UC_X86_REG_RAX,result)
      else:
       path={0:'C:\\GeometryDash\\GeometryDash.exe',0x400000:'C:\\GeometryDash\\GeometryDash.exe',image_base:'C:\\GeometryDash\\Geode.dll'}.get(ptr)
       capacity=emu.reg_read(x.UC_X86_REG_R8)&0xffffffff;result=0;error=0
@@ -170,7 +212,8 @@ def main():
      'expectedFlags':uc.reg_read(x.UC_X86_REG_EFLAGS),'stopRva':boundary['rva'],'steps':len(trace),
      'stackBase':stack_base,'stackHex':bytes(uc.mem_read(stack_base,stack_size)).hex(),'dllChanges':changes,
      'tib':tib,'tlsArray':tls_array,'tlsData':tls_data,'tlsHex':bytes(uc.mem_read(tls_data,tls_size+tls.SizeOfZeroFill)).hex(),
-     'serviceCalls':service_calls,'stackBelow':sp-min([a for a,b in writes]+[sp]),'stackAbove':max([b for a,b in writes]+[sp])-sp})
+     'serviceCalls':service_calls,'stackBelow':sp-min([a for a,b in writes]+[sp]),'stackAbove':max([b for a,b in writes]+[sp])-sp,
+     'heapHex':bytes(uc.mem_read(0x300000,heap_at[0]-0x300000)).hex() if heap_at[0]>0x300000 else ''})
    boundaries.append(boundary)
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)

@@ -4,7 +4,7 @@ import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {instantiateStartupLift} from '../experiments/geode-binary/handoff/startup-module.mjs';
 import {mapPe64} from '../experiments/geode-binary/pe-image.mjs';
-import {GuestModules} from '../experiments/geode-binary/windows-modules.mjs';
+import {GuestCrt,CRT_NAMES} from '../experiments/geode-binary/windows-crt.mjs';
 const dir=resolve(process.argv[2]),dll=await readFile('/tmp/Geode.dll');
 const manifest=JSON.parse(await readFile(dir+'/manifest.json'));
 const wasm=await readFile(dir+'/deferred.wasm');
@@ -12,7 +12,9 @@ assert.equal(createHash('sha256').update(dll).digest('hex'),manifest.dllSha256);
 const memory=new WebAssembly.Memory({initial:6144,maximum:65536}),cpu=4096;
 const instance=await instantiateStartupLift(wasm,memory);
 for(const [index,c] of manifest.cases.entries()){
- const services=new GuestModules(memory,Object.fromEntries(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError'].map((n,i)=>[n,0x70000000+i*16])),{imageBase:c.imageBase,tib:c.tib});
+ let heapAt=0x300000;new Uint8Array(memory.buffer,heapAt,0x400000).fill(0);
+ const allocator={malloc(n){const p=heapAt;heapAt=Math.ceil((p+n)/8)*8;if(heapAt>0x700000)throw Error('Fixture heap exhausted');return p;},free(){}};
+ const services=new GuestCrt(memory,Object.fromEntries(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError',...CRT_NAMES].map((n,i)=>[n,0x70000000+i*16])),{imageBase:c.imageBase,tib:c.tib,allocator});
  const image=mapPe64(dll,memory,c.imageBase,{resolveImport:item=>services.resolve(item)}),v=new DataView(memory.buffer);
  const expectedImage=Buffer.from(new Uint8Array(memory.buffer,c.imageBase,image.size));
  for(const change of c.dllChanges)Buffer.from(change.hex,'hex').copy(expectedImage,change.rva);
@@ -43,6 +45,7 @@ for(const [index,c] of manifest.cases.entries()){
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,c.stackBase,c.stackHex.length/2),Buffer.from(c.stackHex,'hex')),0,`case ${index} native stack`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,c.tlsData,c.tlsHex.length/2),Buffer.from(c.tlsHex,'hex')),0,`case ${index} TLS`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,c.imageBase,image.size),expectedImage),0,`case ${index} DLL writes`);
+ assert.equal(Buffer.compare(Buffer.from(memory.buffer,0x300000,c.heapHex.length/2),Buffer.from(c.heapHex,'hex')),0,`case ${index} heap`);
 }
 const result={status:'DEFERRED_NATIVE_REFERENCE_PASS',cases:manifest.cases.length,uniqueInstructions:manifest.uniqueInstructions,boundaries:manifest.boundaries,wasmSha256:createHash('sha256').update(wasm).digest('hex'),fullGeodeLoader:false};
 await writeFile(dir+'/reference-result.json',JSON.stringify(result,null,2));
