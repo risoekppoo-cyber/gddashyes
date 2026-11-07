@@ -1,28 +1,18 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
   "cases": 8,
-  "uniqueInstructions": 4757,
+  "uniqueInstructions": 5141,
   "boundaries": [
     {
-      "rva": 1204209,
-      "service": "KERNEL32.dll!CreateNamedPipeW",
-      "iatRva": 15259384,
+      "rva": 5307000,
+      "service": "KERNEL32.dll!InitializeCriticalSection",
+      "iatRva": 15259952,
       "arguments": [
-        "0x18010e0",
-        "0x40000001",
-        "0x8",
-        "0x1"
-      ],
-      "pipeRequest": {
-        "path": "\\\\.\\pipe\\geode-stdout-1",
-        "openMode": 1073741825,
-        "pipeMode": 8,
-        "maxInstances": 1,
-        "outBufferSize": 0,
-        "inBufferSize": 1024,
-        "defaultTimeout": 0,
-        "security": "0x0"
-      }
+        "0x18014c0",
+        "0x0",
+        "0x11",
+        "0x10"
+      ]
     },
     {
       "rva": 1208561,
@@ -48,25 +38,15 @@
       "service": "Signed-shift fixture stop"
     },
     {
-      "rva": 1204209,
-      "service": "KERNEL32.dll!CreateNamedPipeW",
-      "iatRva": 15259384,
+      "rva": 5307000,
+      "service": "KERNEL32.dll!InitializeCriticalSection",
+      "iatRva": 15259952,
       "arguments": [
-        "0x18010e0",
-        "0x40000001",
-        "0x8",
-        "0x1"
-      ],
-      "pipeRequest": {
-        "path": "\\\\.\\pipe\\geode-stdout-1",
-        "openMode": 1073741825,
-        "pipeMode": 8,
-        "maxInstances": 1,
-        "outBufferSize": 0,
-        "inBufferSize": 1024,
-        "defaultTimeout": 0,
-        "security": "0x0"
-      }
+        "0x18014c0",
+        "0x0",
+        "0x11",
+        "0x10"
+      ]
     },
     {
       "rva": 1208561,
@@ -92,6 +72,6 @@
       "service": "Signed-shift fixture stop"
     }
   ],
-  "wasmSha256": "2d1604b327f7ee825509d91b2d81bb3ee4c43482694b0b83daf2072f54b3bf0a",
+  "wasmSha256": "783988201d1e02ef3e93066c50d5a2d25518835b17469a583269e40662be128b",
   "fullGeodeLoader": false
 }

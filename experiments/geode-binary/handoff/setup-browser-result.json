@@ -7,7 +7,7 @@
     "deferredLoaderInitialized": false,
     "callbackPrologueExecuted": true,
     "callbackPrologueOnly": false,
-    "gameFrames": 126,
+    "gameFrames": 131,
     "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
     "sourceDllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
     "gameModuleSha256": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
@@ -22,7 +22,7 @@
       "linearEnd": 374665216,
       "active": true
     },
-    "unresolvedImportCount": 1957,
+    "unresolvedImportCount": 1950,
     "dllRelocations": 56939,
     "memoryLayout": {
       "memoryBytes": 377487360,
@@ -43,12 +43,12 @@
       ],
       "guestReservationVerified": false
     },
-    "instructions": 11073,
+    "instructions": 11548,
     "stoppedBeforeFirstCall": false,
     "liveGuestBase": "0x0",
     "liveStack": "0x13efefe0",
     "gameStartupTarget": "0xa74a90",
-    "callbackStop": "0x15635ff1",
+    "callbackStop": "0x15a1fa78",
     "arguments": [
       "0x400000",
       "0x0",
@@ -56,13 +56,13 @@
       "0xa"
     ],
     "sharedGameMemory": true,
-    "nextRequiredService": "KERNEL32.dll!CreateNamedPipeW",
+    "nextRequiredService": "KERNEL32.dll!InitializeCriticalSection",
     "nextBoundaryKind": "service-call",
     "nextServiceArguments": [
-      "0x165703b0",
-      "0x40000001",
-      "0x8",
-      "0x1"
+      "0x16570770",
+      "0x0",
+      "0x11",
+      "0x10"
     ],
     "executedServices": [
       "AcquireSRWLockExclusive",
@@ -256,7 +256,21 @@
       "malloc",
       "memset",
       "MultiByteToWideChar",
-      "free"
+      "free",
+      "CreateNamedPipeW",
+      "WideCharToMultiByte",
+      "malloc",
+      "memset",
+      "WideCharToMultiByte",
+      "freopen_s",
+      "free",
+      "AcquireSRWLockExclusive",
+      "ReleaseSRWLockExclusive",
+      "malloc",
+      "malloc",
+      "malloc",
+      "malloc",
+      "powf"
     ],
     "staticTlsTemplateInitialized": true,
     "tlsCallbacksExecuted": false,
@@ -279,26 +293,11 @@
       ]
     ],
     "threadNameNotificationHandled": true,
-    "pendingPipeRequest": {
-      "path": "\\\\.\\pipe\\geode-stdout-1",
-      "openMode": 1073741825,
-      "pipeMode": 8,
-      "maxInstances": 1,
-      "outBufferSize": 0,
-      "inBufferSize": 1024,
-      "defaultTimeout": 0,
-      "security": "0x0"
-    },
     "guestStdioDescriptors": [
       [
         0,
         0,
         "1627389952"
-      ],
-      [
-        1,
-        1,
-        "1627389953"
       ],
       [
         2,
@@ -309,8 +308,29 @@
         3,
         1,
         "1627389968"
+      ],
+      [
+        1,
+        1,
+        "1644167169"
       ]
     ],
+    "loggingPipes": {
+      "pipes": [
+        {
+          "name": "\\\\.\\pipe\\geode-stdout-1",
+          "server": "1644167168",
+          "clients": [
+            "1644167169"
+          ],
+          "queuedHex": "",
+          "closed": false,
+          "everConnected": true
+        }
+      ],
+      "completions": [],
+      "outputs": []
+    },
     "originalGameCpuPreserved": true,
     "liveStackRestored": true,
     "gameContinuedAfterHandoff": true
@@ -339,6 +359,6 @@
     }
   ],
   "jspi": true,
-  "seconds": 19.575,
+  "seconds": 18.047,
   "events": []
 }
