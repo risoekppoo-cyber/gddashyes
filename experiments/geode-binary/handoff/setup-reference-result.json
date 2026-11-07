@@ -5,34 +5,34 @@
   "workerBoundaries": [
     {
       "imageBase": 33554432,
-      "rva": 10835952,
-      "service": "MSVCP140.dll!?__ExceptionPtrCreate@@YAXPEAX@Z",
-      "iatRva": 15261520,
+      "rva": 5319676,
+      "service": "KERNEL32.dll!QueryPerformanceFrequency",
+      "iatRva": 15260152,
       "arguments": [
-        "0x1816750",
-        "0x0",
-        "0x1801168",
+        "0x2fbc460",
+        "0x18038c0",
+        "0x1816730",
         "0x18167c8"
       ],
-      "steps": 557,
+      "steps": 623,
       "entryRva": 5241520
     },
     {
       "imageBase": 369098752,
-      "rva": 10835952,
-      "service": "MSVCP140.dll!?__ExceptionPtrCreate@@YAXPEAX@Z",
-      "iatRva": 15261520,
+      "rva": 5319676,
+      "service": "KERNEL32.dll!QueryPerformanceFrequency",
+      "iatRva": 15260152,
       "arguments": [
-        "0x1816750",
-        "0x0",
-        "0x1801168",
+        "0x16fbc460",
+        "0x18038c0",
+        "0x1816730",
         "0x18167c8"
       ],
-      "steps": 557,
+      "steps": 623,
       "entryRva": 5241520
     }
   ],
-  "uniqueInstructions": 5778,
+  "uniqueInstructions": 5831,
   "boundaries": [
     {
       "rva": 1845494864,
@@ -117,6 +117,6 @@
       "service": "Signed-shift fixture stop"
     }
   ],
-  "wasmSha256": "d750a935b3b9be3ed53c05ff0acad71a97684fc3e1a34141f876b147b456db7e",
+  "wasmSha256": "8af6d346ed5e427c4a1aaf043a1c7ebea1293b47bd47678938cb3fc78dd4b6dc",
   "fullGeodeLoader": false
 }
