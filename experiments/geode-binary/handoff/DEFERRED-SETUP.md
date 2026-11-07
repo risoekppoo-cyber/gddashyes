@@ -32,6 +32,15 @@ native Windows probes; they are not claimed as worker activity in the browser.
 
 ## Next exact boundary
 
+The scheduler foundation now exists in guest-scheduler.mjs. It owns isolated CPU,
+stack and TIB/TLS allocations and dispatches bounded synchronous slices. It tracks
+runnable, blocked, exited and failed contexts, supports explicit wakeup, restores
+the caller's service context and attempts each allocation's cleanup independently.
+Shared services select per-thread IDs, last-error/errno and lock ownership.
+Focused tests exercise context isolation across memory growth, shared locks and
+failure cleanup. This foundation is not connected to the live startup lift yet;
+its tests do not execute the real Geode worker or establish its CRT entry ABI.
+
     api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex
     Worker entry RVA: 0x4ffab0
 

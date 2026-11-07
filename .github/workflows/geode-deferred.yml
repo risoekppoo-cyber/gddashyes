@@ -23,6 +23,8 @@ on:
       - 'experiments/geode-binary/windows-critical.mjs'
       - 'experiments/geode-binary/windows-iocp.mjs'
       - 'experiments/geode-binary/thread-boundary.mjs'
+      - 'experiments/geode-binary/guest-scheduler.mjs'
+      - 'integration-tests/guest-scheduler.mjs'
       - 'experiments/geode-binary/game-imports.mjs'
       - 'experiments/geode-binary/setup-context.mjs'
       - 'experiments/geode-binary/handoff/runtime.js'
@@ -73,6 +75,7 @@ jobs:
           node integration-tests/windows-critical.mjs
           node integration-tests/windows-iocp.mjs
           node integration-tests/thread-boundary.mjs
+          node integration-tests/guest-scheduler.mjs
           cp /tmp/deferred/deferred.wasm experiments/geode-binary/handoff/setup.wasm
           cp /tmp/deferred/runtime-manifest.json experiments/geode-binary/handoff/setup-manifest.json
           cp /tmp/deferred/services.mjs experiments/geode-binary/handoff/setup-services.mjs

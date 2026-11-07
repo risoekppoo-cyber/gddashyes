@@ -16,6 +16,12 @@ Do not turn the diagnostic trap into a successful stub.
 
 Keep each change small and validate it before extending the translated prefix:
 
+Foundation implemented: guest-scheduler.mjs owns private contexts and bounded
+dispatch, explicit block/wake states and cleanup. Services now select per-thread
+IDs, TIB error storage, errno and lock ownership. These focused tests pass with
+memory growth and isolation checks. The scheduler is not wired into live startup;
+the real worker closure and CRT trampoline remain the next required evidence.
+
 1. Separate shared process services/handles from per-thread state. Give each
    thread its own CPU shadow, stack, TIB/TLS, last-error value and lifecycle.
    Preserve existing pipe, stdio, heap and completion-port ownership. Inspect
@@ -41,6 +47,8 @@ Keep each change small and validate it before extending the translated prefix:
 ## Relevant files
 
 - experiments/geode-binary/thread-boundary.mjs
+- experiments/geode-binary/guest-scheduler.mjs
+- integration-tests/guest-scheduler.mjs
 - experiments/geode-binary/windows-pipes.mjs
 - experiments/geode-binary/windows-iocp.mjs
 - experiments/geode-binary/windows-critical.mjs

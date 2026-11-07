@@ -3,8 +3,16 @@ import {GuestSrw} from './windows-srw.mjs';
 // game/DLL images, not paths on the browser user's host operating system.
 export class GuestModules extends GuestSrw {
  constructor(memory,addresses,{imageBase,tib,processPath='C:\\GeometryDash\\GeometryDash.exe',dllPath='C:\\GeometryDash\\Geode.dll'}={}){
-  super(memory,addresses);this.tib=tib;this.modules=new Map([[0n,processPath],[0x400000n,processPath]]);
+  super(memory,addresses);this.threadState={id:1,tib,errno:0};this.modules=new Map([[0n,processPath],[0x400000n,processPath]]);
   if(imageBase!==undefined)this.modules.set(BigInt(imageBase),dllPath);
+ }
+ get tib(){return this.threadState.tib;}
+ get currentThreadId(){return this.threadState.id;}
+ get errno(){return this.threadState.errno;}
+ set errno(value){this.threadState.errno=value;}
+ selectThread(state){
+  if(!state||!Number.isInteger(state.id)||state.id<=0||state.id>0xffffffff||!Number.isSafeInteger(state.tib)||state.tib<=0||state.tib+0x6c>this.memory.buffer.byteLength||!Number.isInteger(state.errno))throw Error('Invalid guest thread state');
+  this.threadState=state;
  }
  invoke(cpu,address){
   const name=Object.keys(this.addresses).find(k=>BigInt(this.addresses[k])===address);
