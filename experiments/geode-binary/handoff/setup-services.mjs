@@ -487,6 +487,29 @@ class GuestPipes extends GuestStdio{
  releaseHeap(){for(const h of [...this.pipeEnds.keys()])this.closePipe(h);super.releaseHeap();}
 }
 
+// windows-critical.mjs
+const CRITICAL_NAMES=['InitializeCriticalSection','EnterCriticalSection','LeaveCriticalSection','TryEnterCriticalSection','DeleteCriticalSection'];
+// Native-checked uncontended profile for the current single logical thread.
+// This does not implement blocking or a general kernel critical-section ABI.
+class GuestCritical extends GuestPipes{
+ constructor(memory,addresses,options={}){super(memory,addresses,options);this.critical=new Map();}
+ criticalSnapshot(){return [...this.critical].map(([p,c])=>[p,c.owner,c.recursion]);}
+ invoke(cpu,address){
+  const name=CRITICAL_NAMES.find(n=>this.addresses[n]!==undefined&&BigInt(this.addresses[n])===address);if(!name)return super.invoke(cpu,address);
+  const v=new DataView(this.memory.buffer),a=v.getBigUint64(cpu+8,true),sp=v.getBigUint64(cpu+32,true),p=this.range(a,40);this.range(sp,8);if(a%8n)throw Error('Unaligned guest critical section');let entry=this.critical.get(p),result;
+  if(name==='InitializeCriticalSection'){if(entry)throw Error('Guest critical section already initialized');entry={owner:0,recursion:0};this.critical.set(p,entry);}
+  else{
+   if(!entry)throw Error('Uninitialized guest critical section');
+   if(name==='DeleteCriticalSection'){if(entry.recursion)throw Error('Cannot delete owned guest critical section');this.critical.delete(p);new Uint8Array(this.memory.buffer,p,40).fill(0);}
+   else if(name==='LeaveCriticalSection'){if(entry.owner!==1||!entry.recursion)throw Error('Unowned guest critical-section leave');if(--entry.recursion===0)entry.owner=0;}
+   else if(entry.owner&&entry.owner!==1){if(name==='TryEnterCriticalSection')result=0n;else throw Error('Contended guest critical section needs a scheduler');}
+   else{if(entry.recursion===0x7fffffff)throw Error('Guest critical-section recursion limit');entry.owner=1;entry.recursion++;if(name==='TryEnterCriticalSection')result=1n;}
+  }
+  if(name!=='DeleteCriticalSection'){v.setBigUint64(p,0xffffffffffffffffn,true);v.setInt32(p+8,entry.recursion?-2:-1,true);v.setUint32(p+12,entry.recursion,true);v.setBigUint64(p+16,BigInt(entry.owner),true);v.setBigUint64(p+24,0n,true);v.setBigUint64(p+32,0x20007d0n,true);}
+  if(result!==undefined)v.setBigUint64(cpu,result,true);this.calls.push(name);v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);
+ }
+}
+
 // game-imports.mjs
 const COCOS_DLL='libcocos2d.dll';
 const COCOS_NODE_SPACE='?convertToNodeSpace@CCNode@cocos2d@@QEAA?AVCCPoint@2@AEBV32@@Z';
@@ -530,5 +553,5 @@ function inspectCocos(memory,fs){
  return {...image,dll:COCOS_DLL,name:COCOS_NODE_SPACE,...target,pageBase,pageHex:Array.from(bytes.subarray(pageBase,pageBase+4096),b=>b.toString(16).padStart(2,'0')).join(''),candidates,primaryIatCount:iat.length};
 }
 
-export {GuestPipes as ServiceClass,gameFilesystem,BrowserModifiers,inspectCocos};
-export const SERVICE_NAMES=["AcquireSRWLockExclusive","ReleaseSRWLockExclusive","GetModuleFileNameW","GetLastError","SetLastError",...CRT_NAMES,...ENCODING_NAMES,...PATH_NAMES,...FILE_NAMES,...LIFECYCLE_NAMES,...INPUT_NAMES,...DEBUGGER_NAMES,...CONSOLE_NAMES,...STDIO_NAMES,...PROCESS_NAMES,...PIPE_NAMES,...PIPE_CRT_NAMES];
+export {GuestCritical as ServiceClass,gameFilesystem,BrowserModifiers,inspectCocos};
+export const SERVICE_NAMES=["AcquireSRWLockExclusive","ReleaseSRWLockExclusive","GetModuleFileNameW","GetLastError","SetLastError",...CRT_NAMES,...ENCODING_NAMES,...PATH_NAMES,...FILE_NAMES,...LIFECYCLE_NAMES,...INPUT_NAMES,...DEBUGGER_NAMES,...CONSOLE_NAMES,...STDIO_NAMES,...PROCESS_NAMES,...PIPE_NAMES,...PIPE_CRT_NAMES,...CRITICAL_NAMES];
