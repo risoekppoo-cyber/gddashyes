@@ -7,11 +7,15 @@ on:
       - 'experiments/geode-binary/build-deferred.py'
       - 'integration-tests/deferred-reference.mjs'
       - 'experiments/geode-binary/windows-srw.mjs'
+      - 'experiments/geode-binary/setup-context.mjs'
+      - 'experiments/geode-binary/handoff/runtime.js'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   deferred:
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
     timeout-minutes: 6
     steps:
@@ -29,6 +33,26 @@ jobs:
           python experiments/geode-binary/build-deferred.py /tmp/Geode.dll /tmp/deferred
           clang --target=wasm32 -O2 -nostdlib /tmp/deferred/deferred.c -Wl,--no-entry -Wl,--import-memory -Wl,--export=lift_run -Wl,--export=__stack_pointer -Wl,-z,stack-size=65536 -o /tmp/deferred/deferred.wasm
           node integration-tests/deferred-reference.mjs /tmp/deferred
+          node integration-tests/windows-srw.mjs
+          cp /tmp/deferred/deferred.wasm experiments/geode-binary/handoff/setup.wasm
+          cp /tmp/deferred/runtime-manifest.json experiments/geode-binary/handoff/setup-manifest.json
+      - name: Test setup in the real browser
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+          mkdir -p integration-input
+          cp /tmp/Geode.dll integration-input/Geode.dll
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/gd-http.log 2>&1 &
+          GEODE_DEFERRED=1 node integration-tests/browser-smoke.cjs
+      - name: Publish only verified generated setup module and evidence
+        run: |
+          cp /tmp/deferred/reference-result.json experiments/geode-binary/handoff/setup-reference-result.json
+          cp browser-result.json experiments/geode-binary/handoff/setup-browser-result.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add experiments/geode-binary/handoff/setup.wasm experiments/geode-binary/handoff/setup-manifest.json experiments/geode-binary/handoff/setup-reference-result.json experiments/geode-binary/handoff/setup-browser-result.json
+          git diff --cached --quiet || git commit -m 'Publish native-reference and browser-verified deferred setup module'
+          git push origin HEAD:main
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -37,3 +61,4 @@ jobs:
             deferred-inspection.json
             /tmp/deferred/manifest.json
             /tmp/deferred/reference-result.json
+            browser-result.json

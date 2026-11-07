@@ -12,7 +12,7 @@ export async function prepareGeodeImage(input){
  if(size!==17035264)throw Error('Pinned Geode image size mismatch');
  return {bytes,size,sha256:hash};
 }
-export function mapOwnedGeodeImage(prepared,e,guestBase,blocked=[]){
+export function mapOwnedGeodeImage(prepared,e,guestBase,blocked=[],resolveImport){
  if(guestBase!==0)throw Error('Owned DLL mapping requires the pinned identity guest mapping');
  if(typeof e.malloc!=='function'||typeof e.free!=='function')throw Error('Missing game allocator');
  const capacity=prepared.size+65535,raw=e.malloc(capacity);
@@ -23,7 +23,7 @@ export function mapOwnedGeodeImage(prepared,e,guestBase,blocked=[]){
   const base=Math.ceil(raw/65536)*65536,end=base+prepared.size;
   if(raw+capacity>e.memory.buffer.byteLength||end>raw+capacity||end>0x100000000)throw Error('DLL allocation bounds');
   if(blocked.some(([a,b])=>raw<b&&raw+capacity>a))throw Error('DLL allocation overlaps live CPU or stack');
-  const image=mapPe64(prepared.bytes,e.memory,base,{guestBase});
+  const image=mapPe64(prepared.bytes,e.memory,base,{guestBase,resolveImport});
   return {image,release,reservation:{allocator:'game malloc',rawLinear:raw,allocationBytes:capacity,guestBase,guestStart:base,guestEnd:end,linearStart:base,linearEnd:end,active:true}};
  }catch(error){if(raw)release();throw error;}
 }

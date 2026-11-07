@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {GuestSrw} from '../experiments/geode-binary/windows-srw.mjs';
+const memory=new WebAssembly.Memory({initial:1}),v=new DataView(memory.buffer),cpu=4096,lock=8192,sp=9000;
+const s=new GuestSrw(memory,{AcquireSRWLockExclusive:100,ReleaseSRWLockExclusive:116});
+const call=address=>{v.setBigUint64(cpu+8,BigInt(lock),true);v.setBigUint64(cpu+32,BigInt(sp),true);v.setBigUint64(sp,12345n,true);s.invoke(cpu,BigInt(address));};
+assert.equal(s.resolve({dll:'kernel32.dll',name:'AcquireSRWLockExclusive'}),100n);
+assert.equal(s.resolve({dll:'other.dll',name:'AcquireSRWLockExclusive'}),undefined);
+call(100);assert.equal(v.getBigUint64(lock,true),1n);assert.equal(v.getBigUint64(cpu+192,true),12345n);assert.equal(v.getBigUint64(cpu+32,true),9008n);
+assert.throws(()=>call(100),/Contended/);
+call(116);assert.equal(v.getBigUint64(lock,true),0n);
+assert.throws(()=>call(116),/Unowned/);assert.throws(()=>call(200),/Unimplemented/);
+assert.deepEqual(s.calls,['AcquireSRWLockExclusive','ReleaseSRWLockExclusive']);
+console.log('PASS: guest SRW acquire/release, owned state, guest return and unsupported contention');
