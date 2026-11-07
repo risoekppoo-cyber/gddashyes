@@ -9,7 +9,7 @@ const CTYPE_C={"isalpha":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 // Opaque values 0/1 match the local Windows native fixture, not a general ABI
 // promise about undocumented kernel internals. All accesses use guest memory.
 class GuestSrw {
- constructor(memory,addresses){this.memory=memory;this.addresses=addresses;this.held=new Set();this.calls=[];}
+ constructor(memory,addresses){this.memory=memory;this.addresses=addresses;this.held=new Set();this.srwOwners=new Map();this.calls=[];}
  resolve(item){if(item.dll.toLowerCase()!=='kernel32.dll')return undefined;const n=this.addresses[item.name];return n===undefined?undefined:BigInt(n);}
  invoke(cpu,address){
   const name=Object.keys(this.addresses).find(k=>BigInt(this.addresses[k])===address);
@@ -19,10 +19,10 @@ class GuestSrw {
   const p=Number(pointer),value=v.getBigUint64(p,true);
   if(name==='AcquireSRWLockExclusive'){
    if(this.held.has(p)||value!==0n)throw Error('Contended/recursive guest SRW acquisition is unsupported');
-   this.held.add(p);v.setBigUint64(p,1n,true);
+   this.held.add(p);this.srwOwners.set(p,this.currentThreadId??1);v.setBigUint64(p,1n,true);
   }else if(name==='ReleaseSRWLockExclusive'){
-   if(!this.held.has(p)||value!==1n)throw Error('Unowned guest SRW release');
-   this.held.delete(p);v.setBigUint64(p,0n,true);
+   if(!this.held.has(p)||this.srwOwners.get(p)!==(this.currentThreadId??1)||value!==1n)throw Error('Unowned guest SRW release');
+   this.held.delete(p);this.srwOwners.delete(p);v.setBigUint64(p,0n,true);
   }else throw Error('Unsupported SRW operation');
   this.calls.push(name);v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);
  }
@@ -33,8 +33,16 @@ class GuestSrw {
 // game/DLL images, not paths on the browser user's host operating system.
 class GuestModules extends GuestSrw {
  constructor(memory,addresses,{imageBase,tib,processPath='C:\\GeometryDash\\GeometryDash.exe',dllPath='C:\\GeometryDash\\Geode.dll'}={}){
-  super(memory,addresses);this.tib=tib;this.modules=new Map([[0n,processPath],[0x400000n,processPath]]);
+  super(memory,addresses);this.threadState={id:1,tib,errno:0};this.modules=new Map([[0n,processPath],[0x400000n,processPath]]);
   if(imageBase!==undefined)this.modules.set(BigInt(imageBase),dllPath);
+ }
+ get tib(){return this.threadState.tib;}
+ get currentThreadId(){return this.threadState.id;}
+ get errno(){return this.threadState.errno;}
+ set errno(value){this.threadState.errno=value;}
+ selectThread(state){
+  if(!state||!Number.isInteger(state.id)||state.id<=0||state.id>0xffffffff||!Number.isSafeInteger(state.tib)||state.tib<=0||state.tib+0x6c>this.memory.buffer.byteLength||!Number.isInteger(state.errno))throw Error('Invalid guest thread state');
+  this.threadState=state;
  }
  invoke(cpu,address){
   const name=Object.keys(this.addresses).find(k=>BigInt(this.addresses[k])===address);
@@ -320,7 +328,7 @@ class GuestInput extends GuestLifecycle{
  resolve(item){if((item.dll.toLowerCase()==='user32.dll'&&item.name==='GetAsyncKeyState')||(/^api-ms-win-crt-math/i.test(item.dll)&&['ceilf','powf'].includes(item.name))){const p=this.addresses[item.name];return p===undefined?undefined:BigInt(p);}return super.resolve(item);}
  invoke(cpu,address){
   if(this.addresses.powf!==undefined&&BigInt(this.addresses.powf)===address){const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true),a=v.getFloat32(cpu+512,true),b=v.getFloat32(cpu+528,true);this.range(sp,8);if(!Number.isFinite(a)||!Number.isFinite(b)||a<=0)throw Error('Unsupported guest powf domain');const result=Math.fround(Math.pow(a,b));if(!Number.isFinite(result)||result===0)throw Error('Unsupported guest powf range');v.setFloat32(cpu+512,result,true);this.calls.push('powf');v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);return;}
-  if(this.addresses.GetCurrentThreadId!==undefined&&BigInt(this.addresses.GetCurrentThreadId)===address){const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true);this.range(sp,8);v.setBigUint64(cpu,1n,true);this.calls.push('GetCurrentThreadId');v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);return;}
+  if(this.addresses.GetCurrentThreadId!==undefined&&BigInt(this.addresses.GetCurrentThreadId)===address){const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true);this.range(sp,8);v.setBigUint64(cpu,BigInt(this.currentThreadId),true);this.calls.push('GetCurrentThreadId');v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);return;}
   if(this.addresses.GetModuleHandleW!==undefined&&BigInt(this.addresses.GetModuleHandleW)===address){const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true);this.range(sp,8);if(v.getBigUint64(cpu+8,true)!==0n)throw Error('Named guest module lookup requires catalogue evidence');v.setBigUint64(cpu,0x400000n,true);this.calls.push('GetModuleHandleW');v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);return;}
   if(this.addresses.ceilf!==undefined&&BigInt(this.addresses.ceilf)===address){const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true);this.range(sp,8);v.setFloat32(cpu+512,Math.ceil(v.getFloat32(cpu+512,true)),true);this.calls.push('ceilf');v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);return;}
   if(this.addresses.GetAsyncKeyState===undefined||BigInt(this.addresses.GetAsyncKeyState)!==address)return super.invoke(cpu,address);
@@ -341,11 +349,11 @@ class GuestDebugger extends GuestInput{
   const v=new DataView(this.memory.buffer),code=v.getUint32(cpu+8,true),flags=v.getUint32(cpu+16,true),count=v.getUint32(cpu+64,true),args=v.getBigUint64(cpu+72,true),sp=v.getBigUint64(cpu+32,true);
   if(code!==0x406d1388||flags!==0||count!==3)throw Error('Unsupported guest exception 0x'+code.toString(16));
   const p=this.range(args,24);this.range(sp,8);const id=v.getUint32(p+16,true);
-  if(v.getUint32(p,true)!==0x1000||v.getUint32(p+20,true)!==0||![1,0xffffffff].includes(id))throw Error('Unsupported guest thread-name event');
+  if(v.getUint32(p,true)!==0x1000||v.getUint32(p+20,true)!==0||![this.currentThreadId,0xffffffff].includes(id))throw Error('Unsupported guest thread-name event');
   const namePointer=v.getBigUint64(p+8,true);let name='',terminated=false;
   for(let i=0;i<4096;i++){const c=v.getUint8(this.range(namePointer+BigInt(i),1));if(!c){terminated=true;break;}if(c>=128)throw Error('Unsupported thread-name code page');name+=String.fromCharCode(c);}
   if(!terminated)throw Error('Unterminated guest thread name');
-  this.threadNames.set(1,name);this.calls.push('RaiseException');
+  this.threadNames.set(this.currentThreadId,name);this.calls.push('RaiseException');
   v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);
  }
 }
@@ -489,7 +497,7 @@ class GuestPipes extends GuestStdio{
 
 // windows-critical.mjs
 const CRITICAL_NAMES=['InitializeCriticalSection','EnterCriticalSection','LeaveCriticalSection','TryEnterCriticalSection','DeleteCriticalSection','InitializeConditionVariable','WakeConditionVariable'];
-// Native-checked uncontended profile for the current single logical thread.
+// Native-checked uncontended profile for the selected logical thread.
 // This does not implement blocking or a general kernel critical-section ABI.
 class GuestCritical extends GuestPipes{
  constructor(memory,addresses,options={}){super(memory,addresses,options);this.critical=new Map();}
@@ -502,9 +510,9 @@ class GuestCritical extends GuestPipes{
   else{
    if(!entry)throw Error('Uninitialized guest critical section');
    if(name==='DeleteCriticalSection'){if(entry.recursion)throw Error('Cannot delete owned guest critical section');this.critical.delete(p);new Uint8Array(this.memory.buffer,p,40).fill(0);}
-   else if(name==='LeaveCriticalSection'){if(entry.owner!==1||!entry.recursion)throw Error('Unowned guest critical-section leave');if(--entry.recursion===0)entry.owner=0;}
-   else if(entry.owner&&entry.owner!==1){if(name==='TryEnterCriticalSection')result=0n;else throw Error('Contended guest critical section needs a scheduler');}
-   else{if(entry.recursion===0x7fffffff)throw Error('Guest critical-section recursion limit');entry.owner=1;entry.recursion++;if(name==='TryEnterCriticalSection')result=1n;}
+   else if(name==='LeaveCriticalSection'){if(entry.owner!==this.currentThreadId||!entry.recursion)throw Error('Unowned guest critical-section leave');if(--entry.recursion===0)entry.owner=0;}
+   else if(entry.owner&&entry.owner!==this.currentThreadId){if(name==='TryEnterCriticalSection')result=0n;else throw Error('Contended guest critical section needs a scheduler');}
+   else{if(entry.recursion===0x7fffffff)throw Error('Guest critical-section recursion limit');entry.owner=this.currentThreadId;entry.recursion++;if(name==='TryEnterCriticalSection')result=1n;}
   }
   if(!condition&&name!=='DeleteCriticalSection'){v.setBigUint64(p,0xffffffffffffffffn,true);v.setInt32(p+8,entry.recursion?-2:-1,true);v.setUint32(p+12,entry.recursion,true);v.setBigUint64(p+16,BigInt(entry.owner),true);v.setBigUint64(p+24,0n,true);v.setBigUint64(p+32,0x20007d0n,true);}
   if(result!==undefined)v.setBigUint64(cpu,result,true);this.calls.push(name);v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);
