@@ -76,7 +76,7 @@ class SetupContext{
     if(steps>=budget)throw Error('Worker instruction quantum exhausted');
     const r=this.aux.exports.lift_run(thread.cpu,pc,BigInt(imageBase),0,stop,budget-steps)>>>0;steps+=r&0x7fffffff;
     const v=new DataView(e.memory.buffer);
-    if(!(r&0x80000000)){if(steps!==w.steps||v.getBigUint64(thread.cpu+192,true)!==stop)throw Error('Unexpected worker boundary');completed=true;break;}
+    if(!(r&0x80000000)){if((!w.clockDependent&&steps!==w.steps)||v.getBigUint64(thread.cpu+192,true)!==stop)throw Error('Unexpected worker boundary');completed=true;break;}
     s.invoke(thread.cpu,v.getBigUint64(thread.cpu+192,true));pc=new DataView(e.memory.buffer).getBigUint64(thread.cpu+192,true);
    }
    if(!completed)throw Error('Worker transfer budget exhausted');return {steps,state:'blocked',waitKey:'verified-worker-boundary'};
