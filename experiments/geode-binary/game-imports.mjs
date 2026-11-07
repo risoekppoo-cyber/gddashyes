@@ -17,7 +17,7 @@ export function inspectCocos(memory,fs){
  if(idir){range(primary+idir,ibytes,primaryEnd);for(let d=primary+idir;d+20<=primary+idir+ibytes;d+=20){
   const lookup=v.getUint32(d,true),name=v.getUint32(d+12,true),first=v.getUint32(d+16,true);if(!lookup&&!name&&!first)break;
   if(string(primary+name,primaryEnd).toLowerCase()!==COCOS_DLL)continue;
-  for(let i=0;i<65536;i++){const p=range(primary+first+i*8,8,primaryEnd),address=v.getBigUint64(p,true);if(!address)break;iat.push('0x'+address.toString(16));}
+  for(let i=0;i<65536;i++){const p=range(primary+first+i*8,8,primaryEnd),address=v.getBigUint64(p,true);const thunk=lookup?v.getBigUint64(range(primary+lookup+i*8,8,primaryEnd),true):address;if(!thunk)break;if(address)iat.push('0x'+address.toString(16));}
  }}
  for(let base=0;base+4096<=bytes.length;base+=4096){
   if(v.getUint16(base,true)!==0x5a4d)continue;const p=v.getUint32(base+0x3c,true);
