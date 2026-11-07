@@ -6,6 +6,7 @@ on:
       - 'experiments/geode-binary/inspect-deferred.py'
       - 'experiments/geode-binary/build-deferred.py'
       - 'integration-tests/deferred-reference.mjs'
+      - 'experiments/geode-binary/windows-srw.mjs'
   workflow_dispatch:
 permissions:
   contents: read

@@ -11,7 +11,7 @@ from lift import Lifter,LiftError,PIN,REGS
 
 class WideLifter(Lifter):
  def __init__(self,pe):
-  super().__init__(pe,4096,allow_indirect=True)
+  super().__init__(pe,4096,allow_indirect=True,yield_unknown=True)
   self.reg_roots.extend((self.ctx.registers['XMM'+str(i)].offset,512+i*16,16) for i in range(16))
  def expr(self,v):
   if v.space.name=='const' and self.base<=v.offset<self.base+self.pe.OPTIONAL_HEADER.SizeOfImage:
@@ -82,9 +82,11 @@ def main():
     for rel in block.entries:
      if rel.type==10:
       image[rel.rva:rel.rva+8]=((int.from_bytes(image[rel.rva:rel.rva+8],'little')+image_base-preferred)&((1<<64)-1)).to_bytes(8,'little')
-   for rva in imports:image[rva:rva+8]=b'\0'*8
+   services={'AcquireSRWLockExclusive':0x70000000,'ReleaseSRWLockExclusive':0x70000010}
+   for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
+   uc.mem_map(0x70000000,4096)
    # One explicit static-TLS fixture. This models template/zero-fill storage,
    # not TLS callback execution, Windows threading, or completed CRT startup.
    tls=pe.DIRECTORY_ENTRY_TLS.struct
@@ -106,8 +108,23 @@ def main():
    xmm=[((i+1)*0x01010101010101010101010101010101)&((1<<128)-1) for i in range(16)]
    for i,value in enumerate(xmm):uc.reg_write(getattr(x,'UC_X86_REG_XMM'+str(i)),value)
    flags=0x202 if not variant else 0xad7;uc.reg_write(x.UC_X86_REG_EFLAGS,flags)
-   trace=[];boundary={}
+   trace=[];boundary={};locks=set();service_calls=[];writes=[]
+   def memory_write(emu,_access,address,n,_value,_):
+    if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
+   uc.hook_add(unicorn.UC_HOOK_MEM_WRITE,memory_write)
    def hook(emu,address,n,_):
+    if address in services.values():
+     name=next(k for k,v in services.items() if v==address);ptr=emu.reg_read(x.UC_X86_REG_RCX)
+     value=int.from_bytes(emu.mem_read(ptr,8),'little')
+     if name=='AcquireSRWLockExclusive':
+      if ptr in locks or value!=0:raise RuntimeError('Unsupported contended native lock')
+      locks.add(ptr);emu.mem_write(ptr,(1).to_bytes(8,'little'))
+     else:
+      if ptr not in locks or value!=1:raise RuntimeError('Unowned native lock release')
+      locks.remove(ptr);emu.mem_write(ptr,b'\0'*8)
+     service_calls.append(name)
+     rsp=emu.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(emu.mem_read(rsp,8),'little')
+     emu.reg_write(x.UC_X86_REG_RSP,rsp+8);emu.reg_write(x.UC_X86_REG_RIP,ret);return
     rva=address-image_base
     if not 0<=rva<size:raise RuntimeError(f'Unexpected target {address:#x}')
     if variant==2 and rva==0x12df21:
@@ -115,7 +132,7 @@ def main():
     b=bytes(emu.mem_read(address,min(16,size-rva)))
     if b[:2] in [b'\xff\x15',b'\xff\x25']:
      slot=rva+6+int.from_bytes(b[2:6],'little',signed=True)
-     if slot in imports:
+     if slot in imports and imports[slot].split('!')[-1] not in services:
       boundary.update(rva=rva,service=imports[slot],iatRva=slot);emu.emu_stop();return
     trace.append(rva);observed.add(rva)
     if len(trace)>10000:raise RuntimeError('Native path step limit')
@@ -139,7 +156,8 @@ def main():
      'expectedXmm':[hex(uc.reg_read(getattr(x,'UC_X86_REG_XMM'+str(i)))) for i in range(16)],
      'expectedFlags':uc.reg_read(x.UC_X86_REG_EFLAGS),'stopRva':boundary['rva'],'steps':len(trace),
      'stackBase':stack_base,'stackHex':bytes(uc.mem_read(stack_base,stack_size)).hex(),'dllChanges':changes,
-     'tib':tib,'tlsArray':tls_array,'tlsData':tls_data,'tlsHex':bytes(uc.mem_read(tls_data,tls_size+tls.SizeOfZeroFill)).hex()})
+     'tib':tib,'tlsArray':tls_array,'tlsData':tls_data,'tlsHex':bytes(uc.mem_read(tls_data,tls_size+tls.SizeOfZeroFill)).hex(),
+     'serviceCalls':service_calls,'stackBelow':sp-min([a for a,b in writes]+[sp]),'stackAbove':max([b for a,b in writes]+[sp])-sp})
    boundaries.append(boundary)
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)

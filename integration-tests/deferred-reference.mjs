@@ -4,6 +4,7 @@ import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {instantiateStartupLift} from '../experiments/geode-binary/handoff/startup-module.mjs';
 import {mapPe64} from '../experiments/geode-binary/pe-image.mjs';
+import {GuestSrw} from '../experiments/geode-binary/windows-srw.mjs';
 const dir=resolve(process.argv[2]),dll=await readFile('/tmp/Geode.dll');
 const manifest=JSON.parse(await readFile(dir+'/manifest.json'));
 const wasm=await readFile(dir+'/deferred.wasm');
@@ -11,7 +12,8 @@ assert.equal(createHash('sha256').update(dll).digest('hex'),manifest.dllSha256);
 const memory=new WebAssembly.Memory({initial:6144,maximum:65536}),cpu=4096;
 const instance=await instantiateStartupLift(wasm,memory);
 for(const [index,c] of manifest.cases.entries()){
- const image=mapPe64(dll,memory,c.imageBase),v=new DataView(memory.buffer);
+ const services=new GuestSrw(memory,{AcquireSRWLockExclusive:0x70000000,ReleaseSRWLockExclusive:0x70000010});
+ const image=mapPe64(dll,memory,c.imageBase,{resolveImport:item=>services.resolve(item)}),v=new DataView(memory.buffer);
  const expectedImage=Buffer.from(new Uint8Array(memory.buffer,c.imageBase,image.size));
  for(const change of c.dllChanges)Buffer.from(change.hex,'hex').copy(expectedImage,change.rva);
  new Uint8Array(memory.buffer,cpu,4096).fill(0);
@@ -26,7 +28,13 @@ for(const [index,c] of manifest.cases.entries()){
  new Uint8Array(memory.buffer,c.tlsData,t.templateSize).set(new Uint8Array(memory.buffer,c.imageBase+t.templateRva,t.templateSize));
  v.setUint32(c.imageBase+t.indexRva,0,true);
  const entry=BigInt(c.imageBase+c.entryRva),stop=BigInt(c.imageBase+c.stopRva);
- const count=instance.exports.lift_run(cpu,entry,BigInt(c.imageBase),0,stop,20000);
+ let count=0,pc=entry;
+ for(let transfers=0;transfers<100;transfers++){
+  const r=instance.exports.lift_run(cpu,pc,BigInt(c.imageBase),0,stop,20000)>>>0;count+=r&0x7fffffff;
+  if(!(r&0x80000000))break;
+  services.invoke(cpu,v.getBigUint64(cpu+192,true));pc=v.getBigUint64(cpu+192,true);
+ }
+ assert.deepEqual(services.calls,c.serviceCalls,`case ${index} service calls`);
  assert.equal(count,c.steps,`case ${index} steps`);
  assert.equal(v.getBigUint64(cpu+192,true),stop,`case ${index} stop`);
  c.expected.forEach((value,i)=>assert.equal(v.getBigUint64(cpu+i*8,true),BigInt(value),`case ${index} GPR ${i}`));
