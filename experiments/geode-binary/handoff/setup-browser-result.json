@@ -7,7 +7,7 @@
     "deferredLoaderInitialized": false,
     "callbackPrologueExecuted": true,
     "callbackPrologueOnly": false,
-    "gameFrames": 122,
+    "gameFrames": 141,
     "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
     "sourceDllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
     "gameModuleSha256": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
@@ -22,7 +22,7 @@
       "linearEnd": 374665216,
       "active": true
     },
-    "unresolvedImportCount": 1983,
+    "unresolvedImportCount": 1980,
     "dllRelocations": 56939,
     "memoryLayout": {
       "memoryBytes": 377487360,
@@ -43,12 +43,12 @@
       ],
       "guestReservationVerified": false
     },
-    "instructions": 2119,
+    "instructions": 4004,
     "stoppedBeforeFirstCall": false,
     "liveGuestBase": "0x0",
     "liveStack": "0x13efefe0",
     "gameStartupTarget": "0xa74a90",
-    "callbackStop": "0x15a2098c",
+    "callbackStop": "0x15f6a940",
     "arguments": [
       "0x400000",
       "0x0",
@@ -56,12 +56,12 @@
       "0xa"
     ],
     "sharedGameMemory": true,
-    "nextRequiredService": "KERNEL32.dll!CreateFileW",
+    "nextRequiredService": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
     "nextServiceArguments": [
-      "0x1656f640",
-      "0x0",
-      "0x7",
-      "0x0"
+      "0x164c1960",
+      "0x15642f00",
+      "0xf",
+      "0x1550edd3"
     ],
     "executedServices": [
       "AcquireSRWLockExclusive",
@@ -102,7 +102,39 @@
       "MultiByteToWideChar",
       "malloc",
       "memset",
-      "MultiByteToWideChar"
+      "MultiByteToWideChar",
+      "CreateFileW",
+      "CloseHandle",
+      "free",
+      "MultiByteToWideChar",
+      "malloc",
+      "memset",
+      "MultiByteToWideChar",
+      "CreateFileW",
+      "free",
+      "GetFinalPathNameByHandleW",
+      "malloc",
+      "memset",
+      "GetFinalPathNameByHandleW",
+      "memmove",
+      "WideCharToMultiByte",
+      "memset",
+      "WideCharToMultiByte",
+      "free",
+      "CloseHandle",
+      "isalpha",
+      "isalpha",
+      "malloc",
+      "memmove",
+      "malloc",
+      "memmove",
+      "free",
+      "isalpha",
+      "memmove",
+      "isalpha",
+      "memmove",
+      "free",
+      "free"
     ],
     "staticTlsTemplateInitialized": true,
     "tlsCallbacksExecuted": false,
@@ -135,6 +167,6 @@
     }
   ],
   "jspi": true,
-  "seconds": 17.399,
+  "seconds": 12.125,
   "events": []
 }

@@ -1,31 +1,29 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
   "cases": 8,
-  "uniqueInstructions": 1312,
+  "uniqueInstructions": 1785,
   "boundaries": [
     {
-      "rva": 5310860,
-      "service": "KERNEL32.dll!CreateFileW",
-      "iatRva": 15259368,
-      "fileRequest": {
-        "path": "C:\\GeometryDash",
-        "access": "0x0",
-        "share": "0x7",
-        "disposition": 3,
-        "flags": "0x2000000"
-      }
+      "rva": 10856768,
+      "service": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "iatRva": 15263688,
+      "arguments": [
+        "0x2fb1960",
+        "0x2132f00",
+        "0xf",
+        "0x10e893"
+      ]
     },
     {
-      "rva": 5310860,
-      "service": "KERNEL32.dll!CreateFileW",
-      "iatRva": 15259368,
-      "fileRequest": {
-        "path": "C:\\GeometryDash",
-        "access": "0x0",
-        "share": "0x7",
-        "disposition": 3,
-        "flags": "0x2000000"
-      }
+      "rva": 10856768,
+      "service": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "iatRva": 15263688,
+      "arguments": [
+        "0x2fb1960",
+        "0x2132f00",
+        "0xf",
+        "0x10e893"
+      ]
     },
     {
       "rva": 1236769,
@@ -36,28 +34,26 @@
       "service": "Signed-shift fixture stop"
     },
     {
-      "rva": 5310860,
-      "service": "KERNEL32.dll!CreateFileW",
-      "iatRva": 15259368,
-      "fileRequest": {
-        "path": "C:\\GeometryDash",
-        "access": "0x0",
-        "share": "0x7",
-        "disposition": 3,
-        "flags": "0x2000000"
-      }
+      "rva": 10856768,
+      "service": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "iatRva": 15263688,
+      "arguments": [
+        "0x16fb1960",
+        "0x16132f00",
+        "0xf",
+        "0x10e893"
+      ]
     },
     {
-      "rva": 5310860,
-      "service": "KERNEL32.dll!CreateFileW",
-      "iatRva": 15259368,
-      "fileRequest": {
-        "path": "C:\\GeometryDash",
-        "access": "0x0",
-        "share": "0x7",
-        "disposition": 3,
-        "flags": "0x2000000"
-      }
+      "rva": 10856768,
+      "service": "api-ms-win-crt-runtime-l1-1-0.dll!_register_onexit_function",
+      "iatRva": 15263688,
+      "arguments": [
+        "0x16fb1960",
+        "0x16132f00",
+        "0xf",
+        "0x10e893"
+      ]
     },
     {
       "rva": 1236769,
@@ -68,6 +64,6 @@
       "service": "Signed-shift fixture stop"
     }
   ],
-  "wasmSha256": "b88c2a09fb3bd011b8f4ad455760d1f6248308f48531fd9db94f632f014ae6c3",
+  "wasmSha256": "c1fbcdbb5cba6d9d4d9d2472d97e0f374490545392cc2f081e9b9cccdc142c02",
   "fullGeodeLoader": false
 }
