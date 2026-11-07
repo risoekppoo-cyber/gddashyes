@@ -1,13 +1,18 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
   "cases": 8,
-  "uniqueInstructions": 4404,
+  "uniqueInstructions": 4757,
   "boundaries": [
     {
-      "rva": 1206454,
-      "service": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func",
-      "iatRva": 15263256,
-      "kind": "import-address-read"
+      "rva": 1204209,
+      "service": "KERNEL32.dll!CreateNamedPipeW",
+      "iatRva": 15259384,
+      "arguments": [
+        "0x18010e0",
+        "0x40000001",
+        "0x8",
+        "0x1"
+      ]
     },
     {
       "rva": 1208561,
@@ -33,10 +38,15 @@
       "service": "Signed-shift fixture stop"
     },
     {
-      "rva": 1206454,
-      "service": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func",
-      "iatRva": 15263256,
-      "kind": "import-address-read"
+      "rva": 1204209,
+      "service": "KERNEL32.dll!CreateNamedPipeW",
+      "iatRva": 15259384,
+      "arguments": [
+        "0x18010e0",
+        "0x40000001",
+        "0x8",
+        "0x1"
+      ]
     },
     {
       "rva": 1208561,
@@ -62,6 +72,6 @@
       "service": "Signed-shift fixture stop"
     }
   ],
-  "wasmSha256": "b1582ac1419db602878c56b1640888a85b44672b2059455192a5da25d335a8c0",
+  "wasmSha256": "2d1604b327f7ee825509d91b2d81bb3ee4c43482694b0b83daf2072f54b3bf0a",
   "fullGeodeLoader": false
 }
