@@ -1,0 +1,37 @@
+{
+  "status": "DEFERRED_NATIVE_REFERENCE_PASS",
+  "cases": 6,
+  "uniqueInstructions": 72,
+  "boundaries": [
+    {
+      "rva": 1256715,
+      "service": "KERNEL32.dll!GetModuleFileNameW",
+      "iatRva": 15259768
+    },
+    {
+      "rva": 1256715,
+      "service": "KERNEL32.dll!GetModuleFileNameW",
+      "iatRva": 15259768
+    },
+    {
+      "rva": 1236769,
+      "service": "SIMD fixture stop"
+    },
+    {
+      "rva": 1256715,
+      "service": "KERNEL32.dll!GetModuleFileNameW",
+      "iatRva": 15259768
+    },
+    {
+      "rva": 1256715,
+      "service": "KERNEL32.dll!GetModuleFileNameW",
+      "iatRva": 15259768
+    },
+    {
+      "rva": 1236769,
+      "service": "SIMD fixture stop"
+    }
+  ],
+  "wasmSha256": "45fd587eb6d0a2386a4e0e13c00b01ccb62934cb04f9ef7d2e1bd9a39f73182d",
+  "fullGeodeLoader": false
+}

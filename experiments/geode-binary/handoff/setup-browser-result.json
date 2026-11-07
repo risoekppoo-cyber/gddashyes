@@ -1,0 +1,103 @@
+{
+  "report": {
+    "status": "LIVE_SETUP_SERVICE_BOUNDARY_PASS",
+    "fullGeodeLoader": false,
+    "existingGeodePackagesSupported": false,
+    "dllMappedIntoLiveGame": true,
+    "deferredLoaderInitialized": false,
+    "callbackPrologueExecuted": true,
+    "callbackPrologueOnly": false,
+    "gameFrames": 154,
+    "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+    "sourceDllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
+    "gameModuleSha256": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
+    "dllReservation": {
+      "allocator": "game malloc",
+      "rawLinear": 357627360,
+      "allocationBytes": 17100799,
+      "guestBase": 0,
+      "guestStart": 357629952,
+      "guestEnd": 374665216,
+      "linearStart": 357629952,
+      "linearEnd": 374665216,
+      "active": true
+    },
+    "unresolvedImportCount": 2007,
+    "dllRelocations": 56939,
+    "memoryLayout": {
+      "memoryBytes": 377487360,
+      "guestBase": 0,
+      "cpuLinear": 346358488,
+      "cpuSnapshotBytes": 208,
+      "stackWindowLinear": [
+        334491104,
+        334491648
+      ],
+      "shadowLinear": [
+        374728168,
+        374732264
+      ],
+      "compilerLinear": [
+        374732272,
+        374797808
+      ],
+      "guestReservationVerified": false
+    },
+    "instructions": 69,
+    "stoppedBeforeFirstCall": false,
+    "liveGuestBase": "0x0",
+    "liveStack": "0x13efefe0",
+    "gameStartupTarget": "0xa74a90",
+    "callbackStop": "0x15642d0b",
+    "arguments": [
+      "0x400000",
+      "0x0",
+      "0x0",
+      "0xa"
+    ],
+    "sharedGameMemory": true,
+    "nextRequiredService": "KERNEL32.dll!GetModuleFileNameW",
+    "nextServiceArguments": [
+      "0x0",
+      "0x1550ef80",
+      "0x104",
+      "0xa"
+    ],
+    "executedServices": [
+      "AcquireSRWLockExclusive",
+      "ReleaseSRWLockExclusive"
+    ],
+    "staticTlsTemplateInitialized": true,
+    "tlsCallbacksExecuted": false,
+    "isolatedSetupStack": "0x1550f548",
+    "originalGameCpuPreserved": true,
+    "liveStackRestored": true,
+    "gameContinuedAfterHandoff": true
+  },
+  "images": [
+    {
+      "name": "GeometryDash.exe.img",
+      "bytes": 13225984,
+      "headerHex": "4d5a90000300000004000000ffff0000b80000000000000040000000000000000000000000000000000000000000000000000000000000000000000030010000",
+      "imageBase": "0x140000000",
+      "imageSize": 13225984
+    },
+    {
+      "name": "libcocos2d.dll.img",
+      "bytes": 1900544,
+      "headerHex": "4d5a90000300000004000000ffff0000b80000000000000040000000000000000000000000000000000000000000000000000000000000000000000038010000",
+      "imageBase": "0x180000000",
+      "imageSize": 1900544
+    },
+    {
+      "name": "libExtensions.dll.img",
+      "bytes": 331776,
+      "headerHex": "4d5a90000300000004000000ffff0000b80000000000000040000000000000000000000000000000000000000000000000000000000000000000000020010000",
+      "imageBase": "0x180000000",
+      "imageSize": 331776
+    }
+  ],
+  "jspi": true,
+  "seconds": 11.057,
+  "events": []
+}
