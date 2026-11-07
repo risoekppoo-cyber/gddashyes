@@ -31,6 +31,7 @@ class WideLifter(Lifter):
   raise LiftError(f'Unsupported wide output {v}')
  def emit_op(self,op,index,count):
   a=op.inputs;code=op.opcode.name
+  if code=='IMARK':return ''
   if max([v.size for v in a]+([op.output.size] if op.output else [])+[0])<=8:
    return super().emit_op(op,index,count)
   if code=='COPY':return self.assign(op.output,self.expr(a[0]))
