@@ -166,7 +166,8 @@ def main():
    stdio=['__acrt_iob_func','_fileno','_dup','_fdopen','_get_osfhandle','_close']
    pipe_services=['CreateNamedPipeW','ReadFile','WriteFile','GetOverlappedResult','freopen_s','_write']
    critical_names=['InitializeCriticalSection','EnterCriticalSection','LeaveCriticalSection','TryEnterCriticalSection','DeleteCriticalSection','InitializeConditionVariable','WakeConditionVariable']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','powf','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services+critical_names)}
+   iocp_names=['CreateIoCompletionPort','PostQueuedCompletionStatus','GetQueuedCompletionStatus']
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','powf','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services+critical_names+iocp_names)}
    def bound(name):return name.split('!')[-1] in services or name in external
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],external.get(name,0)).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
@@ -224,6 +225,7 @@ def main():
    stdio_state={'base':0,'streams':{},'fds':{},'nextHandle':0x61000010}
    pipe_state={'nextHandle':0x62000000,'pipes':[],'byName':{},'ends':{},'completions':[],'outputs':[]}
    critical_state={}
+   port_state={'next':0x63000000,'ports':{},'associations':{}}
    def memory_write(emu,_access,address,n,_value,_):
     if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
    uc.hook_add(unicorn.UC_HOOK_MEM_WRITE,memory_write)
@@ -257,6 +259,34 @@ def main():
      elif name=='GetLastError':emu.reg_write(x.UC_X86_REG_RAX,int.from_bytes(emu.mem_read(tib+0x68,4),'little'))
      elif name=='GetCurrentThreadId':emu.reg_write(x.UC_X86_REG_RAX,1)
      elif name=='GetCurrentProcessId':emu.reg_write(x.UC_X86_REG_RAX,1)
+     elif name=='CloseHandle' and ptr in port_state['ports']:
+      del port_state['ports'][ptr];emu.reg_write(x.UC_X86_REG_RAX,1)
+     elif name in iocp_names:
+      b=emu.reg_read(x.UC_X86_REG_RDX);c=emu.reg_read(x.UC_X86_REG_R8);d=emu.reg_read(x.UC_X86_REG_R9);result=0;error=0
+      if name=='CreateIoCompletionPort':
+       if ptr==(1<<64)-1 and b:error=87
+       elif b and b not in port_state['ports']:error=6
+       elif ptr in port_state['associations']:error=87
+       else:
+        if ptr!=(1<<64)-1 and (ptr not in pipe_state['ends'] or pipe_state['ends'][ptr][1]!='server'):raise RuntimeError('Unowned native IOCP file target')
+        result=b
+        if not result:
+         result=port_state['next'];port_state['next']+=1;port_state['ports'][result]={'concurrency':d&0xffffffff,'queue':[]}
+        if ptr!=(1<<64)-1:port_state['associations'][ptr]=(result,c)
+      elif name=='PostQueuedCompletionStatus':
+       if ptr not in port_state['ports']:error=6
+       else:port_state['ports'][ptr]['queue'].append({'bytes':b&0xffffffff,'key':c,'ov':d,'error':0});result=1
+      else:
+       port=port_state['ports'].get(ptr)
+       if port is None:emu.mem_write(d,b'\0'*8);error=6
+       elif not port['queue']:
+        timeout=int.from_bytes(emu.mem_read(emu.reg_read(x.UC_X86_REG_RSP)+40,4),'little')
+        if timeout:raise RuntimeError('Native IOCP wait requires a guest scheduler')
+        emu.mem_write(d,b'\0'*8);error=258
+       else:
+        packet=port['queue'].pop(0);emu.mem_write(b,packet['bytes'].to_bytes(4,'little'));emu.mem_write(c,packet['key'].to_bytes(8,'little'));emu.mem_write(d,packet['ov'].to_bytes(8,'little'));error=packet['error'];result=0 if error else 1
+      if error:emu.mem_write(tib+0x68,error.to_bytes(4,'little'))
+      emu.reg_write(x.UC_X86_REG_RAX,result)
      elif name in ['InitializeConditionVariable','WakeConditionVariable']:
       if ptr%8:raise RuntimeError('Unaligned native condition variable')
       if name=='InitializeConditionVariable':emu.mem_write(ptr,b'\0'*8)
@@ -630,7 +660,8 @@ def main():
      'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex() if heap_at[0]>0x1800000 else '',
      'onexitCallbacks':[str(callback) for table in onexit.values() for callback in table['callbacks']],'threadNames':list(thread_names.items()),
      'stdioState':{'streams':[[str(p),fd] for p,fd in stdio_state['streams'].items()],'fds':[[fd,d['channel'],str(d['handle'])] for fd,d in stdio_state['fds'].items()]},
-     'pipeState':{'pipes':[{'name':p['name'],'server':str(p['server']),'clients':[str(h) for h in p['clients']],'queuedHex':p['queued'].hex(),'closed':p['closed'],'everConnected':p['everConnected']} for p in pipe_state['pipes']],'completions':pipe_state['completions'],'outputs':pipe_state['outputs']},'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()]})
+     'pipeState':{'pipes':[{'name':p['name'],'server':str(p['server']),'clients':[str(h) for h in p['clients']],'queuedHex':p['queued'].hex(),'closed':p['closed'],'everConnected':p['everConnected']} for p in pipe_state['pipes']],'completions':pipe_state['completions'],'outputs':pipe_state['outputs']},'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],
+     'iocpState':{'ports':[{'handle':str(h),'concurrency':p['concurrency'],'queue':[{'bytes':q['bytes'],'key':str(q['key']),'ov':str(q['ov']),'error':q['error']} for q in p['queue']]} for h,p in port_state['ports'].items()],'associations':[[str(h),str(a[0]),str(a[1])] for h,a in port_state['associations'].items()]}})
    boundaries.append(boundary)
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)

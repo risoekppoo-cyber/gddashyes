@@ -78,5 +78,5 @@ export class GuestPipes extends GuestStdio{
   }
   v=new DataView(this.memory.buffer);if(error)v.setUint32(this.tib+0x68,error,true);v.setBigUint64(cpu,result,true);this.calls.push(name);v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);
  }
- releaseHeap(){for(const h of [...this.pipeEnds.keys()])this.closePipe(h);super.releaseHeap();}
+ releaseHeap(){this.pendingReads.clear();for(const h of [...this.pipeEnds.keys()])this.closePipe(h);super.releaseHeap();}
 }
