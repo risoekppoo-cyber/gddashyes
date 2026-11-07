@@ -1,37 +1,73 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
-  "cases": 6,
-  "uniqueInstructions": 541,
+  "cases": 8,
+  "uniqueInstructions": 1312,
   "boundaries": [
     {
-      "rva": 5299909,
-      "service": "KERNEL32.dll!GetFullPathNameW",
-      "iatRva": 15259744
+      "rva": 5310860,
+      "service": "KERNEL32.dll!CreateFileW",
+      "iatRva": 15259368,
+      "fileRequest": {
+        "path": "C:\\GeometryDash",
+        "access": "0x0",
+        "share": "0x7",
+        "disposition": 3,
+        "flags": "0x2000000"
+      }
     },
     {
-      "rva": 5299909,
-      "service": "KERNEL32.dll!GetFullPathNameW",
-      "iatRva": 15259744
+      "rva": 5310860,
+      "service": "KERNEL32.dll!CreateFileW",
+      "iatRva": 15259368,
+      "fileRequest": {
+        "path": "C:\\GeometryDash",
+        "access": "0x0",
+        "share": "0x7",
+        "disposition": 3,
+        "flags": "0x2000000"
+      }
     },
     {
       "rva": 1236769,
       "service": "SIMD fixture stop"
     },
     {
-      "rva": 5299909,
-      "service": "KERNEL32.dll!GetFullPathNameW",
-      "iatRva": 15259744
+      "rva": 2054349,
+      "service": "Signed-shift fixture stop"
     },
     {
-      "rva": 5299909,
-      "service": "KERNEL32.dll!GetFullPathNameW",
-      "iatRva": 15259744
+      "rva": 5310860,
+      "service": "KERNEL32.dll!CreateFileW",
+      "iatRva": 15259368,
+      "fileRequest": {
+        "path": "C:\\GeometryDash",
+        "access": "0x0",
+        "share": "0x7",
+        "disposition": 3,
+        "flags": "0x2000000"
+      }
+    },
+    {
+      "rva": 5310860,
+      "service": "KERNEL32.dll!CreateFileW",
+      "iatRva": 15259368,
+      "fileRequest": {
+        "path": "C:\\GeometryDash",
+        "access": "0x0",
+        "share": "0x7",
+        "disposition": 3,
+        "flags": "0x2000000"
+      }
     },
     {
       "rva": 1236769,
       "service": "SIMD fixture stop"
+    },
+    {
+      "rva": 2054349,
+      "service": "Signed-shift fixture stop"
     }
   ],
-  "wasmSha256": "621c9d73f55968fad73a0f64def3e4871ffc5d7d8df3930635cd32988b9bc0fe",
+  "wasmSha256": "b88c2a09fb3bd011b8f4ad455760d1f6248308f48531fd9db94f632f014ae6c3",
   "fullGeodeLoader": false
 }
