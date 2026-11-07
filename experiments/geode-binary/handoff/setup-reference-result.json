@@ -12,7 +12,17 @@
         "0x40000001",
         "0x8",
         "0x1"
-      ]
+      ],
+      "pipeRequest": {
+        "path": "\\\\.\\pipe\\geode-stdout-1",
+        "openMode": 1073741825,
+        "pipeMode": 8,
+        "maxInstances": 1,
+        "outBufferSize": 0,
+        "inBufferSize": 1024,
+        "defaultTimeout": 0,
+        "security": "0x0"
+      }
     },
     {
       "rva": 1208561,
@@ -46,7 +56,17 @@
         "0x40000001",
         "0x8",
         "0x1"
-      ]
+      ],
+      "pipeRequest": {
+        "path": "\\\\.\\pipe\\geode-stdout-1",
+        "openMode": 1073741825,
+        "pipeMode": 8,
+        "maxInstances": 1,
+        "outBufferSize": 0,
+        "inBufferSize": 1024,
+        "defaultTimeout": 0,
+        "security": "0x0"
+      }
     },
     {
       "rva": 1208561,

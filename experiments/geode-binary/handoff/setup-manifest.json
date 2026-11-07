@@ -6,6 +6,16 @@
   "stopRva": 1204209,
   "steps": 11073,
   "nextService": "KERNEL32.dll!CreateNamedPipeW",
+  "nextPipeRequest": {
+    "path": "\\\\.\\pipe\\geode-stdout-1",
+    "openMode": 1073741825,
+    "pipeMode": 8,
+    "maxInstances": 1,
+    "outBufferSize": 0,
+    "inBufferSize": 1024,
+    "defaultTimeout": 0,
+    "security": "0x0"
+  },
   "cocos": {
     "base": 268435456,
     "pe": 312,

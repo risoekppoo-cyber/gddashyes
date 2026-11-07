@@ -7,7 +7,7 @@
     "deferredLoaderInitialized": false,
     "callbackPrologueExecuted": true,
     "callbackPrologueOnly": false,
-    "gameFrames": 133,
+    "gameFrames": 138,
     "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
     "sourceDllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
     "gameModuleSha256": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
@@ -279,6 +279,38 @@
       ]
     ],
     "threadNameNotificationHandled": true,
+    "pendingPipeRequest": {
+      "path": "\\\\.\\pipe\\geode-stdout-1",
+      "openMode": 1073741825,
+      "pipeMode": 8,
+      "maxInstances": 1,
+      "outBufferSize": 0,
+      "inBufferSize": 1024,
+      "defaultTimeout": 0,
+      "security": "0x0"
+    },
+    "guestStdioDescriptors": [
+      [
+        0,
+        0,
+        "1627389952"
+      ],
+      [
+        1,
+        1,
+        "1627389953"
+      ],
+      [
+        2,
+        2,
+        "1627389954"
+      ],
+      [
+        3,
+        1,
+        "1627389968"
+      ]
+    ],
     "originalGameCpuPreserved": true,
     "liveStackRestored": true,
     "gameContinuedAfterHandoff": true
@@ -307,6 +339,6 @@
     }
   ],
   "jspi": true,
-  "seconds": 15.347,
+  "seconds": 12.764,
   "events": []
 }
