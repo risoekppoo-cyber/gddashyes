@@ -165,7 +165,8 @@ def main():
    console=['GetStdHandle','GetConsoleMode','SetConsoleMode','AttachConsole']
    stdio=['__acrt_iob_func','_fileno','_dup','_fdopen','_get_osfhandle','_close']
    pipe_services=['CreateNamedPipeW','ReadFile','WriteFile','GetOverlappedResult','freopen_s','_write']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','powf','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services)}
+   critical_names=['InitializeCriticalSection','EnterCriticalSection','LeaveCriticalSection','TryEnterCriticalSection','DeleteCriticalSection']
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','powf','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services+critical_names)}
    def bound(name):return name.split('!')[-1] in services or name in external
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],external.get(name,0)).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
@@ -222,6 +223,7 @@ def main():
    trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000];cwd=['C:\\GeometryDash'];thread_names={}
    stdio_state={'base':0,'streams':{},'fds':{},'nextHandle':0x61000010}
    pipe_state={'nextHandle':0x62000000,'pipes':[],'byName':{},'ends':{},'completions':[],'outputs':[]}
+   critical_state={}
    def memory_write(emu,_access,address,n,_value,_):
     if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
    uc.hook_add(unicorn.UC_HOOK_MEM_WRITE,memory_write)
@@ -255,6 +257,27 @@ def main():
      elif name=='GetLastError':emu.reg_write(x.UC_X86_REG_RAX,int.from_bytes(emu.mem_read(tib+0x68,4),'little'))
      elif name=='GetCurrentThreadId':emu.reg_write(x.UC_X86_REG_RAX,1)
      elif name=='GetCurrentProcessId':emu.reg_write(x.UC_X86_REG_RAX,1)
+     elif name in critical_names:
+      if ptr%8:raise RuntimeError('Unaligned native critical section')
+      entry=critical_state.get(ptr);result=None
+      if name=='InitializeCriticalSection':
+       if entry is not None:raise RuntimeError('Native critical section already initialized')
+       entry={'owner':0,'recursion':0};critical_state[ptr]=entry
+      else:
+       if entry is None:raise RuntimeError('Uninitialized native critical section')
+       if name=='DeleteCriticalSection':
+        if entry['recursion']:raise RuntimeError('Delete owned native critical section')
+        del critical_state[ptr];emu.mem_write(ptr,b'\0'*40)
+       elif name=='LeaveCriticalSection':
+        if entry['owner']!=1 or not entry['recursion']:raise RuntimeError('Unowned native critical-section leave')
+        entry['recursion']-=1
+        if not entry['recursion']:entry['owner']=0
+       else:
+        if entry['owner'] not in [0,1]:raise RuntimeError('Native critical section needs a scheduler')
+        entry['owner']=1;entry['recursion']+=1
+        if name=='TryEnterCriticalSection':result=1
+      if name!='DeleteCriticalSection':emu.mem_write(ptr,struct.pack('<QiIQQQ',(1<<64)-1,-2 if entry['recursion'] else -1,entry['recursion'],entry['owner'],0,0x20007d0))
+      if result is not None:emu.reg_write(x.UC_X86_REG_RAX,result)
      elif name in pipe_services:
       result=0;error=0
       if name=='CreateNamedPipeW':
@@ -603,7 +626,7 @@ def main():
      'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex() if heap_at[0]>0x1800000 else '',
      'onexitCallbacks':[str(callback) for table in onexit.values() for callback in table['callbacks']],'threadNames':list(thread_names.items()),
      'stdioState':{'streams':[[str(p),fd] for p,fd in stdio_state['streams'].items()],'fds':[[fd,d['channel'],str(d['handle'])] for fd,d in stdio_state['fds'].items()]},
-     'pipeState':{'pipes':[{'name':p['name'],'server':str(p['server']),'clients':[str(h) for h in p['clients']],'queuedHex':p['queued'].hex(),'closed':p['closed'],'everConnected':p['everConnected']} for p in pipe_state['pipes']],'completions':pipe_state['completions'],'outputs':pipe_state['outputs']}})
+     'pipeState':{'pipes':[{'name':p['name'],'server':str(p['server']),'clients':[str(h) for h in p['clients']],'queuedHex':p['queued'].hex(),'closed':p['closed'],'everConnected':p['everConnected']} for p in pipe_state['pipes']],'completions':pipe_state['completions'],'outputs':pipe_state['outputs']},'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()]})
    boundaries.append(boundary)
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)

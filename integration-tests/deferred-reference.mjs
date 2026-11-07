@@ -58,6 +58,7 @@ for(const [index,c] of manifest.cases.entries()){
  assert.deepEqual([...services.threadNames],c.threadNames,`case ${index} delivered thread names`);
  assert.deepEqual(services.stdioSnapshot(),c.stdioState,`case ${index} stdio object and descriptor ownership`);
  assert.deepEqual(services.pipeSnapshot(),c.pipeState,`case ${index} pipe endpoints, queues and completion ownership`);
+ assert.deepEqual(services.criticalSnapshot(),c.criticalState,`case ${index} critical-section ownership and recursion`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,gh.base,4096),Buffer.from(gh.hex,'hex')),0,`case ${index} primary game headers`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,cc.pageBase,4096),Buffer.from(cc.pageHex,'hex')),0,`case ${index} Cocos code`);
 }
