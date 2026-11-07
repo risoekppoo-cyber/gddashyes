@@ -13,7 +13,7 @@ document.getElementById('dll').onchange=async event=>{
   const {prepareGeodeImage}=await import('../owned-image.mjs');await prepareGeodeImage(input);
   window.WestminsterGeodeDllBytes=Promise.resolve(input);
   const url=new URL('../handoff/',location.href);url.searchParams.set('geodemap','1');url.searchParams.set('quality','low');
-  url.searchParams.set('rev','setup-cocos-20261107');
+  url.searchParams.set('rev','setup-stdio-20261107');
   if(document.getElementById('setup').checked)url.searchParams.set('geodesetup','1');
   history.replaceState(null,'',url);
   const response=await fetch(new URL('index.html',url),{cache:'no-cache'});if(!response.ok)throw Error('Handoff page HTTP '+response.status);
