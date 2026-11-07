@@ -2,10 +2,10 @@
 
 Use current main; earlier source ZIPs are historical. The parent reaches
 _beginthreadex after 12,223 instructions. The real requested callback at RVA
-0x4ffab0 now runs 623 instructions through GuestScheduler, stopping at
-KERNEL32.dll!QueryPerformanceFrequency (RVA 0x512bfc).
+0x4ffab0 now runs 1,654 instructions through GuestScheduler, stopping at
+MSVCP140.dll!_Mtx_lock (RVA 0xa55890).
 Native worker comparisons pass at two image bases. The browser executed the
-same worker prefix and preserved 149 game frames (12,846 combined instructions). Full loader initialization
+same worker prefix and preserved 146 game frames (13,877 combined instructions). Full loader initialization
 and existing .geode packages remain unsupported.
 
 ## Implemented
@@ -16,16 +16,19 @@ and existing .geode packages remain unsupported.
   critical-section ownership and SRW ownership.
 - Actual translated worker callback under the explicit static-TLS fixture model.
   Parent CPU/stack/TIB preservation and two native worker state comparisons.
+- Performance queries use a real monotonic browser clock and fixed 10 MHz units.
+  The native reference injects deterministic samples. Arithmetic supports the
+  observed unsigned divisions, including 128-bit dividends with 64-bit divisors.
 - Retained worker context and owned copy of the parent CPU at the browser stop.
 
 ## Next small tasks
 
-1. Implement the observed performance-clock queries using an explicit monotonic
-   browser clock and consistent integer frequency/counter units. Inspect the
-   Windows contract and capture native behavior before choosing the clock
-   profile. Do not return arbitrary successful constants for unsupported timers.
-   Empty exception_ptr Create/Destroy/Copy/Assign/ToBool are implemented and
-   native-checked; non-empty capture, rethrow and unwinding remain unsupported.
+1. Inspect the MSVC STL implementation and initialized guest object behind the
+   observed _Mtx_lock. Verify layout, type, ownership and contention behavior
+   against a native Windows probe, then implement the observed lock operations.
+   Do not return success for a contended mutex without actual blocking/wakeup.
+   Empty exception pointers and performance queries are implemented; do not
+   repeat those tasks. Non-empty exception dispatch remains unsupported.
 2. Extend the worker native fixture and translation only through its next observed
    dependency. Keep both image bases, parent/worker isolation and full memory
    comparisons. Stop explicitly when another unknown service is reached.

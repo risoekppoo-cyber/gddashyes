@@ -1,12 +1,19 @@
 # Verified startup checkpoint - 7 November 2026
 
-Setup executes 12,223 native startup instructions. Eight native-reference cases
-pass at two image bases. The real Chromium run continued for 149 game frames,
-preserved the original CPU snapshot and restored the live game stack. Full Geode
-initialization and existing .geode package loading remain unsupported.
+The checkpoint executes 12,223 parent instructions and 1,654 worker instructions
+(13,877 total). Native-reference checks pass at two image bases, including 36
+reference cases, two worker comparisons and 1,032 differential division checks.
+The real Chromium run continued for 146 game frames, preserved the original CPU
+snapshot and restored the live game stack. Full Geode initialization and existing
+.geode package loading remain unsupported.
 
 ## Completed continuation
 
+- Fixed-frequency performance queries backed by the real monotonic browser clock;
+  one domain is shared across logical threads. See PERFORMANCE-CLOCK.md.
+- Unsigned register division with 32/64-bit divisors and full-width dividends.
+  Native and BigInt checks cover quotient/remainder, zero-extension, zero divisors
+  and quotient overflow; faults preserve the guest CPU and stop explicitly.
 - Native-checked empty C++ exception-pointer construction, copying, assignment,
   boolean queries and destruction. Lifetimes and containing heap ownership are
   tracked; non-empty exceptions remain unsupported. See EMPTY-EXCEPTION-PTR.md.
@@ -38,11 +45,11 @@ native Windows probes; they are not claimed as worker activity in the browser.
 The scheduler now executes the real requested callback at RVA 0x4ffab0 in a
 separate context, with the supplied argument and a copied static TLS template.
 The independent native comparison passes at two DLL bases: the worker executes
-623 instructions, including shared-process service calls and its arc-worker-0
+1,654 instructions, including shared-process service calls and its arc-worker-0
 thread-name event, then pauses at:
 
-    KERNEL32.dll!QueryPerformanceFrequency
-    Worker stop RVA: 0x512bfc
+    MSVCP140.dll!_Mtx_lock
+    Worker stop RVA: 0xa55890
 
 The parent still stops at the actual thread-creation API entry:
 
@@ -69,10 +76,10 @@ the parent's private stack and TIB remain owned by SetupContext. Worker executio
 checks that the parent CPU, stack and TIB stay unchanged. Explicit block/wake
 states exist, but the worker is paused at an unsupported service rather than
 waiting on a running pipe consumer. Root continuation still requires actual
-thread-creation/lifecycle integration and the next timing/runtime dependencies.
+thread-creation/lifecycle integration and the next mutex/runtime dependencies.
 
-Report fields worker and totalTranslatedInstructions distinguish the 623 worker
-instructions from the 12,223 parent instructions (12,846 total). The worker report
+Report fields worker and totalTranslatedInstructions distinguish the 1,654 worker
+instructions from the 12,223 parent instructions (13,877 total). The worker report
 keeps threadCreationImplemented and crtThreadStartupImplemented false. Full
 loader/package-support flags remain false. Raw pointers vary by allocator and
 must not be hard-coded. Full CRT startup, TLS callbacks and arbitrary native
@@ -80,8 +87,9 @@ Cocos method execution remain unfinished.
 
 ## Validation
 
-[Native-reference and real-browser validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42421704737)
-passes eight parent cases, two worker cases and the actual-browser preservation check.
+[Native-reference and real-browser validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42423271250)
+passes 36 reference cases, two worker cases, 1,032 differential arithmetic checks
+and the actual-browser preservation check.
 The comparison includes GPRs, XMMs, defined flags, stack, TLS, DLL/heap writes,
 callback registration, stdio/pipe/critical/IOCP state and the exact worker request.
 Two additional worker comparisons check CPU/XMM/defined flags, the full allocated
@@ -91,5 +99,5 @@ behavior, critical-section recursion, powf and completion-port packet semantics.
 
 Generated setup WASM, bundled services, manifests and result JSON are published
 only after reference and browser validation pass. The launcher revision is
-setup-worker-callback-20261107. See NEXT-CHAT-TASKS.md for the next small tasks;
+setup-clock-live-20261107. See NEXT-CHAT-TASKS.md for the next small tasks;
 the older Chat-mode ZIP describes a superseded checkpoint.
