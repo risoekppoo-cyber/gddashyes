@@ -18,12 +18,13 @@ export function fullWindowsPath(input,cwd='C:\\GeometryDash'){
  return result;
 }
 export class GuestPaths extends GuestEncoding{
+ constructor(memory,addresses,options={}){super(memory,addresses,options);this.cwd=options.cwd||'C:\\GeometryDash';}
  invoke(cpu,address){
   if(this.addresses.GetFullPathNameW===undefined||address!==BigInt(this.addresses.GetFullPathNameW))return super.invoke(cpu,address);
   const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true),input=v.getBigUint64(cpu+8,true),capacity=Number(v.getBigUint64(cpu+16,true)&0xffffffffn),output=v.getBigUint64(cpu+64,true),part=v.getBigUint64(cpu+72,true);
   this.range(sp,8);let text='';
   for(let n=0;;n++){const p=this.range(input+BigInt(n*2),2),c=v.getUint16(p,true);if(!c)break;text+=String.fromCharCode(c);}
-  const full=fullWindowsPath(text);let result=0;
+  const full=fullWindowsPath(text,this.cwd);let result=0;
   if(full===null)v.setUint32(this.tib+0x68,123,true);
   else if(capacity<=full.length)result=full.length+1;
   else{

@@ -1,6 +1,6 @@
 import {GuestPaths,fullWindowsPath,CRT_NAMES,ENCODING_NAMES,PATH_NAMES} from './windows-paths.mjs';
 export {CRT_NAMES,ENCODING_NAMES,PATH_NAMES};
-export const FILE_NAMES=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle'];
+export const FILE_NAMES=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle','SetCurrentDirectoryW','GetCurrentDirectoryW'];
 export function gameFilesystem(fs){
  if(!fs||typeof fs.stat!=='function')throw Error('Game filesystem unavailable');
  return {stat(path){
@@ -23,8 +23,16 @@ export class GuestFiles extends GuestPaths{
   if(!name)return super.invoke(cpu,address);
   const v=new DataView(this.memory.buffer),sp=v.getBigUint64(cpu+32,true),a=v.getBigUint64(cpu+8,true),b=v.getBigUint64(cpu+16,true),c=v.getBigUint64(cpu+64,true),d=v.getBigUint64(cpu+72,true);
   this.range(sp,name==='CreateFileW'?64:8);let result=0n,error=0;
-  if(name==='CreateFileW'){
-   const path=fullWindowsPath(this.wide(a)),disposition=v.getUint32(Number(sp)+40,true),flags=v.getUint32(Number(sp)+48,true);
+  if(name==='SetCurrentDirectoryW'){
+   if(!this.filesystem)throw Error('Guest filesystem is not configured');
+   const path=fullWindowsPath(this.wide(a),this.cwd),item=path&&this.filesystem.stat(path);
+   if(!item)error=3;else if(!item.directory)error=267;else{this.cwd=path;result=1n;}
+  }else if(name==='GetCurrentDirectoryW'){
+   const capacity=Number(a&0xffffffffn),text=this.cwd;
+   if(capacity<=text.length)result=BigInt(text.length+1);
+   else{const p=this.range(b,BigInt(capacity)*2n);for(let i=0;i<text.length;i++)v.setUint16(p+i*2,text.charCodeAt(i),true);v.setUint16(p+text.length*2,0,true);result=BigInt(text.length);}
+  }else if(name==='CreateFileW'){
+   const path=fullWindowsPath(this.wide(a),this.cwd),disposition=v.getUint32(Number(sp)+40,true),flags=v.getUint32(Number(sp)+48,true);
    if(b!==0n||disposition!==3||d!==0n)throw Error('Only existing metadata-only guest handles are implemented');
    if(!this.filesystem)throw Error('Guest filesystem is not configured');
    const item=path&&this.filesystem.stat(path);

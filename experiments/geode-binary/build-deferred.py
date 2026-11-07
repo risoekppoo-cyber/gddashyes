@@ -93,7 +93,7 @@ def main():
    ctype=json.loads((Path(__file__).parent/'ctype-c.mjs').read_text().split('export const CTYPE_C=',1)[1].rstrip().rstrip(';'))
    crt=['wcslen','strlen','memcpy','memmove','memset','memcmp','malloc','calloc','realloc','free']+list(ctype)
    encoding=['WideCharToMultiByte','MultiByteToWideChar']
-   file_services=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle']
+   file_services=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle','SetCurrentDirectoryW','GetCurrentDirectoryW']
    lifecycle=['_initialize_onexit_table','_register_onexit_function','_execute_onexit_table','WakeAllConditionVariable']
    services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle)}
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
@@ -140,7 +140,7 @@ def main():
    # does not execute the DLL's complete CRT entrypoint or TLS callbacks.
    onexit={image_base+0xfb1960:{'callbacks':[],'buffer':0,'capacity':0}}
    uc.mem_write(image_base+0xfb1960,b'\0'*24)
-   trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000]
+   trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000];cwd=['C:\\GeometryDash']
    def memory_write(emu,_access,address,n,_value,_):
     if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
    uc.hook_add(unicorn.UC_HOOK_MEM_WRITE,memory_write)
@@ -214,7 +214,20 @@ def main():
       if result is not None:emu.reg_write(x.UC_X86_REG_RAX,result)
      elif name in file_services:
       result=0;error=0
-      if name=='CreateFileW':
+      if name=='SetCurrentDirectoryW':
+       raw=bytearray();at=ptr
+       while True:
+        ch=bytes(emu.mem_read(at,2));at+=2
+        if ch==b'\0\0':break
+        raw.extend(ch)
+       path=ntpath.normpath(ntpath.join(cwd[0],raw.decode('utf-16le')))
+       if path.lower()!='c:\\geometrydash':error=3
+       else:cwd[0]=path;result=1
+      elif name=='GetCurrentDirectoryW':
+       capacity=ptr&0xffffffff;output=emu.reg_read(x.UC_X86_REG_RDX);encoded=cwd[0].encode('utf-16le');units=len(encoded)//2
+       if capacity<=units:result=units+1
+       else:emu.mem_write(output,encoded+b'\0\0');result=units
+      elif name=='CreateFileW':
        raw=bytearray();at=ptr
        while True:
         ch=bytes(emu.mem_read(at,2));at+=2
@@ -275,7 +288,7 @@ def main():
       else:
        text=text.replace('/','\\')
        if text.startswith('\\\\'):raise RuntimeError('Unconfigured native UNC/device path')
-       full=ntpath.normpath(ntpath.join('C:\\GeometryDash',text))
+       full=ntpath.normpath(ntpath.join(cwd[0],text))
        if text.endswith('\\') and not full.endswith('\\'):full+='\\'
        elif not full.endswith('\\'):full=full.rstrip(' .')
        encoded=full.encode('utf-16le');units=len(encoded)//2

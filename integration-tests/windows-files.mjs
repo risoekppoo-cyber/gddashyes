@@ -10,5 +10,6 @@ const n=call('GetFinalPathNameByHandleW',handle,0,0);assert.equal(n,20n);assert.
 let text='';for(let p=out;v.getUint16(p,true);p+=2)text+=String.fromCharCode(v.getUint16(p,true));assert.equal(text,'\\\\?\\C:\\GeometryDash');
 assert.equal(call('CloseHandle',handle),1n);assert.equal(call('CloseHandle',handle),0n);assert.equal(v.getUint32(tib+0x68,true),6);
 assert.throws(()=>call('CreateFileW',input,0x80000000,7),/metadata-only/);
+assert.equal(call('SetCurrentDirectoryW',input),1n);assert.equal(call('GetCurrentDirectoryW',0,0),16n);assert.equal(call('GetCurrentDirectoryW',64,out),15n);
 const fs=gameFilesystem({readdir(){return ['Resources'];},stat(p){return {mode:p==='/Resources'?1:1};},isDir(){return true;}});assert.equal(fs.stat('C:\\GeometryDash\\resources').directory,true);assert.equal(fs.stat('C:\\GeometryDash\\missing'),null);
 console.log('PASS: real-filesystem adapter, owned directory handles, final paths, close and unsupported access rejection');

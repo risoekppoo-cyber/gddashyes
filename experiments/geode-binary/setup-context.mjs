@@ -30,8 +30,9 @@ class SetupContext{
   v.setBigUint64(shadow+32,BigInt(this.stackTop),true);v.setBigUint64(shadow+m.gsOffset,BigInt(this.tib),true);
   this.aux.exports.__stack_pointer.value=compilerTop;
   const stop=BigInt(imageBase+m.stopRva);let pc=BigInt(imageBase+m.entryRva),steps=0;
-  for(let transfers=0;transfers<100;transfers++){
+  for(let transfers=0;transfers<1000;transfers++){
    const r=this.aux.exports.lift_run(shadow,pc,BigInt(imageBase),0,stop,20000)>>>0;steps+=r&0x7fffffff;
+   if(steps>m.steps)throw Error('Setup exceeded verified instruction budget');
    const state=new DataView(e.memory.buffer);
    if(!(r&0x80000000)){
     if(state.getBigUint64(shadow+192,true)!==stop||steps!==m.steps||this.services.held.size)throw Error('Unexpected setup stop state');
