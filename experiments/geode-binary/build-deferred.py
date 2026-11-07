@@ -49,6 +49,8 @@ class WideLifter(Lifter):
    return self.assign(op.output,f'f{op.output.size*8}_bits(bits_f{a[0].size*8}({self.expr(a[0])}))')
   if code=='FLOAT_TRUNC' and a[0].size in [4,8] and op.output.size in [4,8]:
    return self.assign(op.output,f'float_trunc(bits_f{a[0].size*8}({self.expr(a[0])}),{op.output.size}u)')
+  if code in ['INT_DIV','INT_REM'] and a[0].size==16:
+   return self.assign(op.output,f'unsigned_divrem128({self.expr(a[0])},{self.expr(a[1])},{1 if code=="INT_REM" else 0}u)')
   if code in ['INT_DIV','INT_REM'] and a[0].size<=8:
    return self.assign(op.output,f'unsigned_divrem({self.expr(a[0])},{self.expr(a[1])},{1 if code=="INT_REM" else 0}u)')
   if code=='INT_SRIGHT' and a[0].size<=8:
@@ -75,7 +77,7 @@ class WideLifter(Lifter):
   data=self.pe.get_data(va-self.base,32)
   ins=self.ctx.disassemble(data,base_address=va,max_instructions=1).instructions[0]
   ops=self.ctx.translate(data[:ins.length],base_address=va,max_instructions=1).ops
-  if ': DIV ' in str(ins) and not re.search(r': DIV (?:E[ABCD]X|E[BS]P|E[SD]I|R(?:[89]|1[0-5])D)$',str(ins)):raise LiftError('Unverified unsigned division form: '+str(ins))
+  if ': DIV ' in str(ins) and not re.search(r': DIV (?:E[ABCD]X|E[BS]P|E[SD]I|R(?:[89]|1[0-5])D|R(?:AX|BX|CX|DX|SP|BP|SI|DI|[89]|1[0-5]))$',str(ins)):raise LiftError('Unverified unsigned division form: '+str(ins))
   try:emitted=[self.emit_op(op,i,len(ops)) for i,op in enumerate(ops)]
   except LiftError as error:raise LiftError(f'{error}; instruction {ins}') from error
   # Supply architectural AF where SLEIGH omits it; capture the actual p-code
@@ -100,10 +102,10 @@ class WideLifter(Lifter):
     unique=sorted({v.offset for op in ops for v in ([op.output] if op.output else [])+list(op.inputs) if v.space.name=='unique'})
     source+=f'case UINT64_C({va-self.base}):{{ /* {ins} */\n'
     source+='\n'.join(f'wide_t u_{n:x}=0;' for n in unique)+'\n'
-    division=re.search(r': DIV (E[ABCD]X|E[BS]P|E[SD]I|R(?:[89]|1[0-5])D)$',str(ins))
+    division=re.search(r': DIV (E[ABCD]X|E[BS]P|E[SD]I|R(?:[89]|1[0-5])D|R(?:AX|BX|CX|DX|SP|BP|SI|DI|[89]|1[0-5]))$',str(ins))
     if division:
-     offset=self.reg_offset(self.ctx.registers[division[1]])
-     source+=f'if(raw_read(cpu+{offset}u,4u)==0u||raw_read(cpu+16u,4u)>=raw_read(cpu+{offset}u,4u)){{lift_fault(5u,raw_read(cpu+{offset}u,4u),image_base+UINT64_C({va-self.base}));__builtin_trap();}}\n'
+     operand=self.ctx.registers[division[1]];offset=self.reg_offset(operand);width=operand.size
+     source+=f'if(raw_read(cpu+{offset}u,{width}u)==0u||raw_read(cpu+16u,{width}u)>=raw_read(cpu+{offset}u,{width}u)){{lift_fault(5u,raw_read(cpu+{offset}u,{width}u),image_base+UINT64_C({va-self.base}));__builtin_trap();}}\n'
     source+=f'raw_write(cpu+192u,image_base+UINT64_C({va-self.base+ins.length}),8u);\n'
     for i,line in enumerate(emitted):
      line=re.sub(r'\bop_(\d+)\b',lambda m:f'pc_{va:x}_op_{m[1]}',line)
@@ -123,6 +125,13 @@ switch((pc-image_base)>>8){
 WIDE='''static inline uint64_t unsigned_divrem(uint64_t a,uint64_t b,uint32_t remainder){if(!b){lift_fault(5u,b,0);__builtin_trap();}return remainder?a%b:a/b;}
 typedef unsigned __int128 wide_t;
 typedef union {wide_t value;struct{uint64_t lo,hi;}words;} wide_words;
+static inline wide_t unsigned_divrem128(wide_t dividend,wide_t divisor,uint32_t remainder){
+ wide_words a={.value=dividend},b={.value=divisor};uint64_t r=a.words.hi,q=0;
+ if(b.words.hi||!b.words.lo||r>=b.words.lo){lift_fault(5u,b.words.lo,0);__builtin_trap();}
+ for(int i=63;i>=0;i--){uint64_t carry=r>>63;r=(r<<1)|((a.words.lo>>i)&1u);if(carry||r>=b.words.lo){r-=b.words.lo;q|=UINT64_C(1)<<i;}}
+ return (wide_t)(remainder?r:q);
+}
+
 wide_t __multi3(wide_t a,wide_t b){wide_words x={.value=a},y={.value=b},r;uint64_t a0=(uint32_t)x.words.lo,a1=x.words.lo>>32,b0=(uint32_t)y.words.lo,b1=y.words.lo>>32,p=a0*b0,t=a1*b0+(p>>32),u=a0*b1+(uint32_t)t;r.words.lo=(u<<32)|(uint32_t)p;r.words.hi=a1*b1+(t>>32)+(u>>32)+x.words.lo*y.words.hi+x.words.hi*y.words.lo;return r.value;}
 wide_t __lshrti3(wide_t value,int n){wide_words x={.value=value},r;if(n<=0)return value;if(n>=128){r.words.lo=0;r.words.hi=0;}else if(n>=64){r.words.lo=x.words.hi>>(n-64);r.words.hi=0;}else{r.words.lo=(x.words.lo>>n)|(x.words.hi<<(64-n));r.words.hi=x.words.hi>>n;}return r.value;}
 static inline uint64_t f32_bits(float f){union{float f;uint32_t u;}v={.f=f};return v.u;}
@@ -159,7 +168,7 @@ def main():
    for imp in desc.imports:imports[imp.address-preferred]=desc.dll.decode()+'!'+(imp.name.decode() if imp.name else '#'+str(imp.ordinal))
  cases=[];observed=set();boundaries=[];sar_fixture=[None]
  for image_base in [0x2000000,0x16000000]:
-  for variant in range(13):
+  for variant in range(18):
    image=bytearray(original)
    for block in pe.DIRECTORY_ENTRY_BASERELOC:
     for rel in block.entries:
@@ -225,12 +234,12 @@ def main():
    if variant==3:
     if sar_fixture[0] is None:raise RuntimeError('Reached SAR fixture missing')
     entry_rva=sar_fixture[0][0];values[9]=0x8000000000000001;values[1]=1
-   division_fault=variant in [7,8,10,12]
+   division_fault=variant in [7,8,10,12,16,17]
    if variant>=4:
-    entry_rva=0x50fc6e if variant>=11 else 0x4f074e if variant>=9 else 0x4f060f
-    division_length=2 if variant>=11 else 3
-    assert pe.get_data(entry_rva,division_length)==bytes.fromhex('f7f7' if variant>=11 else '41f7f1' if variant>=9 else '41f7f0'),'Pinned division instruction changed'
-    dividend_cases={4:(0xabcdef01ffffffff,0xdeadbeef00000000,3),5:(0x12345678,1,2),6:(0xfedcba98,0x1234,0x1235),7:(123,0,0),8:(0,2,2),9:(0xfedcba98,0x1234,0x1235),10:(0,2,2),11:(0x12345678,1,3),12:(123,0,0)}
+    entry_rva=0x50fc87 if variant>=13 else 0x50fc6e if variant>=11 else 0x4f074e if variant>=9 else 0x4f060f
+    division_length=2 if 11<=variant<13 else 3
+    assert pe.get_data(entry_rva,division_length)==bytes.fromhex('48f7f7' if variant>=13 else 'f7f7' if variant>=11 else '41f7f1' if variant>=9 else '41f7f0'),'Pinned division instruction changed'
+    dividend_cases={4:(0xabcdef01ffffffff,0xdeadbeef00000000,3),5:(0x12345678,1,2),6:(0xfedcba98,0x1234,0x1235),7:(123,0,0),8:(0,2,2),9:(0xfedcba98,0x1234,0x1235),10:(0,2,2),11:(0x12345678,1,3),12:(123,0,0),13:(0xffffffffffffffff,0,3),14:(0xffffffffffffffff,0x123456789abcdef0,0xfedcba9876543210),15:(0xffffffffffffffff,0xfffffffffffffffe,0xffffffffffffffff),16:(123,0,0),17:(0,2,2)}
     values[0],values[2],values[7 if variant>=11 else 9 if variant>=9 else 8]=dividend_cases[variant]
    for reg,value in zip(REGS,values):uc.reg_write(getattr(x,'UC_X86_REG_'+reg),value)
    xmm=[((i+1)*0x01010101010101010101010101010101)&((1<<128)-1) for i in range(16)]
