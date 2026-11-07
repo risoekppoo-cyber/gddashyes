@@ -22,7 +22,7 @@
       "linearEnd": 374665216,
       "active": true
     },
-    "unresolvedImportCount": 1970,
+    "unresolvedImportCount": 1969,
     "dllRelocations": 56939,
     "memoryLayout": {
       "memoryBytes": 377487360,
@@ -43,12 +43,12 @@
       ],
       "guestReservationVerified": false
     },
-    "instructions": 9633,
+    "instructions": 10028,
     "stoppedBeforeFirstCall": false,
     "liveGuestBase": "0x0",
     "liveStack": "0x13efefe0",
     "gameStartupTarget": "0xa74a90",
-    "callbackStop": "0x1563ecf4",
+    "callbackStop": "0x15644df9",
     "arguments": [
       "0x400000",
       "0x0",
@@ -56,13 +56,13 @@
       "0xa"
     ],
     "sharedGameMemory": true,
-    "nextRequiredService": "libcocos2d.dll!?convertToNodeSpace@CCNode@cocos2d@@QEAA?AVCCPoint@2@AEBV32@@Z",
-    "nextBoundaryKind": "import-address-read",
+    "nextRequiredService": "KERNEL32.dll!RaiseException",
+    "nextBoundaryKind": "service-call",
     "nextServiceArguments": [
-      "0x55b80a",
-      "0x15fae5de",
-      "0x6",
-      "0x4"
+      "0x406d1388",
+      "0x0",
+      "0x3",
+      "0x1550f068"
     ],
     "executedServices": [
       "AcquireSRWLockExclusive",
@@ -235,7 +235,12 @@
       "memcmp",
       "memcmp",
       "memcmp",
-      "memcmp"
+      "memcmp",
+      "memset",
+      "malloc",
+      "malloc",
+      "malloc",
+      "GetCurrentThreadId"
     ],
     "staticTlsTemplateInitialized": true,
     "tlsCallbacksExecuted": false,
@@ -243,6 +248,14 @@
     "pendingExitCallbacks": 2,
     "bootstrapGameTimestamp": 1792203143,
     "isolatedSetupStack": "0x1550f548",
+    "boundGameImports": [
+      {
+        "dll": "libcocos2d.dll",
+        "name": "?convertToNodeSpace@CCNode@cocos2d@@QEAA?AVCCPoint@2@AEBV32@@Z",
+        "address": "0x10002e90",
+        "moduleBase": "0x10000000"
+      }
+    ],
     "originalGameCpuPreserved": true,
     "liveStackRestored": true,
     "gameContinuedAfterHandoff": true
@@ -271,6 +284,6 @@
     }
   ],
   "jspi": true,
-  "seconds": 16.972,
+  "seconds": 14.308,
   "events": []
 }

@@ -1,13 +1,23 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
   "cases": 8,
-  "uniqueInstructions": 4127,
+  "uniqueInstructions": 4360,
   "boundaries": [
     {
-      "rva": 1240308,
-      "service": "libcocos2d.dll!?convertToNodeSpace@CCNode@cocos2d@@QEAA?AVCCPoint@2@AEBV32@@Z",
-      "iatRva": 16445936,
-      "kind": "import-address-read"
+      "rva": 1265145,
+      "service": "KERNEL32.dll!RaiseException",
+      "iatRva": 15260160,
+      "arguments": [
+        "0x406d1388",
+        "0x0",
+        "0x3",
+        "0x10eb28"
+      ],
+      "exception": {
+        "code": "0x406d1388",
+        "flags": 0,
+        "argumentCount": 3
+      }
     },
     {
       "rva": 1208561,
@@ -33,10 +43,20 @@
       "service": "Signed-shift fixture stop"
     },
     {
-      "rva": 1240308,
-      "service": "libcocos2d.dll!?convertToNodeSpace@CCNode@cocos2d@@QEAA?AVCCPoint@2@AEBV32@@Z",
-      "iatRva": 16445936,
-      "kind": "import-address-read"
+      "rva": 1265145,
+      "service": "KERNEL32.dll!RaiseException",
+      "iatRva": 15260160,
+      "arguments": [
+        "0x406d1388",
+        "0x0",
+        "0x3",
+        "0x10eb28"
+      ],
+      "exception": {
+        "code": "0x406d1388",
+        "flags": 0,
+        "argumentCount": 3
+      }
     },
     {
       "rva": 1208561,
@@ -62,6 +82,6 @@
       "service": "Signed-shift fixture stop"
     }
   ],
-  "wasmSha256": "63622a94d808c5cc1261cee509895db7dda99d5ae7c69667984925d904785652",
+  "wasmSha256": "ce2e8ff24de1bca056833ef7dd78133b4446a0a5df220d13074f4200ee1ef3fa",
   "fullGeodeLoader": false
 }
