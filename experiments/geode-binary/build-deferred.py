@@ -160,7 +160,7 @@ def main():
    encoding=['WideCharToMultiByte','MultiByteToWideChar']
    file_services=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle','SetCurrentDirectoryW','GetCurrentDirectoryW']
    lifecycle=['_initialize_onexit_table','_register_onexit_function','_execute_onexit_table','WakeAllConditionVariable']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId'])}
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','RaiseException'])}
    def bound(name):return name.split('!')[-1] in services or name in external
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],external.get(name,0)).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
@@ -213,7 +213,7 @@ def main():
    # does not execute the DLL's complete CRT entrypoint or TLS callbacks.
    onexit={image_base+0xfb1960:{'callbacks':[],'buffer':0,'capacity':0}}
    uc.mem_write(image_base+0xfb1960,b'\0'*24)
-   trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000];cwd=['C:\\GeometryDash']
+   trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000];cwd=['C:\\GeometryDash'];thread_names={}
    def memory_write(emu,_access,address,n,_value,_):
     if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
    uc.hook_add(unicorn.UC_HOOK_MEM_WRITE,memory_write)
@@ -246,6 +246,18 @@ def main():
      elif name=='SetLastError':emu.mem_write(tib+0x68,(ptr&0xffffffff).to_bytes(4,'little'))
      elif name=='GetLastError':emu.reg_write(x.UC_X86_REG_RAX,int.from_bytes(emu.mem_read(tib+0x68,4),'little'))
      elif name=='GetCurrentThreadId':emu.reg_write(x.UC_X86_REG_RAX,1)
+     elif name=='RaiseException':
+      flags=emu.reg_read(x.UC_X86_REG_RDX)&0xffffffff;count=emu.reg_read(x.UC_X86_REG_R8)&0xffffffff;args=emu.reg_read(x.UC_X86_REG_R9)
+      if ptr&0xffffffff!=0x406d1388 or flags or count!=3:raise RuntimeError('Unsupported native fixture exception')
+      kind,pointer,tid,reserved=struct.unpack('<I4xQII',bytes(emu.mem_read(args,24)))
+      if kind!=0x1000 or tid not in [1,0xffffffff] or reserved:raise RuntimeError('Unsupported native thread-name event')
+      raw=bytearray()
+      for i in range(4096):
+       char=bytes(emu.mem_read(pointer+i,1))
+       if char==b'\0':break
+       raw.extend(char)
+      else:raise RuntimeError('Unterminated native thread name')
+      thread_names[1]=raw.decode('ascii')
      elif name=='GetModuleHandleW':
       if ptr:raise RuntimeError('Native fixture named module handle needs catalogue evidence')
       emu.reg_write(x.UC_X86_REG_RAX,0x400000)
@@ -488,7 +500,7 @@ def main():
      'tib':tib,'tlsArray':tls_array,'tlsData':tls_data,'tlsHex':bytes(uc.mem_read(tls_data,tls_size+tls.SizeOfZeroFill)).hex(),
      'serviceCalls':service_calls,'stackBelow':sp-min([a for a,b in writes]+[sp]),'stackAbove':max([b for a,b in writes]+[sp])-sp,
      'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex() if heap_at[0]>0x1800000 else '',
-     'onexitCallbacks':[str(callback) for table in onexit.values() for callback in table['callbacks']]})
+     'onexitCallbacks':[str(callback) for table in onexit.values() for callback in table['callbacks']],'threadNames':list(thread_names.items())})
    boundaries.append(boundary)
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)

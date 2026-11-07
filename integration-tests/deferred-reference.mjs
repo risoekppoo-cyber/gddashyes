@@ -54,6 +54,7 @@ for(const [index,c] of manifest.cases.entries()){
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,c.imageBase,image.size),expectedImage),0,`case ${index} DLL writes`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,0x1800000,c.heapHex.length/2),Buffer.from(c.heapHex,'hex')),0,`case ${index} heap`);
  assert.deepEqual([...services.onexit.values()].flatMap(t=>t.callbacks).map(String),c.onexitCallbacks,`case ${index} exit callback registrations`);
+ assert.deepEqual([...services.threadNames],c.threadNames,`case ${index} delivered thread names`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,gh.base,4096),Buffer.from(gh.hex,'hex')),0,`case ${index} primary game headers`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,cc.pageBase,4096),Buffer.from(cc.pageHex,'hex')),0,`case ${index} Cocos code`);
 }

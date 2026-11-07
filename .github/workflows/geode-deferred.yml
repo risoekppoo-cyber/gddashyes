@@ -16,6 +16,7 @@ on:
       - 'experiments/geode-binary/windows-files.mjs'
       - 'experiments/geode-binary/windows-lifecycle.mjs'
       - 'experiments/geode-binary/windows-input.mjs'
+      - 'experiments/geode-binary/windows-debugger.mjs'
       - 'experiments/geode-binary/game-imports.mjs'
       - 'experiments/geode-binary/setup-context.mjs'
       - 'experiments/geode-binary/handoff/runtime.js'
@@ -59,6 +60,7 @@ jobs:
           node integration-tests/windows-files.mjs
           node integration-tests/windows-lifecycle.mjs
           node integration-tests/windows-input.mjs
+          node integration-tests/windows-debugger.mjs
           cp /tmp/deferred/deferred.wasm experiments/geode-binary/handoff/setup.wasm
           cp /tmp/deferred/runtime-manifest.json experiments/geode-binary/handoff/setup-manifest.json
           cp /tmp/deferred/services.mjs experiments/geode-binary/handoff/setup-services.mjs
