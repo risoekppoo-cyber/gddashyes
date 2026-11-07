@@ -27,6 +27,7 @@ class SetupContext{
   new Uint8Array(e.memory.buffer,this.stack,0x10000).fill(0xa5);
   const v=new DataView(e.memory.buffer),array=this.tib+0x1000,data=this.tib+0x2000;
   v.setBigUint64(this.tib+0x58,BigInt(array),true);v.setBigUint64(array,BigInt(data),true);
+  v.setBigUint64(this.tib+0x48,1n,true);
   new Uint8Array(e.memory.buffer,data,t.templateSize).set(new Uint8Array(e.memory.buffer,imageBase+t.templateRva,t.templateSize));
   v.setUint32(imageBase+t.indexRva,0,true);
   if(liveSp+64>v.byteLength)throw Error('Caller home-frame bounds');

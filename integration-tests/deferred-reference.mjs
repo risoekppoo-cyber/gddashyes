@@ -29,6 +29,7 @@ for(const [index,c] of manifest.cases.entries()){
  new Uint8Array(memory.buffer,c.stackBase,c.stackHex.length/2).fill(0xa5);
  new Uint8Array(memory.buffer,c.tib,0x10000).fill(0);
  v.setBigUint64(c.tib+0x58,BigInt(c.tlsArray),true);v.setBigUint64(c.tlsArray,BigInt(c.tlsData),true);
+ v.setBigUint64(c.tib+0x48,1n,true);
  v.setBigUint64(cpu+manifest.gsOffset,BigInt(c.tib),true);
  const t=manifest.tls;
  new Uint8Array(memory.buffer,c.tlsData,t.templateSize).set(new Uint8Array(memory.buffer,c.imageBase+t.templateRva,t.templateSize));

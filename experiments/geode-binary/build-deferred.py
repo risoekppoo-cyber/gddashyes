@@ -7,7 +7,7 @@ import hashlib,json,re,sys,ntpath,struct,math
 from pathlib import Path
 import pefile,pypcode,unicorn
 from unicorn import x86_const as x
-from lift import Lifter,LiftError,PIN,REGS
+from lift import Lifter,LiftError,PIN,REGS,PRELUDE
 
 class WideLifter(Lifter):
  def __init__(self,pe):
@@ -84,8 +84,32 @@ class WideLifter(Lifter):
    emitted[i]='{uint64_t af_a='+a+',af_b='+b+';'+emitted[i]+f'raw_write(cpu+2564u,((af_a^af_b^(af_a{operator}af_b))>>4)&1u,1u);'+'}'
   self.blocks[va]=(ins,ops,emitted)
  def source(self):
-  s=super().source().replace('uint64_t u_','wide_t u_')
-  return s.replace('__attribute__((visibility("default")))',WIDE+'\n__attribute__((visibility("default")))')
+  # Keep each machine-code page in a separate non-inlined function. A single
+  # multi-thousand-case switch exhausted V8's optimizing compiler memory.
+  groups={}
+  for va,block in sorted(self.blocks.items()):groups.setdefault((va-self.base)>>8,[]).append((va,block))
+  source=PRELUDE.split('__attribute__((visibility("default")))',1)[0]+WIDE
+  for group,blocks in groups.items():
+   source+=f'\n__attribute__((noinline)) static uint32_t page_{group}(uint32_t cpu,uint64_t image_base,uint32_t guest_base,uint64_t pc){{switch(pc-image_base){{\n'
+   for va,(ins,ops,emitted) in blocks:
+    unique=sorted({v.offset for op in ops for v in ([op.output] if op.output else [])+list(op.inputs) if v.space.name=='unique'})
+    source+=f'case UINT64_C({va-self.base}):{{ /* {ins} */\n'
+    source+='\n'.join(f'wide_t u_{n:x}=0;' for n in unique)+'\n'
+    source+=f'raw_write(cpu+192u,image_base+UINT64_C({va-self.base+ins.length}),8u);\n'
+    for i,line in enumerate(emitted):
+     line=re.sub(r'\bop_(\d+)\b',lambda m:f'pc_{va:x}_op_{m[1]}',line)
+     source+=f'pc_{va:x}_op_{i}: ; '+line+'\n'
+    source+=f'pc_{va:x}_op_{len(ops)}: ; goto next_instruction;}}\n'
+   source+='default:return 0u;}next_instruction:return 1u;}\n'
+  source+='''\n__attribute__((visibility("default")))
+uint32_t lift_run(uint32_t cpu,uint64_t entry,uint64_t image_base,uint32_t guest_base,uint64_t stop,uint32_t limit){
+raw_write(cpu+192u,entry,8u);for(uint32_t step=0;step<limit;step++){
+uint64_t pc=raw_read(cpu+192u,8u);if(pc==stop)return step;uint32_t handled=0;
+switch((pc-image_base)>>8){
+'''
+  for group in groups:source+=f'case UINT64_C({group}):handled=page_{group}(cpu,image_base,guest_base,pc);break;\n'
+  return source+'''default:break;}if(!handled)return 0x80000000u|step;
+}lift_fault(4u,raw_read(cpu+192u,8u),entry);__builtin_trap();}\n'''
 
 WIDE='''typedef unsigned __int128 wide_t;
 typedef union {wide_t value;struct{uint64_t lo,hi;}words;} wide_words;
@@ -130,7 +154,7 @@ def main():
    encoding=['WideCharToMultiByte','MultiByteToWideChar']
    file_services=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle','SetCurrentDirectoryW','GetCurrentDirectoryW']
    lifecycle=['_initialize_onexit_table','_register_onexit_function','_execute_onexit_table','WakeAllConditionVariable']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW'])}
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId'])}
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],0).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
    uc.mem_map(image_base,(size+4095)&~4095);uc.mem_write(image_base,bytes(image))
@@ -158,6 +182,7 @@ def main():
    tib=0x120000;tls_array=tib+0x1000;tls_data=tib+0x2000
    uc.mem_map(tib,0x10000)
    uc.mem_write(tib+0x58,tls_array.to_bytes(8,'little'));uc.mem_write(tls_array,tls_data.to_bytes(8,'little'))
+   uc.mem_write(tib+0x48,(1).to_bytes(8,'little'))
    uc.mem_write(tls_data,bytes(image[tls_rva:tls_rva+tls_size]))
    uc.mem_write(image_base+tls.AddressOfIndex-preferred,b'\0'*4)
    uc.reg_write(x.UC_X86_REG_GS_BASE,tib)
@@ -195,6 +220,7 @@ def main():
       locks.remove(ptr);emu.mem_write(ptr,b'\0'*8)
      elif name=='SetLastError':emu.mem_write(tib+0x68,(ptr&0xffffffff).to_bytes(4,'little'))
      elif name=='GetLastError':emu.reg_write(x.UC_X86_REG_RAX,int.from_bytes(emu.mem_read(tib+0x68,4),'little'))
+     elif name=='GetCurrentThreadId':emu.reg_write(x.UC_X86_REG_RAX,1)
      elif name=='GetModuleHandleW':
       if ptr:raise RuntimeError('Native fixture named module handle needs catalogue evidence')
       emu.reg_write(x.UC_X86_REG_RAX,0x400000)
