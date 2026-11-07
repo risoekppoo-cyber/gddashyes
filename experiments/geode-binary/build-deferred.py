@@ -49,6 +49,8 @@ class WideLifter(Lifter):
    return self.assign(op.output,f'f{op.output.size*8}_bits(bits_f{a[0].size*8}({self.expr(a[0])}))')
   if code=='FLOAT_TRUNC' and a[0].size in [4,8] and op.output.size in [4,8]:
    return self.assign(op.output,f'float_trunc(bits_f{a[0].size*8}({self.expr(a[0])}),{op.output.size}u)')
+  if code in ['INT_DIV','INT_REM'] and a[0].size<=8:
+   return self.assign(op.output,f'unsigned_divrem({self.expr(a[0])},{self.expr(a[1])},{1 if code=="INT_REM" else 0}u)')
   if code=='INT_SRIGHT' and a[0].size<=8:
    value,shift=[self.expr(v) for v in a];bits=a[0].size*8
    return self.assign(op.output,f'({shift}>={bits}u?(({value}>>{bits-1})&1u?mask({a[0].size}u):0u):(uint64_t)((int64_t)sext({value},{a[0].size}u)>>{shift}))')
@@ -73,6 +75,7 @@ class WideLifter(Lifter):
   data=self.pe.get_data(va-self.base,32)
   ins=self.ctx.disassemble(data,base_address=va,max_instructions=1).instructions[0]
   ops=self.ctx.translate(data[:ins.length],base_address=va,max_instructions=1).ops
+  if ': DIV ' in str(ins) and not str(ins).endswith(': DIV R8D'):raise LiftError('Unverified unsigned division form: '+str(ins))
   try:emitted=[self.emit_op(op,i,len(ops)) for i,op in enumerate(ops)]
   except LiftError as error:raise LiftError(f'{error}; instruction {ins}') from error
   # Supply architectural AF where SLEIGH omits it; capture the actual p-code
@@ -97,6 +100,8 @@ class WideLifter(Lifter):
     unique=sorted({v.offset for op in ops for v in ([op.output] if op.output else [])+list(op.inputs) if v.space.name=='unique'})
     source+=f'case UINT64_C({va-self.base}):{{ /* {ins} */\n'
     source+='\n'.join(f'wide_t u_{n:x}=0;' for n in unique)+'\n'
+    if str(ins).endswith(': DIV R8D'):
+     source+=f'if(raw_read(cpu+64u,4u)==0u||raw_read(cpu+16u,4u)>=raw_read(cpu+64u,4u)){{lift_fault(5u,raw_read(cpu+64u,4u),image_base+UINT64_C({va-self.base}));__builtin_trap();}}\n'
     source+=f'raw_write(cpu+192u,image_base+UINT64_C({va-self.base+ins.length}),8u);\n'
     for i,line in enumerate(emitted):
      line=re.sub(r'\bop_(\d+)\b',lambda m:f'pc_{va:x}_op_{m[1]}',line)
@@ -113,7 +118,8 @@ switch((pc-image_base)>>8){
   return source+'''default:break;}if(!handled)return 0x80000000u|step;
 }lift_fault(4u,raw_read(cpu+192u,8u),entry);__builtin_trap();}\n'''
 
-WIDE='''typedef unsigned __int128 wide_t;
+WIDE='''static inline uint64_t unsigned_divrem(uint64_t a,uint64_t b,uint32_t remainder){if(!b){lift_fault(5u,b,0);__builtin_trap();}return remainder?a%b:a/b;}
+typedef unsigned __int128 wide_t;
 typedef union {wide_t value;struct{uint64_t lo,hi;}words;} wide_words;
 wide_t __multi3(wide_t a,wide_t b){wide_words x={.value=a},y={.value=b},r;uint64_t a0=(uint32_t)x.words.lo,a1=x.words.lo>>32,b0=(uint32_t)y.words.lo,b1=y.words.lo>>32,p=a0*b0,t=a1*b0+(p>>32),u=a0*b1+(uint32_t)t;r.words.lo=(u<<32)|(uint32_t)p;r.words.hi=a1*b1+(t>>32)+(u>>32)+x.words.lo*y.words.hi+x.words.hi*y.words.lo;return r.value;}
 wide_t __lshrti3(wide_t value,int n){wide_words x={.value=value},r;if(n<=0)return value;if(n>=128){r.words.lo=0;r.words.hi=0;}else if(n>=64){r.words.lo=x.words.hi>>(n-64);r.words.hi=0;}else{r.words.lo=(x.words.lo>>n)|(x.words.hi<<(64-n));r.words.hi=x.words.hi>>n;}return r.value;}
@@ -151,7 +157,7 @@ def main():
    for imp in desc.imports:imports[imp.address-preferred]=desc.dll.decode()+'!'+(imp.name.decode() if imp.name else '#'+str(imp.ordinal))
  cases=[];observed=set();boundaries=[];sar_fixture=[None]
  for image_base in [0x2000000,0x16000000]:
-  for variant in range(4):
+  for variant in range(9):
    image=bytearray(original)
    for block in pe.DIRECTORY_ENTRY_BASERELOC:
     for rel in block.entries:
@@ -217,6 +223,12 @@ def main():
    if variant==3:
     if sar_fixture[0] is None:raise RuntimeError('Reached SAR fixture missing')
     entry_rva=sar_fixture[0][0];values[9]=0x8000000000000001;values[1]=1
+   division_fault=variant in [7,8]
+   if variant>=4:
+    entry_rva=0x4f060f
+    assert pe.get_data(entry_rva,3)==bytes.fromhex('41f7f0'),'Pinned DIV R8D changed'
+    dividend_cases={4:(0xabcdef01ffffffff,0xdeadbeef00000000,3),5:(0x12345678,1,2),6:(0xfedcba98,0x1234,0x1235),7:(123,0,0),8:(0,2,2)}
+    values[0],values[2],values[8]=dividend_cases[variant]
    for reg,value in zip(REGS,values):uc.reg_write(getattr(x,'UC_X86_REG_'+reg),value)
    xmm=[((i+1)*0x01010101010101010101010101010101)&((1<<128)-1) for i in range(16)]
    for i,value in enumerate(xmm):uc.reg_write(getattr(x,'UC_X86_REG_XMM'+str(i)),value)
@@ -605,6 +617,8 @@ def main():
      emu.reg_write(x.UC_X86_REG_RSP,rsp+8);emu.reg_write(x.UC_X86_REG_RIP,ret);return
     rva=address-image_base
     if not 0<=rva<size:raise RuntimeError(f'Unexpected target {address:#x}')
+    if variant>=4 and rva==0x4f0612:
+     boundary.update(rva=rva,service='Unsigned-division fixture stop');emu.emu_stop();return
     if variant==2 and rva==0x12df21:
      boundary.update(rva=rva,service='SIMD fixture stop');emu.emu_stop();return
     if variant==3 and rva==sar_fixture[0][0]+sar_fixture[0][1]:
@@ -652,7 +666,8 @@ def main():
     instruction=str(ctx.disassemble(pe.get_data(rva,16),base_address=preferred+rva,max_instructions=1).instructions[0])
     mnemonic=instruction.split(': ',1)[1].split(' ',1)[0]
     if mnemonic=='SAR' and 'R9' in instruction and sar_fixture[0] is None:sar_fixture[0]=(rva,n)
-    if mnemonic in ['ADD','SUB','CMP','ADC','SBB','NEG']:defined_flags[0]=0x8d5
+    if mnemonic=='DIV':defined_flags[0]=0
+    elif mnemonic in ['ADD','SUB','CMP','ADC','SBB','NEG']:defined_flags[0]=0x8d5
     elif mnemonic in ['INC','DEC']:defined_flags[0]=(defined_flags[0]&1)|0x8d4
     elif mnemonic in ['TEST','AND','OR','XOR']:defined_flags[0]=0x8c5
     elif mnemonic in ['SHL','SHR','SAR','SHLD','SHRD']:defined_flags[0]&=~0x810
@@ -662,9 +677,14 @@ def main():
    uc.hook_add(unicorn.UC_HOOK_CODE,hook)
    try:uc.emu_start(image_base+entry_rva,0,count=50001)
    except unicorn.UcError as error:
-    fault=uc.reg_read(x.UC_X86_REG_RIP)
-    recent=[str(ctx.disassemble(bytes(uc.mem_read(image_base+i,16)),base_address=preferred+i,max_instructions=1).instructions[0]) for i in trace[-6:]]
-    raise RuntimeError(f'Native path fault at {fault:#x}; recent {recent}: {error}') from error
+    if division_fault:
+     assert error.errno==unicorn.UC_ERR_EXCEPTION and uc.reg_read(x.UC_X86_REG_RIP)==image_base+entry_rva
+     boundary.update(rva=entry_rva,service='Unsigned-division fault fixture',kind='division-error');trace=[];defined_flags[0]=0x8d5
+    else:
+     fault=uc.reg_read(x.UC_X86_REG_RIP)
+     recent=[str(ctx.disassemble(bytes(uc.mem_read(image_base+i,16)),base_address=preferred+i,max_instructions=1).instructions[0]) for i in trace[-6:]]
+     raise RuntimeError(f'Native path fault at {fault:#x}; recent {recent}: {error}') from error
+   if division_fault and not boundary:raise RuntimeError('Expected native division exception missing')
    if import_snapshot:
     for reg,value in import_snapshot:uc.reg_write(reg,value)
     if trace and trace[-1]==boundary['rva']:trace.pop()
@@ -681,7 +701,7 @@ def main():
     start=at
     while at<size and final[at]!=image[at]:at+=1
     changes.append({'rva':start,'hex':final[start:at].hex()})
-   cases.append({'imageBase':image_base,'entryRva':entry_rva,'initialTimestamp':initial_timestamp,'initial':[hex(v) for v in values],'initialXmm':[hex(v) for v in xmm],'flags':flags,
+   cases.append({'expectedFault':5 if division_fault else None,'imageBase':image_base,'entryRva':entry_rva,'initialTimestamp':initial_timestamp,'initial':[hex(v) for v in values],'initialXmm':[hex(v) for v in xmm],'flags':flags,
      'expected':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+r))) for r in REGS],
      'expectedXmm':[hex(uc.reg_read(getattr(x,'UC_X86_REG_XMM'+str(i)))) for i in range(16)],
      'expectedFlags':uc.reg_read(x.UC_X86_REG_EFLAGS),'definedFlagsMask':defined_flags[0],'stopRva':boundary['rva'],'steps':len(trace),
