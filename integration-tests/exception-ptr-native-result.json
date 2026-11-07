@@ -1,0 +1,22 @@
+{
+  "status": "EMPTY_EXCEPTION_PTR_NATIVE_PASS",
+  "pointerBytes": 8,
+  "storageBytes": 16,
+  "symbols": {
+    "create": "?__ExceptionPtrCreate@@YAXPEAX@Z",
+    "destroy": "?__ExceptionPtrDestroy@@YAXPEAX@Z",
+    "copy": "?__ExceptionPtrCopy@@YAXPEAXPEBX@Z",
+    "assign": "?__ExceptionPtrAssign@@YAXPEAXPEBX@Z",
+    "toBool": "?__ExceptionPtrToBool@@YA_NPEBX@Z"
+  },
+  "observed": {
+    "createHex": "00000000000000000000000000000000",
+    "emptyBool": false,
+    "copyHex": "00000000000000000000000000000000",
+    "assignHex": "00000000000000000000000000000000",
+    "selfAssignHex": "00000000000000000000000000000000",
+    "destroyHex": "00000000000000000000000000000000"
+  },
+  "guardsPreserved": true,
+  "nonEmptyExceptionsTested": false
+}
