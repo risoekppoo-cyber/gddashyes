@@ -678,7 +678,7 @@ def main():
     worker_cpu=allocate(4096,True);tib=allocate(0x4000,True);stack_base=allocate(65536,True);stack_size=65536;sp=((stack_base+stack_size-64)//16)*16-8
     current_id=2;worker_mode=True;tls_array=tib+0x1000;tls_data=tib+0x2000
     for offset,value in [(8,stack_base+stack_size),(16,stack_base),(0x30,tib),(0x40,1),(0x48,current_id),(0x58,tls_array)]:uc.mem_write(tib+offset,value.to_bytes(8,'little'))
-    uc.mem_write(tls_array,tls_data.to_bytes(8,'little'));uc.mem_write(tls_data,bytes(image[tls_rva:tls_rva+tls_size]));uc.mem_write(sp,(0x70000ff0).to_bytes(8,'little'))
+    uc.mem_write(tls_array,tls_data.to_bytes(8,'little'));uc.mem_write(tls_data,bytes(image[tls_rva:tls_rva+tls_size]));uc.mem_write(sp,(0x120ff0).to_bytes(8,'little'))
     values=[0]*16;values[1]=worker_argument;values[4]=sp
     for reg,value in zip(REGS,values):uc.reg_write(getattr(x,'UC_X86_REG_'+reg),value)
     for i in range(16):uc.reg_write(getattr(x,'UC_X86_REG_XMM'+str(i)),0)
@@ -701,7 +701,7 @@ def main():
      start=at
      while at<size and final[at]!=image[at]:at+=1
      changes.append({'rva':start,'hex':final[start:at].hex()})
-    cases[-1]['worker']={'id':2,'cpu':worker_cpu,'tib':tib,'stack':stack_base,'entryRva':worker_entry-image_base,'argument':hex(worker_argument),'returnAddress':'0x70000ff0','boundary':boundary,'steps':len(trace),'expected':[hex(n) for n in expected],'expectedXmm':[hex(n) for n in expected_xmm],'expectedFlags':expected_flags,'definedFlagsMask':defined_flags[0],'dllChanges':changes,'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'serviceCalls':service_calls,'threadNames':list(thread_names.items()),'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()]}
+    cases[-1]['worker']={'id':2,'cpu':worker_cpu,'tib':tib,'stack':stack_base,'entryRva':worker_entry-image_base,'argument':hex(worker_argument),'returnAddress':'0x120ff0','boundary':boundary,'steps':len(trace),'expected':[hex(n) for n in expected],'expectedXmm':[hex(n) for n in expected_xmm],'expectedFlags':expected_flags,'definedFlagsMask':defined_flags[0],'dllChanges':changes,'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'serviceCalls':service_calls,'threadNames':list(thread_names.items()),'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()]}
     print(json.dumps({'workerBoundary':boundary,'steps':len(trace),'imageBase':hex(image_base)}),flush=True)
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)
