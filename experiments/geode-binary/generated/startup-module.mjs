@@ -11,14 +11,22 @@ export async function instantiateStartupLift(bytes,memory,{stackTop=0x900000,sta
   }p=end;
  }
  const module=await WebAssembly.compile(bytes),imports=WebAssembly.Module.imports(module);
- const hasWriteGuard=imports.some(i=>i.name==='code_write');
- if(imports.length!==(hasWriteGuard?3:2)||hasWriteGuard&&typeof codeWrite!=='function'||!imports.every(i=>i.module==='env'&&(i.name==='memory'&&i.kind==='memory'||['lift_fault','code_write'].includes(i.name)&&i.kind==='function')))
+ const seen=new Set();
+ for(const i of imports){
+  const kind=i.name==='memory'?'memory':i.name==='lift_fault'||i.name==='code_write'?'function':undefined;
+  if(i.module!=='env'||i.kind!==kind||seen.has(i.name))throw Error('Unexpected startup module imports');
+  seen.add(i.name);
+ }
+ if(!seen.has('memory')||!seen.has('lift_fault')||seen.has('code_write')&&typeof codeWrite!=='function')
   throw Error('Unexpected startup module imports');
+ if(globals&&(!Number.isSafeInteger(stackTop)||!Number.isSafeInteger(stackSize)||stackSize<=0||stackTop<stackSize||stackTop>memory.buffer.byteLength||stackTop%16))
+  throw Error('Missing compiler stack export or invalid reservation');
  const instance=await WebAssembly.instantiate(module,{env:{memory,code_write:codeWrite,lift_fault(code,address,pc){throw Error(`Startup lift fault ${code} at 0x${address.toString(16)}, PC 0x${pc.toString(16)}`);}}});
  if(globals){
   const pointer=instance.exports.__stack_pointer;
-  if(!(pointer instanceof WebAssembly.Global)||!Number.isInteger(stackTop)||stackTop>memory.buffer.byteLength||stackTop-stackSize<0||stackTop%16)throw Error('Missing compiler stack export or invalid reservation');
+  if(!(pointer instanceof WebAssembly.Global))throw Error('Missing compiler stack export or invalid reservation');
   pointer.value=stackTop;
  }
  return instance;
 }
+
