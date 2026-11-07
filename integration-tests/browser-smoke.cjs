@@ -8,11 +8,12 @@ const fs=require('node:fs');
  page.on('console',m=>{if(m.type()==='error')events.push(m.text().slice(0,800));});
  const started=Date.now();
  try{
-  await page.goto('http://127.0.0.1:8765/experiments/geode-binary/handoff/?quality=low',{timeout:60000,waitUntil:'domcontentloaded'});
+  await page.addInitScript(()=>{window.WestminsterGeodeDllBytes=fetch('/integration-input/Geode.dll').then(r=>{if(!r.ok)throw Error('Fixture DLL HTTP '+r.status);return r.arrayBuffer();});});
+  await page.goto('http://127.0.0.1:8765/experiments/geode-binary/handoff/?quality=low&geodemap=1',{timeout:60000,waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>{
    const r=window.WestminsterHandoffReport;
    if(r?.status==='HANDOFF_STOPPED')throw Error(r.error);
-   return r?.status==='LIVE_CALLBACK_PROLOGUE_PASS'&&r.gameFrames>=120;
+   return r?.status==='LIVE_DLL_MAPPING_PROLOGUE_PASS'&&r.gameFrames>=120;
   },{},{timeout:360000});
   const result=await page.evaluate(()=>{
    const r=JSON.parse(JSON.stringify(window.WestminsterHandoffReport)),images=[];
@@ -26,7 +27,7 @@ const fs=require('node:fs');
    }
    return {report:r,images,jspi:typeof WebAssembly.Suspending==='function'};
   });
-  if(!result.report.originalGameCpuPreserved||!result.report.liveStackRestored)throw Error('CPU/stack preservation failed');
+  if(!result.report.originalGameCpuPreserved||!result.report.liveStackRestored||!result.report.dllMappedIntoLiveGame||!result.report.dllReservation.active)throw Error('DLL mapping or CPU/stack preservation failed');
   fs.writeFileSync('browser-result.json',JSON.stringify({...result,seconds:(Date.now()-started)/1000,events},null,2));
   console.log(JSON.stringify(result,null,2));
  }catch(error){

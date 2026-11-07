@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Geode DLL mapping check</title><body style="background:#101b2b;color:#eaffdd;font:16px system-ui;padding:30px;max-width:700px">
+<h1>Geode DLL mapping check</h1><p>Select Geode.dll from the official Windows Geode 6.0.0-alpha.1 release. The DLL stays in your browser.</p>
+<p>This maps the DLL into allocator-owned game memory and runs only the callback prologue. Loader initialization and existing mod packages are still unsupported.</p>
+<input id="dll" type="file" accept=".dll"><p id="status"></p>
+<script type="module">
+document.getElementById('dll').onchange=async event=>{
+ try{
+  const file=event.target.files[0];if(!file)return;
+  const input=await file.arrayBuffer();
+  const {prepareGeodeImage}=await import('../owned-image.mjs');await prepareGeodeImage(input);
+  window.WestminsterGeodeDllBytes=Promise.resolve(input);
+  const url=new URL('../handoff/',location.href);url.searchParams.set('geodemap','1');url.searchParams.set('quality','low');
+  history.replaceState(null,'',url);
+  const response=await fetch(new URL('index.html',url));if(!response.ok)throw Error('Handoff page HTTP '+response.status);
+  const html=await response.text();document.open();document.write(html);document.close();
+ }catch(error){document.getElementById('status').textContent=error.message;}
+};
+</script></body></html>

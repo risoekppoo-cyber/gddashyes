@@ -13,6 +13,13 @@
   report.sourceDllSha256=m.dllSha256;report.gameModuleSha256=m.gameSha256;
   if(prototype.TARGETS.some(t=>t.id==='startup'))throw Error('Duplicate startup hook');prototype.TARGETS.push({...m.gameTarget,name:'Geode deferred startup target'});
   const prepared=await prototype.patch(bytes),out=await WebAssembly.instantiate(prepared.bytes,imports),e=out.instance.exports,aux=await helper.instantiateStartupLift(prologue,e.memory);
+  const mapRequested=new URLSearchParams(location.search).get('geodemap')==='1';
+  let mapHelper,preparedImage,mappedImage;
+  if(mapRequested){
+   if(!root.WestminsterGeodeDllBytes)throw Error('Select the pinned DLL on the mapped check page first');
+   mapHelper=await import(new URL('../owned-image.mjs',base).href);
+   preparedImage=await mapHelper.prepareGeodeImage(await root.WestminsterGeodeDllBytes);
+  }
   let observed=false;
   await prototype.install(out.instance,prepared.targets,{before(target,cpu){if(target.id!=='startup'||observed)return;
    const initial=new DataView(e.memory.buffer),resume=initial.getUint32(346324656,true);if(resume&&resume!==m.gameTarget.address)return;observed=true;
@@ -21,15 +28,26 @@
    try{
     const guestBase=initial.getUint32(346225600,true),sp=initial.getBigUint64(cpu+32,true);if(sp<512n||sp>0xffffffffn)throw Error('Unsupported live stack pointer');stackLinear=guestBase+Number(sp)-512;
     if(stackLinear<0||stackLinear+544>e.memory.buffer.byteLength)throw Error('Live stack bounds');
+    let imageBase=0x2000000;
+    if(mapRequested){
+     mappedImage=mapHelper.mapOwnedGeodeImage(preparedImage,e,guestBase,[[cpu,cpu+208],[stackLinear,stackLinear+544]]);
+     imageBase=mappedImage.image.imageBase;
+     report.dllMappedIntoLiveGame=true;report.dllReservation=mappedImage.reservation;
+     report.unresolvedImportCount=mappedImage.image.unresolvedImports.length;
+     report.dllRelocations=mappedImage.image.relocationCount;
+     root.addEventListener('pagehide',()=>{mappedImage.release();report.dllReservation.active=false;},{once:true});
+    }
     shadow=e.malloc(4096);compiler=e.malloc(65536);if(!shadow||!compiler)throw Error('Could not reserve isolated translator state');
     if([[shadow,4096],[compiler,65536]].some(([p,n])=>p<stackLinear+544&&p+n>stackLinear))throw Error('Translator allocation overlaps live stack');
     report.memoryLayout={memoryBytes:e.memory.buffer.byteLength,guestBase,cpuLinear:cpu,cpuSnapshotBytes:208,stackWindowLinear:[stackLinear,stackLinear+544],shadowLinear:[shadow,shadow+4096],compilerLinear:[compiler,compiler+65536],guestReservationVerified:false};
     const v=new DataView(e.memory.buffer);saved=new Uint8Array(e.memory.buffer,stackLinear,544).slice();const cpuBefore=new Uint8Array(e.memory.buffer,cpu,208).slice();new Uint8Array(e.memory.buffer,shadow,4096).fill(0);new Uint8Array(e.memory.buffer,shadow,128).set(cpuBefore.subarray(0,128));
     for(const [from,to] of [[160,2560],[162,2562],[164,2564],[166,2566],[167,2567],[171,2571]])v.setUint8(shadow+to,v.getUint8(cpu+from));
     if(!(aux.exports.__stack_pointer instanceof WebAssembly.Global))throw Error('Missing isolated compiler stack');aux.exports.__stack_pointer.value=(compiler+65536)&~15;
-    const result=aux.exports.lift_run(shadow,BigInt(m.entry),0x2000000n,guestBase,BigInt(m.stop),32)>>>0;
-    if((result&0x7fffffff)!==14||v.getBigUint64(shadow+192,true)!==BigInt(m.stop))throw Error('Deferred prologue did not stop before its first call');
-    report.callbackPrologueExecuted=true;report.instructions=14;report.stoppedBeforeFirstCall=true;report.liveGuestBase='0x'+guestBase.toString(16);report.liveStack='0x'+sp.toString(16);report.gameStartupTarget='0x'+m.gameTarget.address.toString(16);report.callbackStop='0x'+m.stop.toString(16);report.arguments=[8,16,64,72].map(o=>'0x'+v.getBigUint64(cpu+o,true).toString(16));report.sharedGameMemory=true;
+    const entry=BigInt(imageBase+m.entry-0x2000000),stop=BigInt(imageBase+m.stop-0x2000000);
+    if(mapRequested){const code=new Uint8Array(e.memory.buffer,guestBase+Number(entry),m.nativeBytesHex.length/2);if(Array.from(code,x=>x.toString(16).padStart(2,'0')).join('')!==m.nativeBytesHex)throw Error('Mapped callback instruction bytes mismatch');}
+    const result=aux.exports.lift_run(shadow,entry,BigInt(imageBase),guestBase,stop,32)>>>0;
+    if((result&0x7fffffff)!==14||v.getBigUint64(shadow+192,true)!==stop)throw Error('Deferred prologue did not stop before its first call');
+    report.callbackPrologueExecuted=true;report.instructions=14;report.stoppedBeforeFirstCall=true;report.liveGuestBase='0x'+guestBase.toString(16);report.liveStack='0x'+sp.toString(16);report.gameStartupTarget='0x'+m.gameTarget.address.toString(16);report.callbackStop='0x'+stop.toString(16);report.arguments=[8,16,64,72].map(o=>'0x'+v.getBigUint64(cpu+o,true).toString(16));report.sharedGameMemory=true;
     if(!cpuBefore.every((b,i)=>new Uint8Array(e.memory.buffer)[cpu+i]===b))throw Error('Original game CPU changed');report.originalGameCpuPreserved=true;
     succeeded=true;
    }catch(error){remember(error);}finally{
@@ -37,8 +55,9 @@
     catch(error){remember(error);}
     for(const ptr of [shadow,compiler])if(ptr){try{if(typeof e.free!=='function')throw Error('Missing game allocator free');e.free(ptr);}catch(error){remember(error);}}
     if(succeeded&&!failed&&report.liveStackRestored!==true)remember(Error('Live stack not restored'));
+    if(failed&&mappedImage){try{mappedImage.release();report.dllReservation.active=false;report.dllMappedIntoLiveGame=false;}catch(error){remember(error);}}
     if(failed)fail(firstError);
-    else if(succeeded)report.status='LIVE_CALLBACK_PROLOGUE_PASS';
+    else if(succeeded)report.status=mapRequested?'LIVE_DLL_MAPPING_PROLOGUE_PASS':'LIVE_CALLBACK_PROLOGUE_PASS';
     update();
    }
   }});

@@ -5,6 +5,8 @@ on:
       - '.github/workflows/geode-integration.yml'
       - 'integration-tests/**'
       - 'experiments/geode-binary/handoff/**'
+      - 'experiments/geode-binary/owned-image.mjs'
+      - 'experiments/geode-binary/mapped/**'
       - 'experiments/geode-binary/generated/startup-module.mjs'
   workflow_dispatch:
 permissions:
@@ -31,6 +33,9 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Run real game handoff
         run: |
+          mkdir -p integration-input
+          python3 experiments/geode-binary/fetch-startup-dll.py integration-input/Geode.dll
+          node integration-tests/owned-image.mjs
           python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/gd-http.log 2>&1 &
           node integration-tests/browser-smoke.cjs
       - uses: actions/upload-artifact@v4

@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {prepareGeodeImage,mapOwnedGeodeImage} from '../experiments/geode-binary/owned-image.mjs';
+const bytes=await readFile(new URL('../integration-input/Geode.dll',import.meta.url));
+const prepared=await prepareGeodeImage(bytes),memory=new WebAssembly.Memory({initial:512}),freed=[];
+let calls=0;
+const e={memory,malloc(n){calls++;assert.equal(n,17035264+65535);return 0x100008;},free(p){freed.push(p);}};
+assert.throws(()=>mapOwnedGeodeImage(prepared,e,1),/identity/);assert.equal(calls,0);
+assert.throws(()=>mapOwnedGeodeImage(prepared,e,0,[[0x100008,0x100009]]),/overlaps/);
+assert.equal(freed.length,1);
+const mapped=mapOwnedGeodeImage(prepared,e,0);
+assert.equal(mapped.image.size,17035264);assert.equal(mapped.image.imageBase,0x110000);
+assert.equal(mapped.image.relocationCount,56939);assert.equal(mapped.image.imports.length,2009);
+assert.equal(mapped.image.initializationExecuted,false);
+mapped.release();mapped.release();assert.equal(freed.length,2);
+const corrupt=bytes.slice();corrupt[0]^=1;await assert.rejects(()=>prepareGeodeImage(corrupt),/pinned/);
+console.log('PASS: hash-pinned real DLL, allocator-owned rebasing, imports, overlap rejection and single release');
