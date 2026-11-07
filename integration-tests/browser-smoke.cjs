@@ -32,6 +32,8 @@ const fs=require('node:fs');
   if(capture){
    const headers=await page.evaluate(()=>{const base=0x400000,memory=window.__testGameMemory,b=new Uint8Array(memory.buffer,base,4096),v=new DataView(b.buffer,b.byteOffset,b.byteLength);if(v.getUint16(0,true)!==0x5a4d)throw Error('Live game DOS header missing');const pe=v.getUint32(0x3c,true);if(pe>3500||v.getUint32(pe,true)!==0x4550)throw Error('Live game PE header missing');return {base,imageSize:v.getUint32(pe+80,true),gameWasmSha256:window.WestminsterHandoffReport.gameModuleSha256,hex:Array.from(b,x=>x.toString(16).padStart(2,'0')).join('')};});
    fs.writeFileSync('integration-input/game-headers.json',JSON.stringify(headers,null,2));console.log('GAME_HEADERS_FIXTURE '+JSON.stringify(headers));
+   const cocos=await page.evaluate(async()=>{const {inspectCocos}=await import('/experiments/geode-binary/game-imports.mjs');return {...inspectCocos(window.__testGameMemory,Module.FS),gameWasmSha256:window.WestminsterHandoffReport.gameModuleSha256};});
+   fs.writeFileSync('integration-input/cocos-binding.json',JSON.stringify(cocos,null,2));console.log('COCOS_BINDING_FIXTURE '+JSON.stringify(cocos));
   }
   fs.writeFileSync('browser-result.json',JSON.stringify({...result,seconds:(Date.now()-started)/1000,events},null,2));
   console.log(JSON.stringify(result,null,2));
