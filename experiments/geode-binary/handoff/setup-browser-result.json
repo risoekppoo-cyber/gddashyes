@@ -7,7 +7,7 @@
     "deferredLoaderInitialized": false,
     "callbackPrologueExecuted": true,
     "callbackPrologueOnly": false,
-    "gameFrames": 120,
+    "gameFrames": 125,
     "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
     "sourceDllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
     "gameModuleSha256": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
@@ -22,7 +22,7 @@
       "linearEnd": 374665216,
       "active": true
     },
-    "unresolvedImportCount": 1943,
+    "unresolvedImportCount": 1941,
     "dllRelocations": 56939,
     "memoryLayout": {
       "memoryBytes": 377487360,
@@ -43,12 +43,12 @@
       ],
       "guestReservationVerified": false
     },
-    "instructions": 12056,
+    "instructions": 12193,
     "stoppedBeforeFirstCall": false,
     "liveGuestBase": "0x0",
     "liveStack": "0x13efefe0",
     "gameStartupTarget": "0xa74a90",
-    "callbackStop": "0x15a09408",
+    "callbackStop": "0x159fd7ae",
     "arguments": [
       "0x400000",
       "0x0",
@@ -56,10 +56,10 @@
       "0xa"
     ],
     "sharedGameMemory": true,
-    "nextRequiredService": "KERNEL32.dll!CreateIoCompletionPort",
-    "nextBoundaryKind": "service-call",
+    "nextRequiredService": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
+    "nextBoundaryKind": "import-address-read",
     "nextServiceArguments": [
-      "0xffffffffffffffff",
+      "0x0",
       "0x0",
       "0x0",
       "0x0"
@@ -275,6 +275,8 @@
       "InitializeConditionVariable",
       "malloc",
       "malloc",
+      "malloc",
+      "CreateIoCompletionPort",
       "malloc"
     ],
     "staticTlsTemplateInitialized": true,
@@ -364,6 +366,6 @@
     }
   ],
   "jspi": true,
-  "seconds": 17.326,
+  "seconds": 14.902,
   "events": []
 }
