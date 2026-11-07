@@ -165,7 +165,7 @@ def main():
    console=['GetStdHandle','GetConsoleMode','SetConsoleMode','AttachConsole']
    stdio=['__acrt_iob_func','_fileno','_dup','_fdopen','_get_osfhandle','_close']
    pipe_services=['CreateNamedPipeW','ReadFile','WriteFile','GetOverlappedResult','freopen_s','_write']
-   critical_names=['InitializeCriticalSection','EnterCriticalSection','LeaveCriticalSection','TryEnterCriticalSection','DeleteCriticalSection']
+   critical_names=['InitializeCriticalSection','EnterCriticalSection','LeaveCriticalSection','TryEnterCriticalSection','DeleteCriticalSection','InitializeConditionVariable','WakeConditionVariable']
    services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','powf','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services+critical_names)}
    def bound(name):return name.split('!')[-1] in services or name in external
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],external.get(name,0)).to_bytes(8,'little')
@@ -257,6 +257,10 @@ def main():
      elif name=='GetLastError':emu.reg_write(x.UC_X86_REG_RAX,int.from_bytes(emu.mem_read(tib+0x68,4),'little'))
      elif name=='GetCurrentThreadId':emu.reg_write(x.UC_X86_REG_RAX,1)
      elif name=='GetCurrentProcessId':emu.reg_write(x.UC_X86_REG_RAX,1)
+     elif name in ['InitializeConditionVariable','WakeConditionVariable']:
+      if ptr%8:raise RuntimeError('Unaligned native condition variable')
+      if name=='InitializeConditionVariable':emu.mem_write(ptr,b'\0'*8)
+      elif int.from_bytes(emu.mem_read(ptr,8),'little'):raise RuntimeError('Native condition-variable waiter dispatch needs a scheduler')
      elif name in critical_names:
       if ptr%8:raise RuntimeError('Unaligned native critical section')
       entry=critical_state.get(ptr);result=None
