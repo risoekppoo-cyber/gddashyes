@@ -161,7 +161,8 @@ def main():
    file_services=['CreateFileW','GetFinalPathNameByHandleW','CloseHandle','SetCurrentDirectoryW','GetCurrentDirectoryW']
    lifecycle=['_initialize_onexit_table','_register_onexit_function','_execute_onexit_table','WakeAllConditionVariable']
    console=['GetStdHandle','GetConsoleMode','SetConsoleMode','AttachConsole']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','RaiseException']+console)}
+   stdio=['__acrt_iob_func','_fileno','_dup','_fdopen','_get_osfhandle','_close']
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','RaiseException']+console+stdio+['GetCurrentProcessId'])}
    def bound(name):return name.split('!')[-1] in services or name in external
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],external.get(name,0)).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
@@ -194,6 +195,7 @@ def main():
    uc.mem_map(tib,0x10000)
    uc.mem_write(tib+0x58,tls_array.to_bytes(8,'little'));uc.mem_write(tls_array,tls_data.to_bytes(8,'little'))
    uc.mem_write(tib+0x48,(1).to_bytes(8,'little'))
+   uc.mem_write(tib+0x40,(1).to_bytes(8,'little'))
    uc.mem_write(tls_data,bytes(image[tls_rva:tls_rva+tls_size]))
    uc.mem_write(image_base+tls.AddressOfIndex-preferred,b'\0'*4)
    uc.reg_write(x.UC_X86_REG_GS_BASE,tib)
@@ -215,6 +217,7 @@ def main():
    onexit={image_base+0xfb1960:{'callbacks':[],'buffer':0,'capacity':0}}
    uc.mem_write(image_base+0xfb1960,b'\0'*24)
    trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000];cwd=['C:\\GeometryDash'];thread_names={}
+   stdio_state={'base':0,'streams':{},'fds':{},'nextHandle':0x61000010}
    def memory_write(emu,_access,address,n,_value,_):
     if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
    uc.hook_add(unicorn.UC_HOOK_MEM_WRITE,memory_write)
@@ -247,6 +250,34 @@ def main():
      elif name=='SetLastError':emu.mem_write(tib+0x68,(ptr&0xffffffff).to_bytes(4,'little'))
      elif name=='GetLastError':emu.reg_write(x.UC_X86_REG_RAX,int.from_bytes(emu.mem_read(tib+0x68,4),'little'))
      elif name=='GetCurrentThreadId':emu.reg_write(x.UC_X86_REG_RAX,1)
+     elif name=='GetCurrentProcessId':emu.reg_write(x.UC_X86_REG_RAX,1)
+     elif name in stdio:
+      if not stdio_state['base']:
+       stdio_state['base']=allocate(3*88,True)
+       for fd in range(3):
+        stdio_state['streams'][stdio_state['base']+fd*88]=fd
+        stdio_state['fds'][fd]={'channel':fd,'handle':0x61000000+fd}
+      if name=='__acrt_iob_func':
+       index=ptr&0xffffffff
+       if index>2:raise RuntimeError('Unsupported native stdio index')
+       result=stdio_state['base']+index*88
+      elif name=='_fileno':
+       if ptr not in stdio_state['streams']:raise RuntimeError('Unowned native FILE identity')
+       result=stdio_state['streams'][ptr]
+      else:
+       fd=ptr&0xffffffff;fd=fd-(1<<32) if fd>>31 else fd;entry=stdio_state['fds'].get(fd)
+       if entry is None:result=0 if name=='_fdopen' else (1<<64)-1 if name=='_get_osfhandle' else 0xffffffff
+       elif name=='_dup':
+        next_fd=3
+        while next_fd in stdio_state['fds']:next_fd+=1
+        stdio_state['fds'][next_fd]={'channel':entry['channel'],'handle':stdio_state['nextHandle']};stdio_state['nextHandle']+=1;result=next_fd
+       elif name=='_get_osfhandle':result=entry['handle']
+       elif name=='_close':del stdio_state['fds'][fd];result=0
+       else:
+        pointer=emu.reg_read(x.UC_X86_REG_RDX);mode=bytes(emu.mem_read(pointer,4)).split(b'\0',1)[0]
+        if mode not in [b'w',b'wb',b'wt']:raise RuntimeError('Unsupported native fdopen mode')
+        result=allocate(88,True);stdio_state['streams'][result]=fd
+      emu.reg_write(x.UC_X86_REG_RAX,result)
      elif name in console:
       result=0;error=0
       if name=='GetStdHandle':
@@ -510,7 +541,8 @@ def main():
      'tib':tib,'tlsArray':tls_array,'tlsData':tls_data,'tlsHex':bytes(uc.mem_read(tls_data,tls_size+tls.SizeOfZeroFill)).hex(),
      'serviceCalls':service_calls,'stackBelow':sp-min([a for a,b in writes]+[sp]),'stackAbove':max([b for a,b in writes]+[sp])-sp,
      'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex() if heap_at[0]>0x1800000 else '',
-     'onexitCallbacks':[str(callback) for table in onexit.values() for callback in table['callbacks']],'threadNames':list(thread_names.items())})
+     'onexitCallbacks':[str(callback) for table in onexit.values() for callback in table['callbacks']],'threadNames':list(thread_names.items()),
+     'stdioState':{'streams':[[str(p),fd] for p,fd in stdio_state['streams'].items()],'fds':[[fd,d['channel'],str(d['handle'])] for fd,d in stdio_state['fds'].items()]}})
    boundaries.append(boundary)
  lifter=WideLifter(pe)
  for rva in sorted(observed):lifter.add(preferred+rva)

@@ -31,6 +31,7 @@ for(const [index,c] of manifest.cases.entries()){
  new Uint8Array(memory.buffer,c.tib,0x10000).fill(0);
  v.setBigUint64(c.tib+0x58,BigInt(c.tlsArray),true);v.setBigUint64(c.tlsArray,BigInt(c.tlsData),true);
  v.setBigUint64(c.tib+0x48,1n,true);
+ v.setBigUint64(c.tib+0x40,1n,true);
  v.setBigUint64(cpu+manifest.gsOffset,BigInt(c.tib),true);
  const t=manifest.tls;
  new Uint8Array(memory.buffer,c.tlsData,t.templateSize).set(new Uint8Array(memory.buffer,c.imageBase+t.templateRva,t.templateSize));
@@ -55,6 +56,7 @@ for(const [index,c] of manifest.cases.entries()){
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,0x1800000,c.heapHex.length/2),Buffer.from(c.heapHex,'hex')),0,`case ${index} heap`);
  assert.deepEqual([...services.onexit.values()].flatMap(t=>t.callbacks).map(String),c.onexitCallbacks,`case ${index} exit callback registrations`);
  assert.deepEqual([...services.threadNames],c.threadNames,`case ${index} delivered thread names`);
+ assert.deepEqual(services.stdioSnapshot(),c.stdioState,`case ${index} stdio object and descriptor ownership`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,gh.base,4096),Buffer.from(gh.hex,'hex')),0,`case ${index} primary game headers`);
  assert.equal(Buffer.compare(Buffer.from(memory.buffer,cc.pageBase,4096),Buffer.from(cc.pageHex,'hex')),0,`case ${index} Cocos code`);
 }
