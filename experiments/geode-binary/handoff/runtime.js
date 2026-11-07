@@ -59,6 +59,8 @@
     if(setupResult){report.instructions=setupResult.steps;report.stoppedBeforeFirstCall=false;report.callbackPrologueOnly=false;report.callbackStop='0x'+setupResult.stop.toString(16);report.nextRequiredService=setupResult.service;report.nextBoundaryKind=setupContext.metadata.nextBoundaryKind||'service-call';report.nextServiceArguments=setupResult.nextArguments;report.executedServices=setupResult.calls;report.staticTlsTemplateInitialized=true;report.tlsCallbacksExecuted=false;report.crtOnexitTablesInitialized=true;report.pendingExitCallbacks=setupResult.onexitCallbacks;report.bootstrapGameTimestamp=setupContext.metadata.bootstrap.gameTimestamp;report.loaderDiagnostic=setupResult.dialog;report.isolatedSetupStack='0x'+setupResult.isolatedStack.toString(16);}
     if(setupResult&&setupContext.cocos){const c=setupContext.cocos;report.boundGameImports=[{dll:c.dll,name:c.name,address:'0x'+c.address.toString(16),moduleBase:'0x'+c.base.toString(16)}];}
     if(setupResult?.threadNames?.length){report.guestThreadNames=setupResult.threadNames;report.threadNameNotificationHandled=true;}
+    if(setupResult?.pipeRequest)report.pendingPipeRequest=setupResult.pipeRequest;
+    if(setupResult?.stdioState)report.guestStdioDescriptors=setupResult.stdioState.fds;
     if(!cpuBefore.every((b,i)=>new Uint8Array(e.memory.buffer)[cpu+i]===b))throw Error('Original game CPU changed');report.originalGameCpuPreserved=true;
     succeeded=true;
    }catch(error){remember(error);}finally{

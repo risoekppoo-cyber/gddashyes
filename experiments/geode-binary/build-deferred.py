@@ -500,6 +500,16 @@ def main():
        boundary['dialog']={'text':wide_text(emu.reg_read(x.UC_X86_REG_RDX)),'caption':wide_text(emu.reg_read(x.UC_X86_REG_R8))}
       if imports[slot].endswith('!RaiseException'):
        boundary['exception']={'code':hex(emu.reg_read(x.UC_X86_REG_RCX)&0xffffffff),'flags':emu.reg_read(x.UC_X86_REG_RDX)&0xffffffff,'argumentCount':emu.reg_read(x.UC_X86_REG_R8)&0xffffffff}
+      if imports[slot].endswith('!CreateNamedPipeW'):
+       pointer=emu.reg_read(x.UC_X86_REG_RCX);raw=bytearray()
+       for i in range(32768):
+        char=bytes(emu.mem_read(pointer+i*2,2))
+        if char==b'\0\0':break
+        raw.extend(char)
+       else:raise RuntimeError('Unterminated pipe name')
+       rsp=emu.reg_read(x.UC_X86_REG_RSP)
+       boundary['pipeRequest']={'path':raw.decode('utf-16le'),'openMode':emu.reg_read(x.UC_X86_REG_RDX)&0xffffffff,'pipeMode':emu.reg_read(x.UC_X86_REG_R8)&0xffffffff,'maxInstances':emu.reg_read(x.UC_X86_REG_R9)&0xffffffff,
+        'outBufferSize':int.from_bytes(emu.mem_read(rsp+32,4),'little'),'inBufferSize':int.from_bytes(emu.mem_read(rsp+40,4),'little'),'defaultTimeout':int.from_bytes(emu.mem_read(rsp+48,4),'little'),'security':hex(int.from_bytes(emu.mem_read(rsp+56,8),'little'))}
       emu.emu_stop();return
     instruction=str(ctx.disassemble(pe.get_data(rva,16),base_address=preferred+rva,max_instructions=1).instructions[0])
     mnemonic=instruction.split(': ',1)[1].split(' ',1)[0]

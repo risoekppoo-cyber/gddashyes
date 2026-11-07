@@ -48,7 +48,9 @@ class SetupContext{
     if(state.getBigUint64(shadow+192,true)!==stop||steps!==m.steps||this.services.held.size)throw Error('Unexpected setup stop state');
     const dialog=m.nextService==='USER32.dll!MessageBoxW'?{text:this.services.wide(state.getBigUint64(shadow+16,true)),caption:this.services.wide(state.getBigUint64(shadow+64,true))}:undefined;
     if(m.nextDialog&&JSON.stringify(dialog)!==JSON.stringify(m.nextDialog))throw Error('Live loader diagnostic differs from native reference');
-    return {steps,stop,service:m.nextService,dialog,calls:[...this.services.calls],threadNames:[...(this.services.threadNames||[])],tib:this.tib,isolatedStack:this.stackTop,onexitCallbacks:[...this.services.onexit.values()].reduce((n,t)=>n+t.callbacks.length,0),
+    let pipeRequest;
+    if(m.nextPipeRequest){const sp=state.getBigUint64(shadow+32,true);this.services.range(sp,64);const p=Number(sp);pipeRequest={path:this.services.wide(state.getBigUint64(shadow+8,true)),openMode:state.getUint32(shadow+16,true),pipeMode:state.getUint32(shadow+64,true),maxInstances:state.getUint32(shadow+72,true),outBufferSize:state.getUint32(p+32,true),inBufferSize:state.getUint32(p+40,true),defaultTimeout:state.getUint32(p+48,true),security:'0x'+state.getBigUint64(p+56,true).toString(16)};if(JSON.stringify(pipeRequest)!==JSON.stringify(m.nextPipeRequest))throw Error('Live named-pipe request differs from native reference');}
+    return {steps,stop,service:m.nextService,dialog,pipeRequest,calls:[...this.services.calls],threadNames:[...(this.services.threadNames||[])],stdioState:this.services.stdioSnapshot?.(),tib:this.tib,isolatedStack:this.stackTop,onexitCallbacks:[...this.services.onexit.values()].reduce((n,t)=>n+t.callbacks.length,0),
      nextArguments:[8,16,64,72].map(o=>'0x'+state.getBigUint64(shadow+o,true).toString(16))};
    }
    this.services.invoke(shadow,state.getBigUint64(shadow+192,true));pc=state.getBigUint64(shadow+192,true);
