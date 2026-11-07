@@ -1,7 +1,38 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
   "cases": 8,
-  "uniqueInstructions": 5616,
+  "workerCases": 2,
+  "workerBoundaries": [
+    {
+      "imageBase": 33554432,
+      "rva": 10835952,
+      "service": "MSVCP140.dll!?__ExceptionPtrCreate@@YAXPEAX@Z",
+      "iatRva": 15261520,
+      "arguments": [
+        "0x1816750",
+        "0x0",
+        "0x1801168",
+        "0x18167c8"
+      ],
+      "steps": 557,
+      "entryRva": 5241520
+    },
+    {
+      "imageBase": 369098752,
+      "rva": 10835952,
+      "service": "MSVCP140.dll!?__ExceptionPtrCreate@@YAXPEAX@Z",
+      "iatRva": 15261520,
+      "arguments": [
+        "0x1816750",
+        "0x0",
+        "0x1801168",
+        "0x18167c8"
+      ],
+      "steps": 557,
+      "entryRva": 5241520
+    }
+  ],
+  "uniqueInstructions": 5778,
   "boundaries": [
     {
       "rva": 1845494864,
@@ -86,6 +117,6 @@
       "service": "Signed-shift fixture stop"
     }
   ],
-  "wasmSha256": "b54da95666fa2282dcaf7dd934865a8baae12bb8ed1ece341d7212648890becc",
+  "wasmSha256": "d750a935b3b9be3ed53c05ff0acad71a97684fc3e1a34141f876b147b456db7e",
   "fullGeodeLoader": false
 }
