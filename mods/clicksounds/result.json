@@ -23,7 +23,8 @@
         "gain": 0.3700000047683716
       }
     },
-    "voices": 1
+    "voices": 1,
+    "imports": {}
   },
   "keyboard": {
     "settings": {
@@ -47,7 +48,8 @@
         "gain": 0.3700000047683716
       }
     },
-    "voices": 2
+    "voices": 2,
+    "imports": {}
   },
   "inputs": {
     "settings": {
@@ -71,7 +73,8 @@
         "gain": 0.3700000047683716
       }
     },
-    "voices": 2
+    "voices": 2,
+    "imports": {}
   },
   "persisted": {
     "settings": {
@@ -89,9 +92,103 @@
       "preview": 0,
       "last": null
     },
-    "voices": 0
+    "voices": 0,
+    "imports": {}
   },
-  "framesAfter": 58,
-  "sourceCommit": "30b555ec672a383615a9e02113e5ee87e1f63a96",
-  "workflow": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42510043252"
+  "importPreview": {
+    "settings": {
+      "enabled": false,
+      "releases": false,
+      "volume": 37,
+      "press": "custom",
+      "release": "custom"
+    },
+    "loaded": true,
+    "context": "running",
+    "stats": {
+      "press": 0,
+      "release": 0,
+      "preview": 1,
+      "last": {
+        "kind": "Clicks",
+        "sample": "custom",
+        "filename": "my-press.wav",
+        "duration": 0.30151927437641723,
+        "context": "running",
+        "gain": 0.3700000047683716
+      }
+    },
+    "voices": 1,
+    "imports": {
+      "press": {
+        "name": "my-press.wav",
+        "duration": 0.30151927437641723,
+        "bytes": 28990
+      },
+      "release": {
+        "name": "my-release.wav",
+        "duration": 0.30149659863945577,
+        "bytes": 28988
+      }
+    }
+  },
+  "importsReloaded": {
+    "settings": {
+      "enabled": true,
+      "releases": true,
+      "volume": 37,
+      "press": "custom",
+      "release": "custom"
+    },
+    "loaded": true,
+    "context": "running",
+    "stats": {
+      "press": 0,
+      "release": 0,
+      "preview": 0,
+      "last": null
+    },
+    "voices": 0,
+    "imports": {
+      "press": {
+        "name": "my-press.wav",
+        "duration": 0.30151927437641723,
+        "bytes": 28990
+      },
+      "release": {
+        "name": "my-release.wav",
+        "duration": 0.30149659863945577,
+        "bytes": 28988
+      }
+    }
+  },
+  "importsRemoved": {
+    "settings": {
+      "enabled": true,
+      "releases": true,
+      "volume": 37,
+      "press": "2",
+      "release": "random"
+    },
+    "loaded": true,
+    "context": "running",
+    "stats": {
+      "press": 0,
+      "release": 0,
+      "preview": 1,
+      "last": {
+        "kind": "Clicks",
+        "sample": 2,
+        "duration": 0.30149659863945577,
+        "context": "running",
+        "gain": 0.3700000047683716
+      }
+    },
+    "voices": 0,
+    "imports": {}
+  },
+  "storedImportsAfterRemoval": 0,
+  "framesAfter": 115,
+  "sourceCommit": "9cd5656ce4b19d75613c2183c097e9d48288b3b2",
+  "workflow": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42511008519"
 }
