@@ -1,11 +1,11 @@
-# Current continuation — 8 November 2026
+# Current continuation â€” 8 November 2026
 
 Read PARENT-CONTINUATION.md first. The live thread-creation adapter is now
 connected for the observed static-TLS component profile; the older notes below
 describe prerequisites and earlier checkpoints.
 
 Latest result: the parent resumed for 836 instructions and created four owned
-worker contexts (IDs 2–5). It now stops at MSVCP140.dll!_Cnd_signal, RVA 0xa55970.
+worker contexts (IDs 2â€“5). It now stops at MSVCP140.dll!_Cnd_signal, RVA 0xa55870.
 Native and sliced references and the real browser pass. Original game CPU/stack
 preserved; 152 game frames, 17,438 total translated instructions.
 
@@ -21,9 +21,9 @@ the new runtime blocker. Next prompt reasoning: High.
 
 ---
 
-# Current continuation — 8 November 2026
+# Current continuation â€” 8 November 2026
 
-## Thread batch now implemented — do not repeat its groundwork
+## Thread batch now implemented â€” do not repeat its groundwork
 
 Read ../mods/jukebox/CRITICAL-PATH.md. GuestScheduler.adoptContext and
 GuestThreadLifecycle now implement retained parent adoption (including errno),
@@ -38,7 +38,7 @@ claim thread creation works in-game until that path passes. Do not restart the
 existing child or replace the original Jukebox UI.
 
 
-## Latest user requirement — original mods only
+## Latest user requirement â€” original mods only
 
 No remade menu or manual-import substitute. Keep the real upstream UI,
 functionality and server interactions. Focus Jukebox first. Read
@@ -55,7 +55,7 @@ initialization, Cocos/FMOD hooks and async web delivery. Do not remake the menu,
 extend empty worker polling, or repeat already passing server reachability tests.
 
 
-## User scope update — four mods only
+## User scope update â€” four mods only
 
 Read TARGET-MODS.md before the older general continuation below. The only mod
 targets are Click Sounds Full, Jukebox, QOLMod and Globed, plus required
@@ -87,7 +87,7 @@ Six worker clock-profile cases and six sliced versions cover zero, about 17 ms
 and 100 ms pauses. Seven slice-contract checks, 702 worker scheduler slices,
 1,032 differential division cases and the real-browser check pass.
 
-## Next immediate task — High reasoning
+## Next immediate task â€” High reasoning
 
 Implement the observed _beginthreadex lifecycle and resume the saved parent.
 Additional empty worker polls are no longer the critical path.
@@ -120,7 +120,7 @@ Keep unsupported failures explicit; do not infer free memory from zero bytes.
 - Continue loader initialization, hooks, and actual mod loading.
 - Full CRT startup, TLS callbacks and additional native state as required.
 
-## Completed — do not repeat
+## Completed â€” do not repeat
 
 - Resumable instruction export with explicit stop/budget/transfer outcomes.
 - Same-CPU child continuation across browser turns, owned compiler lifetime,
@@ -132,3 +132,4 @@ Keep unsupported failures explicit; do not infer free memory from zero bytes.
 
 Read DEFERRED-SETUP.md and RESUMABLE-SLICES.md for evidence and limits. Always
 recommend the next prompt's reasoning setting when finishing.
+

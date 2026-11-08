@@ -1,10 +1,10 @@
-# Verified parent continuation — 8 November 2026
+# Verified parent continuation â€” 8 November 2026
 
 The observed thread-creation profile now returns an owned handle and writes the
 actual retained worker ID, then resumes the saved parent CPU. The live parent
 executes 836 more instructions, creates three additional runnable worker
-contexts and stops BEFORE MSVCP140.dll!_Cnd_signal at RVA 0xa55970.
-There are four retained workers (IDs 2–5), not four newly executed callbacks.
+contexts and stops BEFORE MSVCP140.dll!_Cnd_signal at RVA 0xa55870.
+There are four retained workers (IDs 2â€“5), not four newly executed callbacks.
 
 The browser run continued for 152 game frames with the original game CPU and
 live stack preserved. Total translated instructions: 17,438 (12,223 initial
@@ -45,7 +45,7 @@ flags remain false, as do full-loader and existing-package support. Jukebox has
 not initialized or displayed its native UI. The three fresh workers remain
 runnable at their entries; they have not secretly completed their callbacks.
 
-## Next batch — High
+## Next batch â€” High
 
 1. Inspect the upstream MSVC _Cnd object layout and _Cnd_signal semantics for
    this exact call. Add the required condition-variable notification family
@@ -64,3 +64,4 @@ Original mod path remains: loader -> original Jukebox Mod Loaded -> its song
 widget popup -> original index/download -> active song path and offset.
 The package build, Zstandard reader and server checks already pass; don't
 repeat them or create a substitute menu. See ../mods/jukebox/README.md.
+
