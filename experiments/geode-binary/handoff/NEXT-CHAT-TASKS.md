@@ -1,5 +1,22 @@
 # Current continuation — 8 November 2026
 
+## Latest user requirement — original mods only
+
+No remade menu or manual-import substitute. Keep the real upstream UI,
+functionality and server interactions. Focus Jukebox first. Read
+../mods/jukebox/README.md and its retained binary and evidence.
+
+Completed: upstream source built for Geode 6 / GD 2.2091 with all 82 non-manifest
+source/resource files unchanged; all 177 Geode imports resolve. Actual package
+ZIP/Zstandard extraction passes independent byte checks in Node and Chromium.
+Both original indexes and a complete hosted song work from a browser.
+
+Still NOT working: original mod/UI execution and C++ web callbacks. Continue the
+actual _beginthreadex lifecycle/parent-resumption task below, then mod discovery,
+initialization, Cocos/FMOD hooks and async web delivery. Do not remake the menu,
+extend empty worker polling, or repeat already passing server reachability tests.
+
+
 ## User scope update — four mods only
 
 Read TARGET-MODS.md before the older general continuation below. The only mod

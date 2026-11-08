@@ -15,7 +15,15 @@ versions. The game is pinned to GD 2.2091 and Geode 6.0.0-alpha.1. Inspect match
 release/branch history or adapt and rebuild selected source before attempting
 loading. Do not bypass version checks and call the result compatible.
 
-## Implementation order and acceptance
+## Latest clarification — original UI and behavior
+
+Focus Jukebox first. The user rejected a remade browser menu and substitute
+features. Preserve the original upstream UI, workflows and server requests;
+add required platform support rather than replacing the mod. Read
+../mods/jukebox/README.md for verified builds, network tests and remaining
+runtime blockers. The four-mod acceptance list below defines eventual scope.
+
+## Acceptance
 
 1. Click Sounds Full: actual gameplay press/release events and selected sound
    packs/settings; exercise keyboard and pointer controls. Its manifest requires

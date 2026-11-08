@@ -1,0 +1,15 @@
+{
+  "status": "ORIGINAL_GEODE_ARCHIVE_PASS",
+  "verifiedEntries": 16,
+  "browser": {
+    "entries": 16,
+    "id": "fleym.nongd",
+    "methods": [
+      93,
+      8
+    ],
+    "nativeCodeExecuted": false
+  },
+  "oracle": "Python zipfile/zstandard and SHA-256; all actual package members",
+  "modLoaded": false
+}
