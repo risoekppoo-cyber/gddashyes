@@ -1,3 +1,24 @@
+# Current priority — direct server song replacement
+
+The latest user explicitly allows a simple browser UI. Original Geode/Jukebox UI
+is no longer required for the immediate deliverable. Use mods/jukebox.js on the
+normal game page: search the original Song File Hub hosted index, download actual
+audio, save it in IndexedDB and inject /Resources/<song ID>.mp3. Built-in MP3
+filenames are also offered in the target selector. Restart the level after changing
+a song. Restoration preserves the original bytes and later external file changes.
+
+Run integration-tests/jukebox-browser.cjs via Jukebox server song replacement CI.
+It tests the real server MP3, game fetch/XHR routing, playback preview, persistence,
+original restoration, both built-in/custom targets and continued game frames.
+Entries requiring a nonzero startOffset are explicitly disabled in this first
+version; zero-offset hosted songs are supported. No YouTube extraction is provided.
+
+Do not resume native _Cnd_signal work to ship this feature. Keep the native loader
+experiment and its truthful incomplete flags as a separate, retained research path.
+Next prompt reasoning: Medium.
+
+---
+
 # Original Jukebox: current critical path
 
 Read ../../handoff/PARENT-CONTINUATION.md for the verified state and next batch.
@@ -56,3 +77,4 @@ Already done:
 
 Validation: native/reference and actual-browser regression passed in run
 42490087686 after the complete batch. This does not enable the live API adapter.
+
