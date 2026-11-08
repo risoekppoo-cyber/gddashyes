@@ -18,7 +18,7 @@
    e.preventDefault();e.stopImmediatePropagation();suppressed.add(e.code);
    if(!e.repeat){if(dialog)setOpen(!opened);else pendingOpen=true;}return;
   }
-  if(opened)e.stopImmediatePropagation();
+  if(opened){if(e.target?.getAttribute?.('role')==='tab')e.target.onkeydown?.(e);e.stopImmediatePropagation();}
  },true);
  window.addEventListener('keyup',e=>{if(opened||suppressed.has(e.code)){e.stopImmediatePropagation();if(suppressed.delete(e.code))e.preventDefault();}},true);
  const ready=()=>!!(window.__gdRuntimeReady&&window.__gdSavesRestored&&window.Module?.FS?.writeFile);
