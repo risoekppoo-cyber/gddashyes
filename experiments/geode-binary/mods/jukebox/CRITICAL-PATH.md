@@ -1,3 +1,27 @@
+# Verified server replacement — 8 November 2026
+
+**Working and deployed on the normal game page.** The user now permits a simple UI.
+Open Jukebox/F2, enter the level's song ID, find replacements, download/use, then
+restart the level. Built-in audio files are also selectable. Preview and original
+restoration are available. Current scope: zero-offset hosted entries, not YouTube.
+
+Real Chromium run 42501689526 passes at code commit 70ed7acf42ff670939f6ab9a4713554900267074:
+- Actual Song File Hub track: 3,214,411 bytes, 109.400816 seconds.
+- Existing live game FMOD/Web Audio source switches from 30.040816 to 109.400816
+  seconds; it uses the replacement AudioBuffer in a running audio context.
+- Fetch/XHR byte hashes match the real downloaded MP3.
+- Saved selections survive reload; original MP3 hash and both cached sounds restore.
+- AppData originals cannot shadow active replacements at soundNew or the actual
+  gd_js_audio_sound_data memory decode entry. Host bytes remain intact after decode.
+- Mobile panel fits; keyboard close/open works; game continues to 215 frames.
+
+Evidence: mods/jukebox-result.json and the passing workflow's screenshot artifact.
+The UI adapts the browser game; it does not execute the native Geode package.
+Do not resume the native loader to maintain this feature. A next useful user check
+is to try the specific song/level they want. Next reasoning setting: Medium.
+
+---
+
 # Current priority — direct server song replacement
 
 The latest user explicitly allows a simple browser UI. Original Geode/Jukebox UI

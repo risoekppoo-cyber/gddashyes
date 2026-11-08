@@ -21,3 +21,5 @@ channels are restarted at their current playback position when their buffer chan
 The browser test verifies a live game audio source uses the downloaded track, and
 that a pre-existing original at an AppData path cannot shadow an active replacement.
 
+
+Verified in [Chromium run 42501689526](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42501689526), including live game playback and the FMOD memory decode entry. See `jukebox-result.json`.

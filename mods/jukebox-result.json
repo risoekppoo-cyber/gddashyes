@@ -1,0 +1,118 @@
+{
+  "status": "JUKEBOX_SERVER_REPLACEMENT_PASS",
+  "errors": [],
+  "framesBefore": 63,
+  "baseline": {
+    "filename": "menuLoop.mp3",
+    "sha256": "2e61859105c8c211bec4ffda04cf8d4100bf536e4d89faf5bbcb5296ec07eded"
+  },
+  "gameAudioBefore": [
+    {
+      "id": 11,
+      "path": "C:\\\\menuLoop.mp3",
+      "duration": 30.040816326530614
+    }
+  ],
+  "server": "matrix (BL studio loop)\nchrmbchrmb\nDownload & use",
+  "first": {
+    "busy": false,
+    "active": [
+      {
+        "id": 1323633,
+        "key": "6ad1c23ecc40bb69f37264f9",
+        "filename": "menuLoop.mp3",
+        "name": "matrix (BL studio loop)",
+        "artist": "chrmbchrmb",
+        "duration": 109.40081632653062,
+        "source": "https://api.songfilehub.com/song/6ad1c23ecc40bb69f37264f9?download=true&name=1323633",
+        "byteLength": 3214411
+      }
+    ]
+  },
+  "gamePlayback": [
+    {
+      "sound": 11,
+      "duration": 109.40081632653062,
+      "usesUpdatedBuffer": true,
+      "context": "running"
+    },
+    {
+      "sound": 11,
+      "duration": 109.40081632653062,
+      "usesUpdatedBuffer": true,
+      "context": "running"
+    }
+  ],
+  "routing": {
+    "expected": "c7d40a2793660afa2b3c4ba8c3697e3a61823c6368e5c66fc020e8422f7f45f8",
+    "fetch": "c7d40a2793660afa2b3c4ba8c3697e3a61823c6368e5c66fc020e8422f7f45f8",
+    "xhr": "c7d40a2793660afa2b3c4ba8c3697e3a61823c6368e5c66fc020e8422f7f45f8",
+    "bytes": 3214411
+  },
+  "preview": {
+    "duration": 109.400816,
+    "currentTime": 0.370848,
+    "error": null
+  },
+  "mobile": {
+    "x": 14,
+    "y": 37,
+    "width": 362,
+    "height": 741
+  },
+  "reloaded": {
+    "busy": false,
+    "active": [
+      {
+        "id": 1323633,
+        "key": "6ad1c23ecc40bb69f37264f9",
+        "filename": "menuLoop.mp3",
+        "name": "matrix (BL studio loop)",
+        "artist": "chrmbchrmb",
+        "duration": 109.40081632653062,
+        "source": "https://api.songfilehub.com/song/6ad1c23ecc40bb69f37264f9?download=true&name=1323633",
+        "byteLength": 3214411
+      }
+    ]
+  },
+  "originalRestored": "2e61859105c8c211bec4ffda04cf8d4100bf536e4d89faf5bbcb5296ec07eded",
+  "gameAudioRestored": [
+    {
+      "id": 11,
+      "duration": 30.040816326530614
+    },
+    {
+      "id": 12,
+      "duration": 30.040816326530614
+    }
+  ],
+  "custom": {
+    "busy": false,
+    "active": [
+      {
+        "id": 1323633,
+        "key": "6ad1c23ecc40bb69f37264f9",
+        "filename": "1323633.mp3",
+        "name": "matrix (BL studio loop)",
+        "artist": "chrmbchrmb",
+        "duration": 109.40081632653062,
+        "source": "https://api.songfilehub.com/song/6ad1c23ecc40bb69f37264f9?download=true&name=1323633",
+        "byteLength": 3214411
+      }
+    ]
+  },
+  "originalPathRouting": {
+    "duration": 109.40081632653062,
+    "state": 1,
+    "path": "/AppData/1323633.mp3"
+  },
+  "memoryAudioRouting": {
+    "duration": 109.40081632653062,
+    "state": 1,
+    "name": "/AppData/1323633.mp3",
+    "storedBytesIntact": true
+  },
+  "framesAfter": 215,
+  "sourceCommit": "70ed7acf42ff670939f6ab9a4713554900267074",
+  "workflow": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42501689526"
+}
