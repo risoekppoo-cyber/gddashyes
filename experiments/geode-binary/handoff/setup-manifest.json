@@ -1,6 +1,6 @@
 {
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
-  "wasmSha256": "2a2d3f11bb2d095faea61267c266494278177acf418ec456bb85c7c1fd6d6d95",
+  "wasmSha256": "0fdb341063078a479f2268784ffeec5f140e7d4aa17a02484459f4dbaef66084",
   "servicesSha256": "ebe40d80296f77fdb6a4fa0ffad149d384bc65efe37c522b75f8d362e22d32a1",
   "entryRva": 1241600,
   "stopRva": 1845494864,
@@ -21,9 +21,16 @@
   },
   "nextBoundaryKind": "thread-start-request",
   "worker": {
+    "checkpoints": [
+      {
+        "rva": 5183067,
+        "steps": 1710
+      }
+    ],
+    "sliceQuantum": 127,
     "clockDependent": true,
     "entryRva": 5241520,
-    "steps": 1710,
+    "steps": 2601,
     "stopRva": 5183067,
     "nextService": "Worker scheduler continuation",
     "nextBoundaryKind": "worker-poll-yield"

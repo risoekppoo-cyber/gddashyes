@@ -1,5 +1,9 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
+  "sliceContractCases": 7,
+  "slicedCases": 36,
+  "slicedWorkerCases": 2,
+  "workerSlices": 134,
   "divisionCases": 1032,
   "cases": 36,
   "workerCases": 2,
@@ -9,7 +13,7 @@
       "rva": 5183067,
       "service": "Worker scheduler continuation",
       "kind": "worker-poll-yield",
-      "steps": 1710,
+      "steps": 2601,
       "entryRva": 5241520
     },
     {
@@ -17,11 +21,11 @@
       "rva": 5183067,
       "service": "Worker scheduler continuation",
       "kind": "worker-poll-yield",
-      "steps": 1710,
+      "steps": 2601,
       "entryRva": 5241520
     }
   ],
-  "uniqueInstructions": 6447,
+  "uniqueInstructions": 6512,
   "boundaries": [
     {
       "rva": 1845494864,
@@ -230,6 +234,6 @@
       "kind": "division-error"
     }
   ],
-  "wasmSha256": "2a2d3f11bb2d095faea61267c266494278177acf418ec456bb85c7c1fd6d6d95",
+  "wasmSha256": "0fdb341063078a479f2268784ffeec5f140e7d4aa17a02484459f4dbaef66084",
   "fullGeodeLoader": false
 }

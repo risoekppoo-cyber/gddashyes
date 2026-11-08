@@ -7,7 +7,7 @@
     "deferredLoaderInitialized": false,
     "callbackPrologueExecuted": true,
     "callbackPrologueOnly": false,
-    "gameFrames": 133,
+    "gameFrames": 127,
     "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
     "sourceDllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
     "gameModuleSha256": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
@@ -295,6 +295,15 @@
       "QueryPerformanceCounter",
       "_Mtx_lock",
       "_Mtx_unlock",
+      "GetQueuedCompletionStatusEx",
+      "GetLastError",
+      "QueryPerformanceCounter",
+      "_Mtx_lock",
+      "_Mtx_unlock",
+      "QueryPerformanceCounter",
+      "QueryPerformanceCounter",
+      "_Mtx_lock",
+      "_Mtx_unlock",
       "GetQueuedCompletionStatusEx"
     ],
     "staticTlsTemplateInitialized": true,
@@ -393,7 +402,26 @@
       "status": "WORKER_CALLBACK_BOUNDARY_PASS",
       "id": 2,
       "entryRva": 5241520,
-      "instructions": 1710,
+      "instructions": 2601,
+      "sliceQuantum": 127,
+      "sliceCount": 22,
+      "maxSliceSteps": 127,
+      "continuations": 1,
+      "continuedFromSavedCpu": true,
+      "checkpoints": [
+        {
+          "startPc": "0x15a0fab0",
+          "endPc": "0x15a0165b",
+          "instructions": 1710,
+          "kind": "worker-poll-yield"
+        },
+        {
+          "startPc": "0x15a0165b",
+          "endPc": "0x15a0165b",
+          "instructions": 891,
+          "kind": "worker-poll-yield"
+        }
+      ],
       "nextRequiredService": "Worker scheduler continuation",
       "nextBoundaryKind": "worker-poll-yield",
       "rootCpuPreserved": true,
@@ -404,8 +432,8 @@
       "crtThreadStartupImplemented": false,
       "performanceClock": {
         "frequency": "10000000",
-        "counterReads": 3,
-        "lastCounter": "67343000"
+        "counterReads": 6,
+        "lastCounter": "69558999"
       },
       "mutexes": [
         [
@@ -413,9 +441,24 @@
           2,
           -1,
           0
+        ],
+        [
+          374801968,
+          2,
+          -1,
+          0
         ]
       ],
       "batchPolls": [
+        {
+          "port": "1660944384",
+          "capacity": 64,
+          "removed": 0,
+          "error": 258,
+          "timeoutMs": 0,
+          "alertable": 0,
+          "packetStatuses": []
+        },
         {
           "port": "1660944384",
           "capacity": 64,
@@ -443,10 +486,19 @@
         "QueryPerformanceCounter",
         "_Mtx_lock",
         "_Mtx_unlock",
+        "GetQueuedCompletionStatusEx",
+        "GetLastError",
+        "QueryPerformanceCounter",
+        "_Mtx_lock",
+        "_Mtx_unlock",
+        "QueryPerformanceCounter",
+        "QueryPerformanceCounter",
+        "_Mtx_lock",
+        "_Mtx_unlock",
         "GetQueuedCompletionStatusEx"
       ]
     },
-    "totalTranslatedInstructions": 13933,
+    "totalTranslatedInstructions": 14824,
     "originalGameCpuPreserved": true,
     "liveStackRestored": true,
     "gameContinuedAfterHandoff": true
@@ -475,6 +527,6 @@
     }
   ],
   "jspi": true,
-  "seconds": 12.166,
+  "seconds": 12.75,
   "events": []
 }
