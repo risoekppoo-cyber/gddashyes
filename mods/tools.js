@@ -6,7 +6,46 @@
   let settings;
   try { settings = {...defaults, ...JSON.parse(localStorage.getItem('gd-clicksounds') || '{}')}; } catch (_) { settings = {...defaults}; }
   settings.volume = Math.max(0, Math.min(100, Number(settings.volume) || 0));
-  for (const key of ['press', 'release']) if (!/^(random|[1-9]|10)$/.test(settings[key])) settings[key] = 'random';
+  for (const key of ['press', 'release']) if (!/^(random|custom|[1-9]|10)$/.test(settings[key])) settings[key] = 'random';
+  const custom = {}, importControls = {};
+  const database = new Promise((resolve, reject) => {
+    const request = indexedDB.open('gd-clicksounds-audio', 1);
+    request.onupgradeneeded = () => request.result.createObjectStore('sounds');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(Error('Close other game tabs to enable audio imports.'));
+  });
+  database.catch(() => {});
+  async function storage(mode, operation) {
+    const db = await database;
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('sounds', mode), request = operation(tx.objectStore('sounds'));
+      tx.oncomplete = () => resolve(request.result);
+      tx.onabort = tx.onerror = () => reject(tx.error || request.error || Error('Could not save audio.'));
+    });
+  }
+  function renderCustom(key) {
+    const controls = importControls[key]; if (!controls) return;
+    controls.select.querySelector('[value=custom]')?.remove();
+    if (custom[key]) element('option', 'Imported · ' + custom[key].name, controls.select, {value: 'custom'});
+    controls.select.value = settings[key];
+    controls.name.textContent = custom[key] ? custom[key].name : 'No imported audio.';
+    controls.remove.disabled = !custom[key];
+  }
+  async function importAudio(key, file) {
+    if (!file) return;
+    if (!file.size || file.size > 16 * 1024 * 1024) throw Error('Choose a non-empty audio file smaller than 16 MB.');
+    await prepare();
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let buffer;
+    try { buffer = await ctx.decodeAudioData(bytes.buffer.slice(0)); }
+    catch (_) { throw Error('This file could not be decoded. Try WAV, MP3, OGG or M4A supported by your browser.'); }
+    if (!(buffer.duration > 0)) throw Error('The audio file is empty.');
+    const record = {key, name: file.name, bytes};
+    await storage('readwrite', store => store.put(record, key));
+    stop(); custom[key] = {...record, buffer}; settings[key] = 'custom'; save(); renderCustom(key);
+    message('Imported ' + key + ' sound: ' + file.name + '. Saved in this browser.');
+  }
   let ctx, gain, loading, loaded = false, menu, panel, toggle, status, enabledInput;
   const buffers = {Clicks: [], Releases: []}, held = new Set(), voices = new Set();
   const stats = {press: 0, release: 0, preview: 0, last: null};
@@ -24,6 +63,18 @@
         if (!response.ok) throw Error('Could not load sound sample (HTTP ' + response.status + ').');
         buffers[kind][index] = await ctx.decodeAudioData(await response.arrayBuffer());
       })));
+      try {
+        const records = await storage('readonly', store => store.getAll());
+        for (const record of records) {
+          if (!['press', 'release'].includes(record.key) || !(record.bytes instanceof Uint8Array)) continue;
+          try { custom[record.key] = {...record, buffer: await ctx.decodeAudioData(record.bytes.buffer.slice(0))}; }
+          catch (_) { message('Saved import could not be decoded: ' + record.name); }
+        }
+      } catch (_) { /* Default samples still work when persistent storage is unavailable. */ }
+      for (const key of ['press', 'release']) {
+        if (settings[key] === 'custom' && !custom[key]) { settings[key] = 'random'; save(); }
+        renderCustom(key);
+      }
       loaded = true; message('Ready. Sounds play on game jump controls, including menus.');
     })().finally(() => { loading = null; });
     await loading;
@@ -33,14 +84,15 @@
     if (!loaded || ctx.state !== 'running' || (!preview && !settings.enabled)) return;
     if (kind === 'Releases' && !preview && !settings.releases) return;
     if (settings.volume === 0) return;
-    const choice = settings[kind === 'Clicks' ? 'press' : 'release'];
-    const index = choice === 'random' ? Math.floor(Math.random() * 10) : Number(choice) - 1;
+    const key = kind === 'Clicks' ? 'press' : 'release', choice = settings[key];
+    const imported = choice === 'custom' ? custom[key] : null;
+    const index = choice === 'random' || choice === 'custom' ? Math.floor(Math.random() * 10) : Number(choice) - 1;
     if (voices.size >= 32) { const oldest = voices.values().next().value; oldest.stop(); voices.delete(oldest); }
-    const source = ctx.createBufferSource(); source.buffer = buffers[kind][index]; source.connect(gain);
+    const source = ctx.createBufferSource(); source.buffer = imported ? imported.buffer : buffers[kind][index]; source.connect(gain);
     source.onended = () => { voices.delete(source); source.disconnect(); };
     source.start(); voices.add(source);
     stats[preview ? 'preview' : kind === 'Clicks' ? 'press' : 'release']++;
-    stats.last = {kind, sample: index + 1, duration: source.buffer.duration, context: ctx.state, gain: gain.gain.value};
+    stats.last = {kind, sample: imported ? 'custom' : index + 1, filename: imported?.name, duration: source.buffer.duration, context: ctx.state, gain: gain.gain.value};
   }
   function input(event) {
     const [msg, key, lp] = event;
@@ -95,7 +147,8 @@
   }, true);
   document.addEventListener('pointerdown', event => { if (menu && !menu.hidden && !menu.contains(event.target) && !toggle.contains(event.target)) hideMenu(); }, true);
   window.GDModMenu = {toggle: toggleMenu, select, close: hideAll};
-  window.GDClickSounds = {getState: () => ({settings: {...settings}, loaded, context: ctx?.state, stats: structuredClone(stats), voices: voices.size})};
+  window.GDClickSounds = {getState: () => ({settings: {...settings}, loaded, context: ctx?.state, stats: structuredClone(stats), voices: voices.size,
+    imports: Object.fromEntries(Object.entries(custom).map(([key, value]) => [key, {name: value.name, duration: value.buffer.duration, bytes: value.bytes.length}]))})};
   function mount() {
     toggle = document.getElementById('jb-toggle'); toggle.textContent = 'Mods ▾';
     toggle.setAttribute('aria-controls', 'gd-mod-menu'); toggle.setAttribute('aria-expanded', 'false');
@@ -122,6 +175,25 @@
       element('option', 'Default pack · random sample', select, {value: 'random'});
       for (let i = 1; i <= 10; i++) element('option', 'Default pack · sample ' + i, select, {value: i});
       select.value = settings[key]; select.addEventListener('change', () => {settings[key] = select.value; save();});
+      const fileLabel = element('label', 'Import ' + key + ' audio', panel);
+      const file = element('input', null, fileLabel, {id: 'cs-import-' + key, type: 'file', accept: 'audio/*,.wav,.mp3,.ogg,.m4a,.flac', 'aria-label': 'Import ' + key + ' audio'});
+      file.style.cssText = 'display:block;width:100%;margin-top:8px';
+      const name = element('p', 'No imported audio.', panel); name.style.overflowWrap = 'anywhere';
+      const remove = element('button', 'Remove imported ' + key, panel, {id: 'cs-remove-' + key, type: 'button'});
+      importControls[key] = {select, name, remove}; renderCustom(key);
+      file.addEventListener('change', async () => {
+        file.disabled = true;
+        try { await importAudio(key, file.files[0]); } catch (error) { message(error.message); }
+        finally {file.value = ''; file.disabled = false;}
+      });
+      remove.addEventListener('click', async () => {
+        remove.disabled = true;
+        try {
+          await storage('readwrite', store => store.delete(key)); stop(); delete custom[key];
+          if (settings[key] === 'custom') settings[key] = 'random';
+          save(); renderCustom(key); message('Imported ' + key + ' removed.');
+        } catch (error) {message(error.message); remove.disabled = false;}
+      });
       element('button', 'Preview ' + key, panel, {id: 'cs-preview-' + key, type: 'button'}).addEventListener('click', async () => {try {await prepare(); sound(kind, true);} catch (error) {message(error.message);}});
     }
     status = element('p', 'Open a preview or enable sounds to load the default pack.', panel, {id: 'cs-status', role: 'status', 'aria-live': 'polite'});
@@ -132,3 +204,4 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, {once: true}); else mount();
 })();
+

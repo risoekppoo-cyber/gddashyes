@@ -37,3 +37,12 @@ Hub index and MP3, checks live game playback, persistence, both decoding paths a
 restoration. Click Sounds checks actual decoded sample playback, volume, repeated
 keys, mouse, touch, virtual keys, UI input isolation, disabling, mobile layout and
 persisted preferences. See integration-tests/*-browser.cjs.
+
+
+Click Sounds accepts separate local press/release audio imports (up to 16 MB each,
+formats supported by the browser). Imports are validated, saved in IndexedDB and
+selected automatically. Use the sample dropdown to switch back to defaults without
+deleting an import, or Remove imported press/release to delete it permanently.
+Invalid imports preserve the previous sound. The browser test covers imported WAV
+playback through game controls, invalid audio, persisted files, default switching
+and deletion surviving reload.

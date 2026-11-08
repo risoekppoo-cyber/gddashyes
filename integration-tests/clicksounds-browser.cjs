@@ -51,6 +51,35 @@ const assert = require('node:assert/strict');
     await page.reload({waitUntil: 'domcontentloaded'}); await page.waitForFunction(() => window.__gdInputReady && window.GDClickSounds, {}, {timeout: 240000});
     await page.locator('#jb-toggle').click(); await page.locator('#mod-clicksounds').click();
     report.persisted = await state(); assert.equal(report.persisted.settings.volume, 37); assert.equal(report.persisted.settings.press, '2'); assert.equal(report.persisted.settings.release, '3'); assert.equal(report.persisted.settings.enabled, false); assert.equal(report.persisted.settings.releases, false);
+    // Import actual WAV files through the file pickers, then verify playback,
+    // rejection of invalid audio, persisted bytes and durable removal.
+    await page.waitForFunction(() => GDClickSounds.getState().loaded);
+    await page.locator('#cs-import-press').setInputFiles({name: 'my-press.wav', mimeType: 'audio/wav', buffer: fs.readFileSync('mods/clicksounds/Clicks/4.wav')});
+    await page.waitForFunction(() => GDClickSounds.getState().settings.press === 'custom');
+    await page.locator('#cs-import-release').setInputFiles({name: 'my-release.wav', mimeType: 'audio/wav', buffer: fs.readFileSync('mods/clicksounds/Releases/5.wav')});
+    await page.waitForFunction(() => GDClickSounds.getState().settings.release === 'custom');
+    await page.locator('#cs-preview-press').click();
+    await page.waitForFunction(() => GDClickSounds.getState().stats.last?.filename === 'my-press.wav');
+    report.importPreview = await state(); assert.equal(report.importPreview.stats.last.sample, 'custom');
+    await page.locator('#cs-import-press').setInputFiles({name: 'broken.wav', mimeType: 'audio/wav', buffer: Buffer.from('invalid audio')});
+    await page.waitForFunction(() => document.querySelector('#cs-status').textContent.includes('could not be decoded'));
+    assert.equal((await state()).imports.press.name, 'my-press.wav');
+    await page.locator('#cs-enabled').check(); await page.locator('#cs-releases').check();
+    await page.waitForFunction(() => GDClickSounds.getState().settings.enabled);
+    await page.locator('#cs-close').click(); await page.locator('#canvas').focus();
+    await page.keyboard.down('Space'); assert.equal((await state()).stats.last.filename, 'my-press.wav');
+    await page.keyboard.up('Space'); assert.equal((await state()).stats.last.filename, 'my-release.wav');
+    await page.reload({waitUntil: 'domcontentloaded'});
+    await page.waitForFunction(() => window.GDClickSounds?.getState().loaded && window.__gdInputReady, {}, {timeout: 240000});
+    report.importsReloaded = await state(); assert.equal(report.importsReloaded.settings.press, 'custom'); assert.equal(report.importsReloaded.imports.press.name, 'my-press.wav'); assert.equal(report.importsReloaded.imports.release.name, 'my-release.wav');
+    await page.locator('#jb-toggle').click(); await page.locator('#mod-clicksounds').click();
+    await page.locator('#cs-press').selectOption('2'); await page.locator('#cs-preview-press').click();
+    await page.waitForFunction(() => GDClickSounds.getState().stats.last?.sample === 2);
+    await page.locator('#cs-remove-press').click(); await page.locator('#cs-remove-release').click();
+    await page.waitForFunction(() => !GDClickSounds.getState().imports.press && !GDClickSounds.getState().imports.release);
+    await page.screenshot({path: out + '/import-mobile.png'});
+    await page.reload({waitUntil: 'domcontentloaded'}); await page.waitForFunction(() => window.GDClickSounds?.getState().loaded, {}, {timeout: 240000});
+    report.importsRemoved = await state(); assert.deepEqual(report.importsRemoved.imports, {}); assert.equal(report.importsRemoved.settings.press, '2'); assert.equal(report.importsRemoved.settings.release, 'random');
     const frames = await page.evaluate(() => Module._gd_frames_get()); await page.waitForFunction(n => Module._gd_frames_get() > n + 30, frames); report.framesAfter = await page.evaluate(() => Module._gd_frames_get());
     assert.deepEqual(report.errors, []); report.status = 'CLICK_SOUNDS_DROPDOWN_PASS';
   } catch (e) {report.status = 'FAIL'; report.error = String(e); report.stack = e.stack; report.state = await state().catch(() => null); await page.screenshot({path: out + '/failure.png'}).catch(() => {}); process.exitCode = 1;}
