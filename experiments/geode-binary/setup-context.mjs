@@ -56,7 +56,7 @@ class SetupContext{
     if(m.nextThreadRequest)for(const key of ['security','stackSize','entryRva','argumentIsNull','initFlags','threadIdOutputIsNull','threadCreationImplemented'])if(threadRequest[key]!==m.nextThreadRequest[key])throw Error('Live worker request differs from native reference: '+key);
     const worker=m.worker?this.runWorker(shadow,imageBase,threadRequest,compilerTop):undefined;
     return {steps,stop,service:m.nextService,dialog,pipeRequest,threadRequest,worker,pipeState:this.services.pipeSnapshot?.(),iocpState:this.services.iocpSnapshot?.(),criticalState:this.services.criticalSnapshot?.(),calls:[...this.services.calls],threadNames:[...(this.services.threadNames||[])],stdioState:this.services.stdioSnapshot?.(),tib:this.tib,isolatedStack:this.stackTop,onexitCallbacks:[...this.services.onexit.values()].reduce((n,t)=>n+t.callbacks.length,0),
-     nextArguments:[8,16,64,72].map(o=>'0x'+state.getBigUint64(shadow+o,true).toString(16))};
+     nextArguments:[8,16,64,72].map(o=>'0x'+new DataView(e.memory.buffer).getBigUint64(shadow+o,true).toString(16))};
    }
    this.services.invoke(shadow,state.getBigUint64(shadow+192,true));pc=new DataView(e.memory.buffer).getBigUint64(shadow+192,true);
   }
@@ -68,19 +68,39 @@ class SetupContext{
   this.scheduler=new this.serviceTypes.GuestScheduler(s,{quantum:20000,firstId:2});
   const before=new Uint8Array(e.memory.buffer,rootCpu,4096).slice(),oldCalls=s.calls.length,parentStack=new Uint8Array(e.memory.buffer,this.stack,65536).slice(),parentTib=new Uint8Array(e.memory.buffer,this.tib,65536).slice();
   const thread=this.scheduler.createContext({entry:BigInt(imageBase+w.entryRva),argument:BigInt(request.argument),returnAddress:BigInt(this.tib+0xeff0),tlsTemplate:new Uint8Array(e.memory.buffer,imageBase+m.tls.templateRva,m.tls.templateSize),tlsZeroFill:m.tls.zeroFill});
-  const stop=w.stopService?BigInt(s.addresses[w.stopService]):BigInt(imageBase+w.stopRva);
-  this.aux.exports.__stack_pointer.value=compilerTop;let completed=false;
-  this.scheduler.runRound((thread,budget)=>{
-   let pc=BigInt(imageBase+w.entryRva),steps=0;
-   for(let transfers=0;transfers<1000;transfers++){
-    if(steps>=budget)throw Error('Worker instruction quantum exhausted');
-    const r=this.aux.exports.lift_run(thread.cpu,pc,BigInt(imageBase),0,stop,budget-steps)>>>0;steps+=r&0x7fffffff;
-    const v=new DataView(e.memory.buffer);
-    if(!(r&0x80000000)){if((!w.clockDependent&&steps!==w.steps)||v.getBigUint64(thread.cpu+192,true)!==stop)throw Error('Unexpected worker boundary');completed=true;break;}
-    s.invoke(thread.cpu,v.getBigUint64(thread.cpu+192,true));pc=new DataView(e.memory.buffer).getBigUint64(thread.cpu+192,true);
+  const checkpoints=[],quantum=w.sliceQuantum;
+  if(!Number.isInteger(quantum)||quantum<1||quantum>1000||typeof this.aux.exports.lift_slice!=='function')throw Error('Missing verified worker slice contract');
+  this.scheduler.quantum=quantum;
+  this.aux.exports.__stack_pointer.value=compilerTop;let rounds=0,maxSliceSteps=0,previousNative=0;
+  const points=[...w.checkpoints.map(p=>({...p,kind:'worker-poll-yield'})),{rva:w.stopRva,steps:w.steps,stopService:w.stopService,kind:w.nextBoundaryKind}];
+  for(const point of points){
+   const startSteps=thread.steps,startPc=new DataView(e.memory.buffer).getBigUint64(thread.cpu+192,true),targetSteps=startSteps+point.steps-previousNative;
+   const stop=point.stopService?BigInt(s.addresses[point.stopService]):BigInt(imageBase+point.rva);let completed=false;
+   while(!completed){
+    if(++rounds>1000||thread.steps-startSteps>=20000)throw Error('Worker continuation budget exhausted');
+    this.scheduler.runRound((thread,budget)=>{
+     let steps=0;
+     for(let transfers=0;transfers<1000;transfers++){
+      if(steps===budget)break;
+      const pc=new DataView(e.memory.buffer).getBigUint64(thread.cpu+192,true),skip=thread.steps+steps===startSteps&&pc===stop;
+      let limit=skip?1:budget-steps;
+      if(point.kind==='worker-budget-yield')limit=Math.min(limit,targetSteps-thread.steps-steps);
+      const r=this.aux.exports.lift_slice(thread.cpu,BigInt(imageBase),0,point.kind==='worker-budget-yield'||skip?0xffffffffffffffffn:stop,limit)>>>0;steps+=r&0x3fffffff;
+      if(point.kind==='worker-budget-yield'&&thread.steps+steps===targetSteps){completed=true;break;}
+      if(r&0x40000000){if(skip&&steps<budget)continue;break;}
+      if(!(r&0x80000000)){completed=true;break;}
+      s.invoke(thread.cpu,new DataView(e.memory.buffer).getBigUint64(thread.cpu+192,true));
+     }
+     if(!steps)throw Error('Worker slice made no instruction progress');
+     maxSliceSteps=Math.max(maxSliceSteps,steps);
+     return {steps,state:completed&&!['worker-poll-yield','worker-budget-yield'].includes(point.kind)?'blocked':'runnable',waitKey:'verified-worker-boundary'};
+    });
    }
-   if(!completed)throw Error('Worker transfer budget exhausted');return {steps,state:w.nextBoundaryKind==='worker-poll-yield'?'runnable':'blocked',waitKey:'verified-worker-boundary'};
-  });
+   const endPc=new DataView(e.memory.buffer).getBigUint64(thread.cpu+192,true);
+   if(!w.clockDependent&&(thread.steps!==targetSteps||endPc!==stop))throw Error('Worker continuation differs from native reference');
+   checkpoints.push({startPc:'0x'+startPc.toString(16),endPc:'0x'+endPc.toString(16),instructions:thread.steps-startSteps,kind:point.kind});
+   previousNative=point.steps;
+  }
   for(const [snapshot,pointer] of [[before,rootCpu],[parentStack,this.stack],[parentTib,this.tib]])if(!snapshot.every((b,i)=>new Uint8Array(e.memory.buffer)[pointer+i]===b))throw Error('Worker changed parent CPU/stack/TIB');
   let pendingCompletionRequest;
   if(w.nextCompletionRequest){
@@ -91,7 +111,8 @@ class SetupContext{
   }
   // Keep an owned parent snapshot: the handoff frees its temporary CPU shadow.
   this.savedRoot=Number(s.allocate(4096n));if(!this.savedRoot)throw Error('Could not retain parent CPU');new Uint8Array(e.memory.buffer,this.savedRoot,4096).set(before);
-  return {status:'WORKER_CALLBACK_BOUNDARY_PASS',id:thread.id,entryRva:w.entryRva,instructions:thread.steps,nextRequiredService:w.nextService,nextBoundaryKind:w.nextBoundaryKind,rootCpuPreserved:true,rootCpuRetained:true,contextRetained:true,runnable:thread.status==='runnable',threadCreationImplemented:false,crtThreadStartupImplemented:false,performanceClock:s.clockSnapshot?.(),mutexes:s.mutexSnapshot?.(),batchPolls:s.batchSnapshot?.(),pendingCompletionRequest,executedServices:s.calls.slice(oldCalls)};
+  return {status:'WORKER_CALLBACK_BOUNDARY_PASS',id:thread.id,entryRva:w.entryRva,instructions:thread.steps,sliceQuantum:quantum,sliceCount:rounds,maxSliceSteps,continuations:checkpoints.length-1,continuedFromSavedCpu:true,checkpoints,nextRequiredService:w.nextService,nextBoundaryKind:w.nextBoundaryKind,rootCpuPreserved:true,rootCpuRetained:true,contextRetained:true,runnable:thread.status==='runnable',threadCreationImplemented:false,crtThreadStartupImplemented:false,performanceClock:s.clockSnapshot?.(),mutexes:s.mutexSnapshot?.(),batchPolls:s.batchSnapshot?.(),pendingCompletionRequest,executedServices:s.calls.slice(oldCalls)};
  }
  release(){let first;try{this.scheduler?.dispose();}catch(error){first=error;}try{this.services?.releaseHeap();}catch(error){first??=error;}for(const p of this.allocations.splice(0)){try{this.e.free(p);}catch(error){first??=error;}}if(first)throw first;}
 }
+

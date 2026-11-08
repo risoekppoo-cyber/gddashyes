@@ -115,14 +115,21 @@ class WideLifter(Lifter):
     source+=f'pc_{va:x}_op_{len(ops)}: ; goto next_instruction;}}\n'
    source+='default:return 0u;}next_instruction:return 1u;}\n'
   source+='''\n__attribute__((visibility("default")))
-uint32_t lift_run(uint32_t cpu,uint64_t entry,uint64_t image_base,uint32_t guest_base,uint64_t stop,uint32_t limit){
-raw_write(cpu+192u,entry,8u);for(uint32_t step=0;step<limit;step++){
-uint64_t pc=raw_read(cpu+192u,8u);if(pc==stop)return step;uint32_t handled=0;
+uint32_t lift_slice(uint32_t cpu,uint64_t image_base,uint32_t guest_base,uint64_t stop,uint32_t limit){
+if(limit>=0x40000000u){lift_fault(6u,limit,raw_read(cpu+192u,8u));__builtin_trap();}
+for(uint32_t step=0;;step++){
+uint64_t pc=raw_read(cpu+192u,8u);if(pc==stop)return step;
+if(step==limit)return 0x40000000u|step;uint32_t handled=0;
 switch((pc-image_base)>>8){
 '''
   for group in groups:source+=f'case UINT64_C({group}):handled=page_{group}(cpu,image_base,guest_base,pc);break;\n'
   return source+'''default:break;}if(!handled)return 0x80000000u|step;
-}lift_fault(4u,raw_read(cpu+192u,8u),entry);__builtin_trap();}\n'''
+}}
+__attribute__((visibility("default")))
+uint32_t lift_run(uint32_t cpu,uint64_t entry,uint64_t image_base,uint32_t guest_base,uint64_t stop,uint32_t limit){
+raw_write(cpu+192u,entry,8u);uint32_t result=lift_slice(cpu,image_base,guest_base,stop,limit);
+if((result&0x40000000u)||(result&0x3fffffffu)==limit){lift_fault(4u,raw_read(cpu+192u,8u),entry);__builtin_trap();}
+return result;}\n'''
 
 WIDE='''static inline uint64_t unsigned_divrem(uint64_t a,uint64_t b,uint32_t remainder){if(!b){lift_fault(5u,b,0);__builtin_trap();}return remainder?a%b:a/b;}
 typedef unsigned __int128 wide_t;
@@ -265,7 +272,7 @@ def main():
    # does not execute the DLL's complete CRT entrypoint or TLS callbacks.
    onexit={image_base+0xfb1960:{'callbacks':[],'buffer':0,'capacity':0}}
    uc.mem_write(image_base+0xfb1960,b'\0'*24)
-   current_id=1;worker_mode=False
+   current_id=1;worker_mode=False;worker_checkpoints=[]
    trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000];cwd=['C:\\GeometryDash'];thread_names={}
    stdio_state={'base':0,'streams':{},'fds':{},'nextHandle':0x61000010}
    pipe_state={'nextHandle':0x62000000,'pipes':[],'byName':{},'ends':{},'completions':[],'outputs':[]}
@@ -701,6 +708,8 @@ def main():
      return
     rva=address-image_base
     if not 0<=rva<size:raise RuntimeError(f'Unexpected target {address:#x}')
+    if worker_checkpoints and len(trace)-worker_checkpoints[0]['steps']>=4096:
+     boundary.update(rva=rva,service='Worker instruction budget',kind='worker-budget-yield');emu.emu_stop();return
     if variant>=4 and rva==entry_rva+division_length:
      boundary.update(rva=rva,service='Unsigned-division fixture stop');emu.emu_stop();return
     if variant==2 and rva==0x12df21:
@@ -818,7 +827,17 @@ def main():
     if import_snapshot:
      for reg,value in import_snapshot:uc.reg_write(reg,value)
      if trace and trace[-1]==boundary['rva']:trace.pop()
-    if not boundary:raise RuntimeError('Worker has no explicit boundary')
+    if not boundary:raise RuntimeError(f'Worker stopped without a boundary: RIP={uc.reg_read(x.UC_X86_REG_RIP):#x}, instructions={len(trace)}, recent={trace[-12:]}, services={service_calls[-8:]}')
+    if boundary.get('kind')=='worker-poll-yield':
+     worker_checkpoints.append({'rva':boundary['rva'],'steps':len(trace),'serviceCalls':list(service_calls),'expected':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+r))) for r in REGS],'expectedXmm':[hex(uc.reg_read(getattr(x,'UC_X86_REG_XMM'+str(i)))) for i in range(16)],'expectedFlags':uc.reg_read(x.UC_X86_REG_EFLAGS),'definedFlagsMask':defined_flags[0]})
+     boundary={};import_snapshot=[]
+     # Same CPU, stack, TLS, heap, clock and service instances; no callback restart.
+     try:uc.emu_start(uc.reg_read(x.UC_X86_REG_RIP),0,count=5001)
+     except unicorn.UcError as error:raise RuntimeError(f'Worker continuation fault: RIP={uc.reg_read(x.UC_X86_REG_RIP):#x}, instructions={len(trace)}, recent={trace[-12:]}, services={service_calls[-8:]}: {error}') from error
+     if import_snapshot:
+      for reg,value in import_snapshot:uc.reg_write(reg,value)
+      if trace and trace[-1]==boundary['rva']:trace.pop()
+     if not boundary:raise RuntimeError(f'Worker continuation stopped without a boundary: RIP={uc.reg_read(x.UC_X86_REG_RIP):#x}, instructions={len(trace)}, recent={trace[-12:]}, services={service_calls[-8:]}')
     expected=[uc.reg_read(getattr(x,'UC_X86_REG_'+r)) for r in REGS];expected_xmm=[uc.reg_read(getattr(x,'UC_X86_REG_XMM'+str(i))) for i in range(16)];expected_flags=uc.reg_read(x.UC_X86_REG_EFLAGS)
     # Materialize the independent oracle's CPU shadow for heap comparison.
     for i,value in enumerate(expected):uc.mem_write(worker_cpu+i*8,value.to_bytes(8,'little'))
@@ -832,7 +851,8 @@ def main():
      while at<size and final[at]!=image[at]:at+=1
      changes.append({'rva':start,'hex':final[start:at].hex()})
     cases[-1]['worker']={'id':2,'cpu':worker_cpu,'tib':tib,'stack':stack_base,'entryRva':worker_entry-image_base,'argument':hex(worker_argument),'returnAddress':'0x120ff0','boundary':boundary,'steps':len(trace),'expected':[hex(n) for n in expected],'expectedXmm':[hex(n) for n in expected_xmm],'expectedFlags':expected_flags,'definedFlagsMask':defined_flags[0],'dllChanges':changes,'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'serviceCalls':service_calls,'threadNames':list(thread_names.items()),'batchState':list(batch_history),'mutexState':[[p,e['type'],e['owner'],e['count']] for p,e in mutex_state.items()],'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],'performanceClock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_value[0]) if clock_reads[0] else None},'exceptionState':[str(p) for p in sorted(exception_state)]}
-    print(json.dumps({'workerBoundary':boundary,'steps':len(trace),'imageBase':hex(image_base)}),flush=True)
+    cases[-1]['worker']['checkpoints']=worker_checkpoints
+    print(json.dumps({'workerBoundary':boundary,'steps':len(trace),'checkpoints':worker_checkpoints,'imageBase':hex(image_base)}),flush=True)
  lifter=WideLifter(pe)
  for rva in sorted(observed):
   raw=pe.get_data(rva,16);instruction=ctx.disassemble(raw,base_address=preferred+rva,max_instructions=1).instructions[0]
@@ -847,3 +867,4 @@ def main():
  (out/'manifest.json').write_text(json.dumps(manifest,indent=2))
  print(json.dumps({k:v for k,v in manifest.items() if k not in ['instructions','cases']},indent=2))
 if __name__=='__main__':main()
+

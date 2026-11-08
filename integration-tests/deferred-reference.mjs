@@ -13,7 +13,10 @@ const wasm=await readFile(dir+'/deferred.wasm');
 assert.equal(createHash('sha256').update(dll).digest('hex'),manifest.dllSha256);
 const memory=new WebAssembly.Memory({initial:6144,maximum:65536}),cpu=4096;
 const instance=await instantiateStartupLift(wasm,memory);
+let slicedCases=0,slicedWorkerCases=0,workerSlices=0;
+for(const mode of ['whole','sliced']){
 for(const [index,c] of manifest.cases.entries()){
+ let sliceIndex=0;const quantum=()=>[1,7,31,127][sliceIndex++%4];
  const cc=manifest.cocos;new Uint8Array(memory.buffer,cc.pageBase,4096).set(Buffer.from(cc.pageHex,'hex'));
  const gh=manifest.gameHeaders;new Uint8Array(memory.buffer,gh.base,4096).set(Buffer.from(gh.hex,'hex'));
  let heapAt=0x1800000;new Uint8Array(memory.buffer,heapAt,0x400000).fill(0);
@@ -41,9 +44,11 @@ for(const [index,c] of manifest.cases.entries()){
  const entry=BigInt(c.imageBase+c.entryRva),stop=BigInt(c.imageBase+c.stopRva);
  const executionStop=c.expectedFault?entry+BigInt(c.instructionLength):stop;
  let count=0,pc=entry,completed=false,faultObserved=false;
+ v.setBigUint64(cpu+192,entry,true);
  try{
- for(let transfers=0;transfers<1000;transfers++){
-  const r=instance.exports.lift_run(cpu,pc,BigInt(c.imageBase),0,executionStop,20000)>>>0;count+=r&0x7fffffff;
+ for(let transfers=0;transfers<100000;transfers++){
+  const r=(mode==='whole'?instance.exports.lift_run(cpu,pc,BigInt(c.imageBase),0,executionStop,20000):instance.exports.lift_slice(cpu,BigInt(c.imageBase),0,executionStop,quantum()))>>>0;count+=r&0x3fffffff;
+  if(r&0x40000000)continue;
   if(!(r&0x80000000)){completed=true;break;}
   services.invoke(cpu,v.getBigUint64(cpu+192,true));pc=v.getBigUint64(cpu+192,true);
  }
@@ -77,16 +82,41 @@ for(const [index,c] of manifest.cases.entries()){
   const w=c.worker,scheduler=new GuestScheduler(services,{quantum:20000,firstId:2}),rootCpu=Buffer.from(memory.buffer,cpu,4096).slice(),previous=services.threadState,oldCalls=services.calls.length,rootStack=Buffer.from(memory.buffer,c.stackBase,65536).slice(),rootTib=Buffer.from(memory.buffer,c.tib,65536).slice();
   const thread=scheduler.createContext({entry:BigInt(c.imageBase+w.entryRva),argument:BigInt(w.argument),returnAddress:BigInt(w.returnAddress),tlsTemplate:new Uint8Array(memory.buffer,c.imageBase+t.templateRva,t.templateSize),tlsZeroFill:t.zeroFill});
   assert.equal(thread.cpu,w.cpu);assert.equal(thread.tib,w.tib);assert.equal(thread.stack,w.stack);
-  const workerStop=BigInt(c.imageBase+w.boundary.rva);let completed=false;
-  scheduler.runRound((thread,budget)=>{
-   let steps=0,pc=BigInt(c.imageBase+w.entryRva);
-   for(let transfers=0;transfers<1000;transfers++){
-    assert.ok(steps<budget,'worker quantum exhausted');const r=instance.exports.lift_run(thread.cpu,pc,BigInt(c.imageBase),0,workerStop,budget-steps)>>>0;steps+=r&0x7fffffff;
-    if(!(r&0x80000000)){completed=true;break;}
-    services.invoke(thread.cpu,v.getBigUint64(thread.cpu+192,true));pc=v.getBigUint64(thread.cpu+192,true);
+  let checkpointStart=0;
+  for(const point of [...w.checkpoints.map(p=>({...p,kind:'worker-poll-yield'})),{...w.boundary,steps:w.steps}]){
+   const workerStop=point.stopService?BigInt(services.addresses[point.stopService]):BigInt(c.imageBase+point.rva);let completed=false;
+   while(!completed){
+    assert.equal(thread.status,'runnable','continuation uses the retained runnable context');
+    scheduler.runRound((thread,budget)=>{
+     if(mode==='sliced')budget=Math.min(budget,quantum());
+     let steps=0;
+     for(let transfers=0;transfers<1000;transfers++){
+      if(steps===budget)break;
+      const pc=v.getBigUint64(thread.cpu+192,true),skip=thread.steps+steps===checkpointStart&&pc===workerStop;
+      let limit=skip?1:budget-steps;
+      if(point.kind==='worker-budget-yield')limit=Math.min(limit,point.steps-thread.steps-steps);
+      const r=instance.exports.lift_slice(thread.cpu,BigInt(c.imageBase),0,point.kind==='worker-budget-yield'||skip?0xffffffffffffffffn:workerStop,limit)>>>0;steps+=r&0x3fffffff;
+      if(point.kind==='worker-budget-yield'&&thread.steps+steps===point.steps){completed=true;break;}
+      if(r&0x40000000){if(skip&&steps<budget)continue;break;}
+      if(!(r&0x80000000)){completed=true;break;}
+      services.invoke(thread.cpu,v.getBigUint64(thread.cpu+192,true));
+     }
+     assert.ok(steps>0,'worker slices make instruction progress');
+     workerSlices++;return {steps,state:completed&&!['worker-poll-yield','worker-budget-yield'].includes(point.kind)?'blocked':'runnable',waitKey:'verified-worker-boundary'};
+    });
+    assert.ok(thread.steps<=w.steps,'bounded native worker trace');
    }
-   assert.equal(completed,true);assert.equal(steps,w.steps);return {steps,state:w.boundary.kind==='worker-poll-yield'?'runnable':'blocked',waitKey:'verified-worker-boundary'};
-  });
+   assert.equal(thread.steps,point.steps,'worker checkpoint instruction count');
+   assert.equal(v.getBigUint64(thread.cpu+192,true),workerStop,'worker checkpoint PC');
+   if(point.expected){
+    point.expected.forEach((n,i)=>assert.equal(v.getBigUint64(thread.cpu+i*8,true),BigInt(n),'checkpoint GPR '+i));
+    point.expectedXmm.forEach((n,i)=>assert.equal(v.getBigUint64(thread.cpu+512+i*16,true)|(v.getBigUint64(thread.cpu+520+i*16,true)<<64n),BigInt(n),'checkpoint XMM '+i));
+    for(const bit of [0,2,4,6,7,11])if(point.definedFlagsMask&(1<<bit))assert.equal(v.getUint8(thread.cpu+2560+bit),(point.expectedFlags>>>bit)&1,'checkpoint flag '+bit);
+    assert.deepEqual(services.calls.slice(oldCalls),point.serviceCalls,'checkpoint service order');
+   }
+   checkpointStart=thread.steps;
+  }
+  const workerStop=w.boundary.stopService?BigInt(services.addresses[w.boundary.stopService]):BigInt(c.imageBase+w.boundary.rva);
   assert.equal(services.threadState,previous);assert.deepEqual(Buffer.from(memory.buffer,cpu,4096),rootCpu,'root CPU unchanged by actual worker');assert.deepEqual(Buffer.from(memory.buffer,c.stackBase,65536),rootStack,'root stack preserved');assert.deepEqual(Buffer.from(memory.buffer,c.tib,65536),rootTib,'root TIB preserved');
   w.expected.forEach((n,i)=>assert.equal(v.getBigUint64(thread.cpu+i*8,true),BigInt(n),`worker GPR ${i}`));
   w.expectedXmm.forEach((n,i)=>assert.equal(v.getBigUint64(thread.cpu+512+i*16,true)|(v.getBigUint64(thread.cpu+520+i*16,true)<<64n),BigInt(n),`worker XMM ${i}`));
@@ -97,9 +127,26 @@ for(const [index,c] of manifest.cases.entries()){
   const expectedWorkerImage=Buffer.from(baselineImage);for(const change of w.dllChanges)Buffer.from(change.hex,'hex').copy(expectedWorkerImage,change.rva);
   assert.deepEqual(Buffer.from(memory.buffer,c.imageBase,image.size),expectedWorkerImage,'worker DLL writes');
   assert.deepEqual(Buffer.from(memory.buffer,gh.base,4096),Buffer.from(gh.hex,'hex'),'worker preserves game headers');assert.deepEqual(Buffer.from(memory.buffer,cc.pageBase,4096),Buffer.from(cc.pageHex,'hex'),'worker preserves Cocos');
-  scheduler.dispose();
+  scheduler.dispose();if(mode==='sliced')slicedWorkerCases++;
  }
 
+ if(mode==='sliced')slicedCases++;
+}
+}
+// Instruction-budget yields preserve RIP and all state. Exact-budget stops
+// take precedence for the slice API; legacy lift_run still faults on exhaustion.
+let sliceContractCases=0;
+{
+ const v=new DataView(memory.buffer),base=BigInt(manifest.cases[0].imageBase),entry=base+0x50fc87n,end=entry+3n;
+ const reset=()=>{new Uint8Array(memory.buffer,cpu,4096).fill(0);v.setBigUint64(cpu,123n,true);v.setBigUint64(cpu+56,3n,true);v.setBigUint64(cpu+192,entry,true);};
+ reset();let before=Buffer.from(memory.buffer,cpu,4096).slice();
+ assert.equal(instance.exports.lift_slice(cpu,base,0,end,0)>>>0,0x40000000);assert.deepEqual(Buffer.from(memory.buffer,cpu,4096),before);sliceContractCases++;
+ assert.equal(instance.exports.lift_slice(cpu,base,0,entry,0),0);assert.deepEqual(Buffer.from(memory.buffer,cpu,4096),before);sliceContractCases++;
+ assert.equal(instance.exports.lift_slice(cpu,base,0,end,1),1);assert.equal(v.getBigUint64(cpu,true),41n);assert.equal(v.getBigUint64(cpu+192,true),end);sliceContractCases++;
+ reset();assert.equal(instance.exports.lift_slice(cpu,base,0,0xffffffffffffffffn,1)>>>0,0x40000001);assert.equal(v.getBigUint64(cpu+192,true),end);sliceContractCases++;
+ v.setBigUint64(cpu+192,0x70000000n,true);before=Buffer.from(memory.buffer,cpu,4096).slice();assert.equal(instance.exports.lift_slice(cpu,base,0,0xffffffffffffffffn,1)>>>0,0x80000000);assert.deepEqual(Buffer.from(memory.buffer,cpu,4096),before);sliceContractCases++;
+ reset();before=Buffer.from(memory.buffer,cpu,4096).slice();assert.throws(()=>instance.exports.lift_slice(cpu,base,0,end,0x40000000),/Startup lift fault 6 /);assert.deepEqual(Buffer.from(memory.buffer,cpu,4096),before);sliceContractCases++;
+ reset();assert.throws(()=>instance.exports.lift_run(cpu,entry,base,0,end,1),/Startup lift fault 4 /);assert.equal(v.getBigUint64(cpu+192,true),end);sliceContractCases++;
 }
 // Differential checks execute the actual lifted DIV instructions. BigInt is
 // the independent arithmetic oracle; no division algorithm is copied here.
@@ -119,8 +166,9 @@ for(const [rva,width,operand,length] of [[0x4f060f,32,64,3],[0x4f074e,32,72,3],[
   const before=Buffer.from(memory.buffer,cpu,4096).slice();assert.throws(()=>instance.exports.lift_run(cpu,entry,imageBase,0,entry+BigInt(length),2),/Startup lift fault 5 /);assert.deepEqual(Buffer.from(memory.buffer,cpu,4096),before,'divide fault preserves complete CPU shadow');divisionCases++;
  }
 }
-const result={status:'DEFERRED_NATIVE_REFERENCE_PASS',divisionCases,cases:manifest.cases.length,workerCases:manifest.cases.filter(c=>c.worker).length,workerBoundaries:manifest.cases.filter(c=>c.worker).map(c=>({imageBase:c.imageBase,...c.worker.boundary,steps:c.worker.steps,entryRva:c.worker.entryRva})),uniqueInstructions:manifest.uniqueInstructions,boundaries:manifest.boundaries,wasmSha256:createHash('sha256').update(wasm).digest('hex'),fullGeodeLoader:false};
+const result={status:'DEFERRED_NATIVE_REFERENCE_PASS',sliceContractCases,slicedCases,slicedWorkerCases,workerSlices,divisionCases,cases:manifest.cases.length,workerCases:manifest.cases.filter(c=>c.worker).length,workerBoundaries:manifest.cases.filter(c=>c.worker).map(c=>({imageBase:c.imageBase,...c.worker.boundary,steps:c.worker.steps,entryRva:c.worker.entryRva})),uniqueInstructions:manifest.uniqueInstructions,boundaries:manifest.boundaries,wasmSha256:createHash('sha256').update(wasm).digest('hex'),fullGeodeLoader:false};
 await writeFile(dir+'/reference-result.json',JSON.stringify(result,null,2));
 const first=manifest.cases[0];
-await writeFile(dir+'/runtime-manifest.json',JSON.stringify({dllSha256:manifest.dllSha256,wasmSha256:result.wasmSha256,servicesSha256:createHash('sha256').update(await readFile(dir+'/services.mjs')).digest('hex'),entryRva:manifest.entryRva,stopRva:first.stopRva,steps:first.steps,nextService:manifest.boundaries[0].service,stopService:manifest.boundaries[0].stopService,nextThreadRequest:manifest.boundaries[0].threadRequest,nextBoundaryKind:manifest.boundaries[0].kind,worker:first.worker?{nextCompletionRequest:first.worker.boundary.completionRequest,clockDependent:first.worker.performanceClock.counterReads>0,entryRva:first.worker.entryRva,steps:first.worker.steps,stopRva:first.worker.boundary.rva,stopService:first.worker.boundary.stopService,nextService:first.worker.boundary.service,nextBoundaryKind:first.worker.boundary.kind||'service-call'}:undefined,nextDialog:manifest.boundaries[0].dialog,nextPipeRequest:manifest.boundaries[0].pipeRequest,cocos:manifest.cocos,bootstrap:manifest.bootstrap,tls:manifest.tls,gsOffset:manifest.gsOffset,onexitTables:manifest.onexitTables},null,2));
+await writeFile(dir+'/runtime-manifest.json',JSON.stringify({dllSha256:manifest.dllSha256,wasmSha256:result.wasmSha256,servicesSha256:createHash('sha256').update(await readFile(dir+'/services.mjs')).digest('hex'),entryRva:manifest.entryRva,stopRva:first.stopRva,steps:first.steps,nextService:manifest.boundaries[0].service,stopService:manifest.boundaries[0].stopService,nextThreadRequest:manifest.boundaries[0].threadRequest,nextBoundaryKind:manifest.boundaries[0].kind,worker:first.worker?{checkpoints:first.worker.checkpoints.map(p=>({rva:p.rva,steps:p.steps})),sliceQuantum:127,nextCompletionRequest:first.worker.boundary.completionRequest,clockDependent:first.worker.performanceClock.counterReads>0,entryRva:first.worker.entryRva,steps:first.worker.steps,stopRva:first.worker.boundary.rva,stopService:first.worker.boundary.stopService,nextService:first.worker.boundary.service,nextBoundaryKind:first.worker.boundary.kind||'service-call'}:undefined,nextDialog:manifest.boundaries[0].dialog,nextPipeRequest:manifest.boundaries[0].pipeRequest,cocos:manifest.cocos,bootstrap:manifest.bootstrap,tls:manifest.tls,gsOffset:manifest.gsOffset,onexitTables:manifest.onexitTables},null,2));
 console.log(JSON.stringify(result,null,2));
+

@@ -74,7 +74,7 @@ jobs:
           if [ ! -f integration-input/cocos-binding.json ]; then GEODE_CAPTURE_HEADERS=1 node integration-tests/browser-smoke.cjs; fi
       - run: |
           python experiments/geode-binary/build-deferred.py /tmp/Geode.dll /tmp/deferred
-          clang --target=wasm32 -O2 -nostdlib /tmp/deferred/deferred.c -Wl,--no-entry -Wl,--import-memory -Wl,--export=lift_run -Wl,--export=__stack_pointer -Wl,-z,stack-size=65536 -o /tmp/deferred/deferred.wasm
+          clang --target=wasm32 -O2 -nostdlib /tmp/deferred/deferred.c -Wl,--no-entry -Wl,--import-memory -Wl,--export=lift_run -Wl,--export=lift_slice -Wl,--export=__stack_pointer -Wl,-z,stack-size=65536 -o /tmp/deferred/deferred.wasm
           node integration-tests/bundle-services.mjs /tmp/deferred
           node integration-tests/deferred-reference.mjs /tmp/deferred
           node integration-tests/windows-srw.mjs
@@ -127,3 +127,4 @@ jobs:
             /tmp/deferred/runtime-manifest.json
             /tmp/deferred/services.mjs
             browser-result.json
+
