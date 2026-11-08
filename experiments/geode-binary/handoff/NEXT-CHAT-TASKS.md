@@ -1,5 +1,16 @@
 # Current continuation — 8 November 2026
 
+## User scope update — four mods only
+
+Read TARGET-MODS.md before the older general continuation below. The only mod
+targets are Click Sounds Full, Jukebox, QOLMod and Globed, plus required
+dependencies. First resolve the declared GD/Geode version mismatches and map
+their actual hook/API requirements. Prefer the smallest working integration for
+these sources; broad arbitrary-mod compatibility is out of scope. The saved
+_beginthreadex task remains necessary if the selected integration uses native
+loader execution. Do not spend further turns extending empty worker polling.
+
+
 Use current main. Older local mirrors and Chat-mode ZIPs may be stale.
 
 ## Current verified state
