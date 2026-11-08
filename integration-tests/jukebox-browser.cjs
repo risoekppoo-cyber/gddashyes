@@ -36,6 +36,7 @@ const assert = require('node:assert/strict');
     await menuAudio(true);
     report.gameAudioBefore = await page.evaluate(() => Object.values(Module.__gdAudio.sounds).filter(sound => /menuLoop\.mp3$/.test(sound.path || sound.name)).map(sound => ({id: sound.id, path: sound.path || sound.name, duration: sound.buf?.duration})));
     await page.locator('#jb-toggle').click();
+    await page.locator('#mod-jukebox').click();
     await page.locator('#jb-song-id').fill('1323633');
     await page.locator('#jb-panel button[type=submit]').click();
     const row = page.locator('#jb-results [data-key="6ad1c23ecc40bb69f37264f9"]');
@@ -86,6 +87,7 @@ const assert = require('node:assert/strict');
     report.reloaded = await page.evaluate(() => GDJukebox.getState());
     assert.equal(report.reloaded.active[0].key, '6ad1c23ecc40bb69f37264f9');
     await page.locator('#jb-toggle').click();
+    await page.locator('#mod-jukebox').click();
     await page.getByRole('button', {name: 'Restore original'}).click();
     await page.waitForFunction(() => !GDJukebox.getState().busy && GDJukebox.getState().active.length === 0);
     report.originalRestored = await page.evaluate(async filename => {
@@ -138,9 +140,13 @@ const assert = require('node:assert/strict');
     await page.keyboard.press('Escape');
     assert(await page.locator('#jb-panel').isHidden());
     await page.keyboard.press('F2');
+    assert(await page.locator('#gd-mod-menu').isVisible());
+    await page.locator('#mod-jukebox').click();
     assert(await page.locator('#jb-panel').isVisible());
     await page.keyboard.press('F2');
     assert(await page.locator('#jb-panel').isHidden());
+    assert(await page.locator('#gd-mod-menu').isVisible());
+    await page.keyboard.press('Escape');
     const before = await page.evaluate(() => Module._gd_frames_get());
     await page.waitForFunction(n => Module._gd_frames_get() > n + 30, before);
     report.framesAfter = await page.evaluate(() => Module._gd_frames_get());
@@ -155,4 +161,5 @@ const assert = require('node:assert/strict');
     console.log(JSON.stringify(report, null, 2)); await browser.close();
   }
 })();
+
 

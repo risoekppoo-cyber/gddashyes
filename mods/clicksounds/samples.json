@@ -1,0 +1,102 @@
+[
+  {
+    "path": "mods/clicksounds/Clicks/1.wav",
+    "sha256": "fb5acfc5585b4fa0a2824e87e5e4e79903b28e8e60f843c6b38951890f9fb3c0",
+    "bytes": 23162
+  },
+  {
+    "path": "mods/clicksounds/Clicks/2.wav",
+    "sha256": "a7a014fa53ad1824154775dec5b4e4c11e0f3f5dbafff5624b0e651479d91878",
+    "bytes": 28988
+  },
+  {
+    "path": "mods/clicksounds/Clicks/3.wav",
+    "sha256": "830f16a08d1e0565a82faa0b25efc23341b977b311083cba48eacd6f0b797e7e",
+    "bytes": 28990
+  },
+  {
+    "path": "mods/clicksounds/Clicks/4.wav",
+    "sha256": "119a5480af204601db0f5dcc65ed9e803936b06e2464485bd0d28e9ffa6bd87c",
+    "bytes": 28990
+  },
+  {
+    "path": "mods/clicksounds/Clicks/5.wav",
+    "sha256": "8ae7213e71b2b8c34bac738a88434a953424a6b389c6633fe3f53b2b8b01ff7f",
+    "bytes": 28988
+  },
+  {
+    "path": "mods/clicksounds/Clicks/6.wav",
+    "sha256": "5c091bacf603a358171309f51442a6b79d0eefbdd8f9ae62a70ef18575887fb4",
+    "bytes": 28988
+  },
+  {
+    "path": "mods/clicksounds/Clicks/7.wav",
+    "sha256": "acd154ca6d4cc4bb9b737170d9615c92c9b586e23c130f77a44779413af26ba1",
+    "bytes": 28990
+  },
+  {
+    "path": "mods/clicksounds/Clicks/8.wav",
+    "sha256": "2eba3cf84447a105b126fc96e03fc7993792743b17fa7a57e486c562170060d2",
+    "bytes": 28988
+  },
+  {
+    "path": "mods/clicksounds/Clicks/9.wav",
+    "sha256": "4487dcd06af2737487b3d1ac764e3089f7beadaeef9a0722e08a3abb7c4dd839",
+    "bytes": 28990
+  },
+  {
+    "path": "mods/clicksounds/Clicks/10.wav",
+    "sha256": "2db68d90c5ea8223a1bc618a818c92e07f1f963770a67d3899ff90ff591d9d17",
+    "bytes": 28988
+  },
+  {
+    "path": "mods/clicksounds/Releases/1.wav",
+    "sha256": "4f4e6fe6707684f7a1163666f7c5e6fbb27cf870e3568245fd0ed8a688b7a47e",
+    "bytes": 28990
+  },
+  {
+    "path": "mods/clicksounds/Releases/2.wav",
+    "sha256": "1ec7c2669973054ceb4e01bbe75c7c46b63e131ed7750356370a7144c0d820b1",
+    "bytes": 28990
+  },
+  {
+    "path": "mods/clicksounds/Releases/3.wav",
+    "sha256": "f457e8635c51ce8360fcb5103f984770e454ee442165196fa300e0de859a4816",
+    "bytes": 28990
+  },
+  {
+    "path": "mods/clicksounds/Releases/4.wav",
+    "sha256": "e86428c76ef508268227b6ea9ec2e805d182b9b005b298fb706d0d631fadda8a",
+    "bytes": 28988
+  },
+  {
+    "path": "mods/clicksounds/Releases/5.wav",
+    "sha256": "4a85e06cd44ccaf8d021391b98764519a8641d7e6735bda663075d932548df57",
+    "bytes": 28988
+  },
+  {
+    "path": "mods/clicksounds/Releases/6.wav",
+    "sha256": "3ebc69cca1ace91db81420064e9790b43b4d22fbb267c53504e35a845592be93",
+    "bytes": 28988
+  },
+  {
+    "path": "mods/clicksounds/Releases/7.wav",
+    "sha256": "fc0321ee771aae5f1c0bc2bd5398e9e316447f4dc63eb339732151b496b323d5",
+    "bytes": 28988
+  },
+  {
+    "path": "mods/clicksounds/Releases/8.wav",
+    "sha256": "55bcf3753fa81fba329c6d9ca4fd074cfd6232323c8def9be0dfdb4d3419d720",
+    "bytes": 28990
+  },
+  {
+    "path": "mods/clicksounds/Releases/9.wav",
+    "sha256": "1b53b3b7f9621288b54ab40e0ed4aaea3fafc7a2526cb240ce0d5e0b6ac79694",
+    "bytes": 28990
+  },
+  {
+    "path": "mods/clicksounds/Releases/10.wav",
+    "sha256": "ece43f0d7c3f106889cac1f7229f8f24c4e7e38bbd491c8681087d518fbe8b43",
+    "bytes": 28990
+  }
+]

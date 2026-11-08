@@ -292,7 +292,7 @@
   for (const eventName of ['keydown', 'keyup', 'keypress']) window.addEventListener(eventName, event => {
     if (event.code === 'F2') {
       event.preventDefault(); event.stopImmediatePropagation();
-      if (eventName === 'keydown' && !event.repeat) panel?.hidden ? open() : close();
+      if (eventName === 'keydown' && !event.repeat) window.GDModMenu ? window.GDModMenu.toggle() : (panel?.hidden ? open() : close());
       return;
     }
     if (event.code === 'Escape' && escapeHeld) {
@@ -312,7 +312,7 @@
   function mount() {
     const style = element('style', null, document.head);
     style.textContent = `#jb-toggle,#jb-panel{font:14px system-ui,sans-serif;color:#f5f7ff}#jb-toggle{position:fixed;right:14px;bottom:14px;z-index:10010;background:#293653;border:1px solid #8796b7;border-radius:12px;padding:10px 16px;cursor:pointer}#jb-panel{box-sizing:border-box;position:fixed;right:14px;bottom:66px;width:min(440px,calc(100vw - 28px));max-height:calc(100dvh - 88px);overflow:auto;z-index:10011;background:#152037;border:1px solid #667da8;border-radius:16px;padding:20px;box-shadow:0 16px 60px #0009}#jb-panel[hidden]{display:none}#jb-panel h2{margin:0 0 6px;font-size:22px}#jb-panel h3{font-size:15px;margin:20px 0 8px}#jb-panel p{line-height:1.5;color:#c5d0e6}#jb-panel button,#jb-panel input,#jb-panel select{box-sizing:border-box;font:inherit;color:inherit;border:1px solid #60759b;background:#253751;border-radius:8px;padding:9px 11px}#jb-panel button{cursor:pointer;margin:6px 6px 0 0}#jb-panel button:disabled{opacity:.5;cursor:default}#jb-panel input{width:100%;margin:6px 0}#jb-panel select{width:100%;margin:6px 0 0}#jb-panel label{display:block;margin-top:12px}#jb-panel .jb-row{border-top:1px solid #3c4e6c;padding:12px 0}#jb-panel strong,#jb-panel small{display:block;overflow-wrap:anywhere}#jb-panel small{color:#b3c6e1;margin:5px 0}#jb-panel audio{width:100%;height:34px;margin-top:12px}#jb-panel a{color:#adceff}#jb-panel #jb-close{float:right;margin:-6px -5px 0 0}#jb-status{min-height:42px;font-size:13px}`;
-    element('button', '♫ Jukebox', document.body, {id: 'jb-toggle', type: 'button', 'data-west-ui': '', 'aria-controls': 'jb-panel'}).addEventListener('click', () => panel.hidden ? open() : close());
+    element('button', '♫ Jukebox', document.body, {id: 'jb-toggle', type: 'button', 'data-west-ui': '', 'aria-controls': 'jb-panel'}).addEventListener('click', () => window.GDModMenu ? window.GDModMenu.toggle() : (panel.hidden ? open() : close()));
     panel = element('section', null, document.body, {id: 'jb-panel', hidden: '', 'data-west-ui': '', 'aria-label': 'Jukebox song replacements'});
     element('button', 'Close', panel, {id: 'jb-close', type: 'button'}).addEventListener('click', close);
     element('h2', 'Jukebox', panel); element('p', 'Find a replacement on Song File Hub, then restart the level to hear it.', panel);

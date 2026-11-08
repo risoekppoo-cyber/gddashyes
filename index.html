@@ -337,8 +337,9 @@ document.addEventListener("click",function(){try{if(window.parent!==window)windo
   var path = location.pathname, boundary = path.indexOf('/experiments/');
   var root = boundary < 0 ? new URL('.', location.href) : new URL(path.slice(0, boundary + 1), location.origin);
   var script = new URL('mods/jukebox.js', root);
-  script.searchParams.set('v', '20261108-4');
-  document.write('<script src="' + script.href + '"><\/script>');
+  script.searchParams.set('v', '20261108-5');
+  var tools = new URL('mods/tools.js', root); tools.searchParams.set('v', '20261108-1');
+  document.write('<script src="' + script.href + '"><\/script><script src="' + tools.href + '"><\/script>');
 })();
 </script><script id="westminster-experiment-loader">
 (function () {
