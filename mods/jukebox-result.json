@@ -51,7 +51,7 @@
   },
   "preview": {
     "duration": 109.400816,
-    "currentTime": 0.370848,
+    "currentTime": 0.424055,
     "error": null
   },
   "mobile": {
@@ -112,7 +112,7 @@
     "name": "/AppData/1323633.mp3",
     "storedBytesIntact": true
   },
-  "framesAfter": 215,
-  "sourceCommit": "70ed7acf42ff670939f6ab9a4713554900267074",
-  "workflow": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42501689526"
+  "framesAfter": 205,
+  "sourceCommit": "30b555ec672a383615a9e02113e5ee87e1f63a96",
+  "workflow": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42510043252"
 }

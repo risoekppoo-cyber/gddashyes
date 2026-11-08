@@ -1,3 +1,22 @@
+# Latest verified browser mods — 8 November 2026
+
+The normal page now has one **Mods ▾** dropdown (F2), containing Jukebox and
+Click Sounds. Click Sounds uses all 20 unmodified original default WAV samples,
+with separate press/release selection, volume, previews, toggles and saved settings.
+It starts disabled. Enable in Mods → Click Sounds. Sounds play on accepted game
+jump controls in both levels and menus. No native Geode execution is claimed.
+
+Combined real Chromium run 42510043252 passes: keyboard/repeat isolation, mouse,
+touch, virtual keys, silent UI typing, disabled/release controls, mobile layout and
+persisted preferences. The full real-server Jukebox regression also passes through
+the shared dropdown. Source commit: 30b555ec672a383615a9e02113e5ee87e1f63a96.
+See mods/README.md, mods/clicksounds/result.json and mods/jukebox-result.json.
+
+Do not reimplement these features or resume the native loader for them. Use this
+current code and retained evidence. Next prompt setting: Medium.
+
+---
+
 # Verified server replacement — 8 November 2026
 
 **Working and deployed on the normal game page.** The user now permits a simple UI.
@@ -177,4 +196,5 @@ Keep unsupported failures explicit; do not infer free memory from zero bytes.
 
 Read DEFERRED-SETUP.md and RESUMABLE-SLICES.md for evidence and limits. Always
 recommend the next prompt's reasoning setting when finishing.
+
 

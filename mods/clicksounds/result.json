@@ -1,0 +1,97 @@
+{
+  "status": "CLICK_SOUNDS_DROPDOWN_PASS",
+  "errors": [],
+  "preview": {
+    "settings": {
+      "enabled": true,
+      "releases": true,
+      "volume": 37,
+      "press": "2",
+      "release": "3"
+    },
+    "loaded": true,
+    "context": "running",
+    "stats": {
+      "press": 0,
+      "release": 0,
+      "preview": 1,
+      "last": {
+        "kind": "Clicks",
+        "sample": 2,
+        "duration": 0.30149659863945577,
+        "context": "running",
+        "gain": 0.3700000047683716
+      }
+    },
+    "voices": 1
+  },
+  "keyboard": {
+    "settings": {
+      "enabled": true,
+      "releases": true,
+      "volume": 37,
+      "press": "2",
+      "release": "3"
+    },
+    "loaded": true,
+    "context": "running",
+    "stats": {
+      "press": 1,
+      "release": 1,
+      "preview": 1,
+      "last": {
+        "kind": "Releases",
+        "sample": 3,
+        "duration": 0.30151927437641723,
+        "context": "running",
+        "gain": 0.3700000047683716
+      }
+    },
+    "voices": 2
+  },
+  "inputs": {
+    "settings": {
+      "enabled": true,
+      "releases": true,
+      "volume": 37,
+      "press": "2",
+      "release": "3"
+    },
+    "loaded": true,
+    "context": "running",
+    "stats": {
+      "press": 4,
+      "release": 4,
+      "preview": 1,
+      "last": {
+        "kind": "Releases",
+        "sample": 3,
+        "duration": 0.30151927437641723,
+        "context": "running",
+        "gain": 0.3700000047683716
+      }
+    },
+    "voices": 2
+  },
+  "persisted": {
+    "settings": {
+      "enabled": false,
+      "releases": false,
+      "volume": 37,
+      "press": "2",
+      "release": "3"
+    },
+    "loaded": false,
+    "context": "running",
+    "stats": {
+      "press": 0,
+      "release": 0,
+      "preview": 0,
+      "last": null
+    },
+    "voices": 0
+  },
+  "framesAfter": 58,
+  "sourceCommit": "30b555ec672a383615a9e02113e5ee87e1f63a96",
+  "workflow": "https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42510043252"
+}
