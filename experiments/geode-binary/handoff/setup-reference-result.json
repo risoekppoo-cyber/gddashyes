@@ -1,28 +1,150 @@
 {
   "status": "DEFERRED_NATIVE_REFERENCE_PASS",
   "sliceContractCases": 7,
-  "slicedCases": 36,
-  "slicedWorkerCases": 2,
-  "workerSlices": 134,
+  "slicedCases": 40,
+  "slicedWorkerCases": 6,
+  "workerSlices": 702,
   "divisionCases": 1032,
-  "cases": 36,
-  "workerCases": 2,
+  "cases": 40,
+  "workerCases": 6,
   "workerBoundaries": [
     {
       "imageBase": 33554432,
       "rva": 5183067,
       "service": "Worker scheduler continuation",
       "kind": "worker-poll-yield",
-      "steps": 2601,
-      "entryRva": 5241520
+      "steps": 4383,
+      "entryRva": 5241520,
+      "resumePauseTicks": 0,
+      "checkpoints": [
+        {
+          "rva": 5183067,
+          "steps": 1710
+        },
+        {
+          "rva": 5183067,
+          "steps": 2601
+        },
+        {
+          "rva": 5183067,
+          "steps": 3492
+        }
+      ]
+    },
+    {
+      "imageBase": 33554432,
+      "rva": 5183067,
+      "service": "Worker scheduler continuation",
+      "kind": "worker-poll-yield",
+      "steps": 4383,
+      "entryRva": 5241520,
+      "resumePauseTicks": 166667,
+      "checkpoints": [
+        {
+          "rva": 5183067,
+          "steps": 1710
+        },
+        {
+          "rva": 5183067,
+          "steps": 2601
+        },
+        {
+          "rva": 5183067,
+          "steps": 3492
+        }
+      ]
+    },
+    {
+      "imageBase": 33554432,
+      "rva": 5183067,
+      "service": "Worker scheduler continuation",
+      "kind": "worker-poll-yield",
+      "steps": 4383,
+      "entryRva": 5241520,
+      "resumePauseTicks": 1000000,
+      "checkpoints": [
+        {
+          "rva": 5183067,
+          "steps": 1710
+        },
+        {
+          "rva": 5183067,
+          "steps": 2601
+        },
+        {
+          "rva": 5183067,
+          "steps": 3492
+        }
+      ]
     },
     {
       "imageBase": 369098752,
       "rva": 5183067,
       "service": "Worker scheduler continuation",
       "kind": "worker-poll-yield",
-      "steps": 2601,
-      "entryRva": 5241520
+      "steps": 4383,
+      "entryRva": 5241520,
+      "resumePauseTicks": 0,
+      "checkpoints": [
+        {
+          "rva": 5183067,
+          "steps": 1710
+        },
+        {
+          "rva": 5183067,
+          "steps": 2601
+        },
+        {
+          "rva": 5183067,
+          "steps": 3492
+        }
+      ]
+    },
+    {
+      "imageBase": 369098752,
+      "rva": 5183067,
+      "service": "Worker scheduler continuation",
+      "kind": "worker-poll-yield",
+      "steps": 4383,
+      "entryRva": 5241520,
+      "resumePauseTicks": 166667,
+      "checkpoints": [
+        {
+          "rva": 5183067,
+          "steps": 1710
+        },
+        {
+          "rva": 5183067,
+          "steps": 2601
+        },
+        {
+          "rva": 5183067,
+          "steps": 3492
+        }
+      ]
+    },
+    {
+      "imageBase": 369098752,
+      "rva": 5183067,
+      "service": "Worker scheduler continuation",
+      "kind": "worker-poll-yield",
+      "steps": 4383,
+      "entryRva": 5241520,
+      "resumePauseTicks": 1000000,
+      "checkpoints": [
+        {
+          "rva": 5183067,
+          "steps": 1710
+        },
+        {
+          "rva": 5183067,
+          "steps": 2601
+        },
+        {
+          "rva": 5183067,
+          "steps": 3492
+        }
+      ]
     }
   ],
   "uniqueInstructions": 6512,
@@ -36,6 +158,145 @@
         "security": "0x0",
         "stackSize": 0,
         "entryAddress": "0x24ffab0",
+        "entryRva": 5241520,
+        "argument": "0x1801890",
+        "argumentIsNull": false,
+        "initFlags": 0,
+        "threadIdOutput": "0x10e508",
+        "threadIdOutputIsNull": false,
+        "threadCreationImplemented": false
+      }
+    },
+    {
+      "rva": 1208561,
+      "service": "USER32.dll!MessageBoxW",
+      "iatRva": 15259088,
+      "arguments": [
+        "0x0",
+        "0x1801cb0",
+        "0x1801db0",
+        "0x10"
+      ],
+      "dialog": {
+        "text": "Geometry Dash is outdated!\nGeode requires GD 2.2091 but you have 2.2091.\nPlease, update Geometry Dash to 2.2091.",
+        "caption": "Unable to Load Geode!"
+      }
+    },
+    {
+      "rva": 1236769,
+      "service": "SIMD fixture stop"
+    },
+    {
+      "rva": 2054349,
+      "service": "Signed-shift fixture stop"
+    },
+    {
+      "rva": 5178898,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5178898,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5178898,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5178895,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5178895,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5179217,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5179214,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5307504,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5307502,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5307530,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5307530,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5307530,
+      "service": "Unsigned-division fixture stop"
+    },
+    {
+      "rva": 5307527,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 5307527,
+      "service": "Unsigned-division fault fixture",
+      "kind": "division-error"
+    },
+    {
+      "rva": 1845494864,
+      "service": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
+      "kind": "thread-start-request",
+      "stopService": "_beginthreadex",
+      "threadRequest": {
+        "security": "0x0",
+        "stackSize": 0,
+        "entryAddress": "0x24ffab0",
+        "entryRva": 5241520,
+        "argument": "0x1801890",
+        "argumentIsNull": false,
+        "initFlags": 0,
+        "threadIdOutput": "0x10e508",
+        "threadIdOutputIsNull": false,
+        "threadCreationImplemented": false
+      }
+    },
+    {
+      "rva": 1845494864,
+      "service": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
+      "kind": "thread-start-request",
+      "stopService": "_beginthreadex",
+      "threadRequest": {
+        "security": "0x0",
+        "stackSize": 0,
+        "entryAddress": "0x24ffab0",
+        "entryRva": 5241520,
+        "argument": "0x1801890",
+        "argumentIsNull": false,
+        "initFlags": 0,
+        "threadIdOutput": "0x10e508",
+        "threadIdOutputIsNull": false,
+        "threadCreationImplemented": false
+      }
+    },
+    {
+      "rva": 1509950544,
+      "service": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
+      "kind": "thread-start-request",
+      "stopService": "_beginthreadex",
+      "threadRequest": {
+        "security": "0x0",
+        "stackSize": 0,
+        "entryAddress": "0x164ffab0",
         "entryRva": 5241520,
         "argument": "0x1801890",
         "argumentIsNull": false,
@@ -149,89 +410,22 @@
       }
     },
     {
-      "rva": 1208561,
-      "service": "USER32.dll!MessageBoxW",
-      "iatRva": 15259088,
-      "arguments": [
-        "0x0",
-        "0x1801cb0",
-        "0x1801db0",
-        "0x10"
-      ],
-      "dialog": {
-        "text": "Geometry Dash is outdated!\nGeode requires GD 2.2091 but you have 2.2091.\nPlease, update Geometry Dash to 2.2091.",
-        "caption": "Unable to Load Geode!"
+      "rva": 1509950544,
+      "service": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
+      "kind": "thread-start-request",
+      "stopService": "_beginthreadex",
+      "threadRequest": {
+        "security": "0x0",
+        "stackSize": 0,
+        "entryAddress": "0x164ffab0",
+        "entryRva": 5241520,
+        "argument": "0x1801890",
+        "argumentIsNull": false,
+        "initFlags": 0,
+        "threadIdOutput": "0x10e508",
+        "threadIdOutputIsNull": false,
+        "threadCreationImplemented": false
       }
-    },
-    {
-      "rva": 1236769,
-      "service": "SIMD fixture stop"
-    },
-    {
-      "rva": 2054349,
-      "service": "Signed-shift fixture stop"
-    },
-    {
-      "rva": 5178898,
-      "service": "Unsigned-division fixture stop"
-    },
-    {
-      "rva": 5178898,
-      "service": "Unsigned-division fixture stop"
-    },
-    {
-      "rva": 5178898,
-      "service": "Unsigned-division fixture stop"
-    },
-    {
-      "rva": 5178895,
-      "service": "Unsigned-division fault fixture",
-      "kind": "division-error"
-    },
-    {
-      "rva": 5178895,
-      "service": "Unsigned-division fault fixture",
-      "kind": "division-error"
-    },
-    {
-      "rva": 5179217,
-      "service": "Unsigned-division fixture stop"
-    },
-    {
-      "rva": 5179214,
-      "service": "Unsigned-division fault fixture",
-      "kind": "division-error"
-    },
-    {
-      "rva": 5307504,
-      "service": "Unsigned-division fixture stop"
-    },
-    {
-      "rva": 5307502,
-      "service": "Unsigned-division fault fixture",
-      "kind": "division-error"
-    },
-    {
-      "rva": 5307530,
-      "service": "Unsigned-division fixture stop"
-    },
-    {
-      "rva": 5307530,
-      "service": "Unsigned-division fixture stop"
-    },
-    {
-      "rva": 5307530,
-      "service": "Unsigned-division fixture stop"
-    },
-    {
-      "rva": 5307527,
-      "service": "Unsigned-division fault fixture",
-      "kind": "division-error"
-    },
-    {
-      "rva": 5307527,
-      "service": "Unsigned-division fault fixture",
-      "kind": "division-error"
     }
   ],
   "wasmSha256": "0fdb341063078a479f2268784ffeec5f140e7d4aa17a02484459f4dbaef66084",

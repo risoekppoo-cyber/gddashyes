@@ -25,12 +25,20 @@
       {
         "rva": 5183067,
         "steps": 1710
+      },
+      {
+        "rva": 5183067,
+        "steps": 2601
+      },
+      {
+        "rva": 5183067,
+        "steps": 3492
       }
     ],
     "sliceQuantum": 127,
     "clockDependent": true,
     "entryRva": 5241520,
-    "steps": 2601,
+    "steps": 4383,
     "stopRva": 5183067,
     "nextService": "Worker scheduler continuation",
     "nextBoundaryKind": "worker-poll-yield"

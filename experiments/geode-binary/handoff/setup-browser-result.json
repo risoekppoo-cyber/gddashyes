@@ -7,7 +7,7 @@
     "deferredLoaderInitialized": false,
     "callbackPrologueExecuted": true,
     "callbackPrologueOnly": false,
-    "gameFrames": 127,
+    "gameFrames": 142,
     "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
     "sourceDllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
     "gameModuleSha256": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
@@ -295,15 +295,6 @@
       "QueryPerformanceCounter",
       "_Mtx_lock",
       "_Mtx_unlock",
-      "GetQueuedCompletionStatusEx",
-      "GetLastError",
-      "QueryPerformanceCounter",
-      "_Mtx_lock",
-      "_Mtx_unlock",
-      "QueryPerformanceCounter",
-      "QueryPerformanceCounter",
-      "_Mtx_lock",
-      "_Mtx_unlock",
       "GetQueuedCompletionStatusEx"
     ],
     "staticTlsTemplateInitialized": true,
@@ -402,11 +393,11 @@
       "status": "WORKER_CALLBACK_BOUNDARY_PASS",
       "id": 2,
       "entryRva": 5241520,
-      "instructions": 2601,
+      "instructions": 4379,
       "sliceQuantum": 127,
-      "sliceCount": 22,
+      "sliceCount": 37,
       "maxSliceSteps": 127,
-      "continuations": 1,
+      "continuations": 3,
       "continuedFromSavedCpu": true,
       "checkpoints": [
         {
@@ -420,8 +411,22 @@
           "endPc": "0x15a0165b",
           "instructions": 891,
           "kind": "worker-poll-yield"
+        },
+        {
+          "startPc": "0x15a0165b",
+          "endPc": "0x15a0165b",
+          "instructions": 887,
+          "kind": "worker-poll-yield"
+        },
+        {
+          "startPc": "0x15a0165b",
+          "endPc": "0x15a0165b",
+          "instructions": 891,
+          "kind": "worker-poll-yield"
         }
       ],
+      "pendingContinuations": false,
+      "compilerStackRetained": true,
       "nextRequiredService": "Worker scheduler continuation",
       "nextBoundaryKind": "worker-poll-yield",
       "rootCpuPreserved": true,
@@ -432,8 +437,8 @@
       "crtThreadStartupImplemented": false,
       "performanceClock": {
         "frequency": "10000000",
-        "counterReads": 6,
-        "lastCounter": "69558999"
+        "counterReads": 12,
+        "lastCounter": "177303999"
       },
       "mutexes": [
         [
@@ -450,6 +455,24 @@
         ]
       ],
       "batchPolls": [
+        {
+          "port": "1660944384",
+          "capacity": 64,
+          "removed": 0,
+          "error": 258,
+          "timeoutMs": 0,
+          "alertable": 0,
+          "packetStatuses": []
+        },
+        {
+          "port": "1660944384",
+          "capacity": 64,
+          "removed": 0,
+          "error": 258,
+          "timeoutMs": 0,
+          "alertable": 0,
+          "packetStatuses": []
+        },
         {
           "port": "1660944384",
           "capacity": 64,
@@ -495,10 +518,46 @@
         "QueryPerformanceCounter",
         "_Mtx_lock",
         "_Mtx_unlock",
+        "GetQueuedCompletionStatusEx",
+        "GetLastError",
+        "QueryPerformanceCounter",
+        "_Mtx_lock",
+        "_Mtx_unlock",
+        "QueryPerformanceCounter",
+        "QueryPerformanceCounter",
+        "_Mtx_lock",
+        "_Mtx_unlock",
+        "GetQueuedCompletionStatusEx",
+        "GetLastError",
+        "QueryPerformanceCounter",
+        "_Mtx_lock",
+        "_Mtx_unlock",
+        "QueryPerformanceCounter",
+        "QueryPerformanceCounter",
+        "_Mtx_lock",
+        "_Mtx_unlock",
         "GetQueuedCompletionStatusEx"
-      ]
+      ],
+      "browserDispatches": [
+        {
+          "gameFrames": 1,
+          "instructions": 2601,
+          "originalGameCpuPreserved": true
+        },
+        {
+          "gameFrames": 2,
+          "instructions": 3488,
+          "originalGameCpuPreserved": true
+        },
+        {
+          "gameFrames": 3,
+          "instructions": 4379,
+          "originalGameCpuPreserved": true
+        }
+      ],
+      "originalGameCpuPreservedBetweenTurns": true
     },
-    "totalTranslatedInstructions": 14824,
+    "totalTranslatedInstructions": 16602,
     "originalGameCpuPreserved": true,
     "liveStackRestored": true,
     "gameContinuedAfterHandoff": true
@@ -527,6 +586,6 @@
     }
   ],
   "jspi": true,
-  "seconds": 12.75,
+  "seconds": 25.396,
   "events": []
 }
