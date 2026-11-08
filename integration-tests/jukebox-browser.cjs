@@ -20,6 +20,8 @@ const assert = require('node:assert/strict');
       if (!filename) throw Error('No built-in song available for original restoration check');
       return {filename, sha256: await hash(Module.FS.readFile(dir + '/' + filename))};
     });
+    await page.waitForFunction(() => Object.values(Module.__gdAudio?.sounds || {}).some(sound => /menuLoop\.mp3$/.test(sound.path) && sound.state === 1), {}, {timeout: 30000});
+    report.gameAudioBefore = await page.evaluate(() => Object.values(Module.__gdAudio.sounds).filter(sound => /menuLoop\.mp3$/.test(sound.path)).map(sound => ({id: sound.id, path: sound.path, duration: sound.buf?.duration})));
     await page.locator('#jb-toggle').click();
     await page.locator('#jb-song-id').fill('1323633');
     await page.locator('#jb-panel button[type=submit]').click();
@@ -33,6 +35,15 @@ const assert = require('node:assert/strict');
     report.first = await page.evaluate(() => GDJukebox.getState());
     assert(report.first.active[0].byteLength > 100000);
     assert(report.first.active[0].duration > 1);
+    await page.waitForFunction(() => {
+      const engine = Module.__gdAudio;
+      return Object.values(engine.channels).some(channel => /menuLoop\.mp3$/.test(engine.sounds[channel.sound]?.path) && channel.src?.buffer.duration > 109 && channel.src?.buffer.duration < 110);
+    }, {}, {timeout: 30000});
+    report.gamePlayback = await page.evaluate(() => {
+      const engine = Module.__gdAudio;
+      return Object.values(engine.channels).filter(channel => /menuLoop\.mp3$/.test(engine.sounds[channel.sound]?.path) && channel.src).map(channel => ({sound: channel.sound, duration: channel.src.buffer.duration, usesUpdatedBuffer: channel.src.buffer === engine.sounds[channel.sound].buf, context: engine.ctx.state}));
+    });
+    assert(report.gamePlayback.some(channel => channel.usesUpdatedBuffer && channel.context === 'running'));
     report.routing = await page.evaluate(async filename => {
       const path = '/Resources/' + filename, expected = Module.FS.readFile(path);
       const hash = async bytes => [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(n => n.toString(16).padStart(2, '0')).join('');
@@ -68,12 +79,27 @@ const assert = require('node:assert/strict');
       return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(n => n.toString(16).padStart(2, '0')).join('');
     }, report.baseline.filename);
     assert.equal(report.originalRestored, report.baseline.sha256);
+    report.gameAudioRestored = await page.evaluate(() => Object.values(Module.__gdAudio.sounds).filter(sound => /menuLoop\.mp3$/.test(sound.path)).map(sound => ({id: sound.id, duration: sound.buf?.duration})));
+    assert.equal(report.gameAudioRestored[0].duration, report.gameAudioBefore[0].duration);
     // Cached index + ordinary song-ID activation. This is still the real server MP3.
     await page.locator('#jb-song-id').fill('1323633');
     await page.locator('#jb-panel button[type=submit]').click();
     await page.locator('#jb-results [data-key="6ad1c23ecc40bb69f37264f9"] button').click();
     await page.waitForFunction(() => !GDJukebox.getState().busy && GDJukebox.getState().active.some(song => song.filename === '1323633.mp3'), {}, {timeout: 120000});
     report.custom = await page.evaluate(() => GDJukebox.getState());
+    report.originalPathRouting = await page.evaluate(async filename => {
+      const engine = Module.__gdAudio, originalPath = '/AppData/1323633.mp3';
+      const existed = Module.FS.analyzePath(originalPath).exists, original = existed ? Module.FS.readFile(originalPath).slice() : null;
+      Module.FS.writeFile(originalPath, Module.FS.readFile('/Resources/' + filename));
+      const id = engine.soundNew(originalPath, true);
+      await new Promise((resolve, reject) => {const start = Date.now(); const timer = setInterval(() => {if (engine.sounds[id].state !== 0) {clearInterval(timer); resolve();} else if (Date.now() - start > 30000) {clearInterval(timer); reject(Error('Game decoder timed out'));}}, 50);});
+      const sound = engine.sounds[id], result = {duration: sound.buf?.duration, state: sound.state, path: sound.path};
+      delete engine.sounds[id];
+      if (original) Module.FS.writeFile(originalPath, original); else Module.FS.unlink(originalPath);
+      return result;
+    }, report.baseline.filename);
+    assert.equal(report.originalPathRouting.state, 1);
+    assert(Math.abs(report.originalPathRouting.duration - report.custom.active[0].duration) < 0.001);
     await page.getByRole('button', {name: 'Restore original'}).click();
     await page.waitForFunction(() => !GDJukebox.getState().busy && !GDJukebox.getState().active.length);
     // Typed IDs do not enter the game's keyboard queue; Escape is isolated too.
@@ -98,3 +124,4 @@ const assert = require('node:assert/strict');
     console.log(JSON.stringify(report, null, 2)); await browser.close();
   }
 })();
+

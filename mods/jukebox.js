@@ -9,6 +9,7 @@
   let panel, status, results, activeList, target, field, busy = false, catalog, catalogPromise;
   let previewURL, currentSearch = 0;
   const originals = new Map(), active = new Map();
+  let audioAdapter;
   const dbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open('gd-browser-jukebox', 1);
     request.onupgradeneeded = () => request.result.createObjectStore('data');
@@ -118,6 +119,57 @@
     if (bytes) fs.writeFile(path, bytes);
     else if (fs.analyzePath(path).exists) fs.unlink(path);
   }
+  function audioFilename(path) {
+    return String(path || '').replace(/\\/g, '/').split(/[?#]/)[0].split('/').pop();
+  }
+  function attachAudio() {
+    const engine = window.Module?.__gdAudio;
+    if (!engine || audioAdapter === engine) return !!engine;
+    if (typeof engine.soundNew !== 'function' || typeof engine.candidates !== 'function') return false;
+    const soundNew = engine.soundNew;
+    engine.soundNew = function (path, stream) {
+      const record = active.get(audioFilename(path));
+      const id = soundNew.call(this, record ? pathFor(record.filename) : path, stream);
+      // Retain the game's original path so reverting can find downloaded originals.
+      if (record && this.sounds[id]) this.sounds[id].path = path;
+      return id;
+    };
+    audioAdapter = engine;
+    return true;
+  }
+  async function refreshAudio(filename, decoded) {
+    if (!attachAudio()) return;
+    const engine = audioAdapter, fs = window.Module.FS;
+    const sounds = Object.values(engine.sounds).filter(sound => audioFilename(sound.path) === filename);
+    if (!sounds.length) return;
+    for (const sound of sounds) {
+      let audio = decoded;
+      if (!audio) {
+        const override = active.get(filename), candidates = override ? [pathFor(filename)] : engine.candidates(sound.path);
+        let bytes;
+        for (const candidate of candidates) {
+          try { bytes = fs.readFile(candidate); break; } catch (_) { /* Try the next original path. */ }
+        }
+        if (!bytes) {
+          sound.buf = null; sound.len = 0; sound.state = 2;
+          for (const channel of Object.values(engine.channels)) if (channel.sound === sound.id) engine.stopCh(channel);
+          continue;
+        }
+        audio = await engine.ensure().decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+      }
+      const update = () => {
+        if (engine.sounds[sound.id] !== sound) return;
+        sound.buf = audio; sound.len = Math.round(audio.duration * 1000); sound.state = 1;
+        for (const channel of Object.values(engine.channels)) {
+          if (channel.sound !== sound.id || !channel.src || channel.paused || channel.pausedByGroup || channel.ended) continue;
+          engine.pauseCh(channel, false); engine.unpauseCh(channel, false);
+        }
+      };
+      // An in-flight original decode must finish before replacing its result.
+      if (sound.state === 0) { sound.onready ||= []; sound.onready.unshift(update); }
+      else update();
+    }
+  }
   async function activate(idValue, key, filename) {
     const id = songID(idValue), matches = await search(id), song = matches.find(song => song.key === key);
     if (!song) throw Error('This song is no longer in the server index. Search again.');
@@ -138,7 +190,8 @@
       if (priorRecord) active.set(filename, priorRecord); else active.delete(filename);
       throw Error('Could not save this replacement: ' + error.message);
     }
-    renderActive(); message('Active: ' + record.name + '. Restart the level to hear the replacement.');
+    await refreshAudio(filename, audio);
+    renderActive(); message('Active: ' + record.name + '. Restart the level for the correct start position.');
     return {filename, bytes: bytes.length, duration: audio.duration};
   }
   async function revert(filename) {
@@ -149,7 +202,8 @@
     await remove('song:' + filename);
     // Keep files subsequently changed by the game or another tool.
     if (current && equal(current, record.bytes)) putBack(fs, path, originals.get(filename));
-    originals.delete(filename); active.delete(filename); stopPreview(); renderActive();
+    originals.delete(filename); active.delete(filename); await refreshAudio(filename);
+    stopPreview(); renderActive();
     message('Original restored for ' + filename + '. Restart the level.');
   }
   function stopPreview() {
@@ -201,7 +255,7 @@
       const entries = await db('readonly', store => store.getAll());
       for (const record of entries) {
         if (!record?.filename || !(record.bytes instanceof Uint8Array)) continue;
-        try { install(fs, record); } catch (error) { message('Could not restore ' + record.filename + ': ' + error.message); }
+        try { install(fs, record); await refreshAudio(record.filename); } catch (error) { message('Could not restore ' + record.filename + ': ' + error.message); }
       }
       renderActive();
     } catch (error) { message('Song storage unavailable: ' + error.message); }
@@ -209,6 +263,13 @@
       for (const name of fs.readdir('/Resources').filter(name => /^[a-zA-Z0-9_ .-]+\.mp3$/.test(name) && !/^\d+\.mp3$/.test(name)).sort()) {
         element('option', name, target, {value: name});
       }
+    }
+    if (!attachAudio()) {
+      const timer = setInterval(() => {
+        if (!attachAudio()) return;
+        clearInterval(timer);
+        for (const filename of active.keys()) refreshAudio(filename).catch(error => message(error.message));
+      }, 200);
     }
   }
   function open() { if (panel) { panel.hidden = false; field.focus(); } }
@@ -256,3 +317,4 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, {once: true}); else mount();
 })();
+
