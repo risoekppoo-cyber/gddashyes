@@ -7,7 +7,7 @@
     "deferredLoaderInitialized": false,
     "callbackPrologueExecuted": true,
     "callbackPrologueOnly": false,
-    "gameFrames": 122,
+    "gameFrames": 125,
     "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
     "sourceDllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
     "gameModuleSha256": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
@@ -393,9 +393,9 @@
       "status": "WORKER_CALLBACK_BOUNDARY_PASS",
       "id": 2,
       "entryRva": 5241520,
-      "instructions": 4375,
+      "instructions": 4379,
       "sliceQuantum": 127,
-      "sliceCount": 36,
+      "sliceCount": 37,
       "maxSliceSteps": 127,
       "continuations": 3,
       "continuedFromSavedCpu": true,
@@ -409,12 +409,6 @@
         {
           "startPc": "0x15a0165b",
           "endPc": "0x15a0165b",
-          "instructions": 887,
-          "kind": "worker-poll-yield"
-        },
-        {
-          "startPc": "0x15a0165b",
-          "endPc": "0x15a0165b",
           "instructions": 891,
           "kind": "worker-poll-yield"
         },
@@ -422,6 +416,12 @@
           "startPc": "0x15a0165b",
           "endPc": "0x15a0165b",
           "instructions": 887,
+          "kind": "worker-poll-yield"
+        },
+        {
+          "startPc": "0x15a0165b",
+          "endPc": "0x15a0165b",
+          "instructions": 891,
           "kind": "worker-poll-yield"
         }
       ],
@@ -438,7 +438,7 @@
       "performanceClock": {
         "frequency": "10000000",
         "counterReads": 12,
-        "lastCounter": "104201000"
+        "lastCounter": "129960000"
       },
       "mutexes": [
         [
@@ -541,7 +541,7 @@
       "browserDispatches": [
         {
           "gameFrames": 1,
-          "instructions": 2597,
+          "instructions": 2601,
           "originalGameCpuPreserved": true
         },
         {
@@ -551,13 +551,13 @@
         },
         {
           "gameFrames": 3,
-          "instructions": 4375,
+          "instructions": 4379,
           "originalGameCpuPreserved": true
         }
       ],
       "originalGameCpuPreservedBetweenTurns": true
     },
-    "totalTranslatedInstructions": 16598,
+    "totalTranslatedInstructions": 16602,
     "originalGameCpuPreserved": true,
     "liveStackRestored": true,
     "gameContinuedAfterHandoff": true
@@ -586,6 +586,6 @@
     }
   ],
   "jspi": true,
-  "seconds": 17.182,
+  "seconds": 20.338,
   "events": []
 }

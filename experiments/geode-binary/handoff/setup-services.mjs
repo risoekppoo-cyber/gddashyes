@@ -747,8 +747,9 @@ class GuestScheduler {
    const t={id,cpu,tib,stack,stackSize,tls,entry,argument,errno:0,status:'runnable',waitKey:null,steps:0,allocations};this.threads.set(id,t);return t;
   }catch(error){for(const p of allocations.reverse())try{s.free(p);}catch{}throw error;}
  }
- adoptContext({id,cpu,tib,stack,stackSize=65536,tibSize=0x4000,errno=0}={}){
+ adoptContext({id,cpu,tib,stack,stackSize=65536,tibSize=0x4000,errno}={}){
   if(this.disposed||this.running||!Number.isInteger(id)||id<1||id>0xffffffff||this.threads.has(id))throw Error('Invalid retained context adoption');
+  errno??=this.services.threadState?.id===id?(this.services.threadState.errno??0):0;
   if(tibSize<0x60||stackSize<8||!Number.isInteger(errno)||errno< -2147483648||errno>2147483647)throw Error('Invalid retained context layout');
   const ranges=[[cpu,4096],[tib,tibSize],[stack,stackSize]],s=this.services;
   for(const [p,n] of ranges){if(!Number.isSafeInteger(p)||p<=0||!Number.isSafeInteger(n)||n<=0)throw Error('Invalid retained context range');s.range(BigInt(p),n);}
