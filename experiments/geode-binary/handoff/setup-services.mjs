@@ -732,6 +732,7 @@ class GuestScheduler {
   if(typeof argument!=='bigint'||argument<0n||argument>0xffffffffffffffffn)throw Error('Invalid guest argument');
   if(!(tlsTemplate instanceof Uint8Array)||!Number.isInteger(tlsZeroFill)||tlsZeroFill<0||tlsTemplate.length+tlsZeroFill>4096)throw Error('Invalid thread TLS template');
   if(!Number.isInteger(stackSize)||stackSize<4096||stackSize>1048576)throw Error('Invalid thread stack size');
+  while(this.threads.has(this.nextId))this.nextId++;
   if(this.nextId>0xffffffff)throw Error('Guest thread IDs exhausted');
   // Copy before allocation: malloc may grow memory and detach the source view.
   const template=tlsTemplate.slice(),allocations=[];
@@ -743,8 +744,22 @@ class GuestScheduler {
    v.setBigUint64(tib+8,BigInt(stack+stackSize),true);v.setBigUint64(tib+16,BigInt(stack),true);v.setBigUint64(tib+0x30,BigInt(tib),true);
    v.setBigUint64(tib+0x40,1n,true);v.setBigUint64(tib+0x48,BigInt(id),true);v.setBigUint64(tib+0x58,BigInt(tib+0x1000),true);v.setBigUint64(tib+0x1000,BigInt(tls),true);
    new Uint8Array(s.memory.buffer,tls,template.length).set(template);
-   const t={id,cpu,tib,stack,stackSize,tls,errno:0,status:'runnable',waitKey:null,steps:0,allocations};this.threads.set(id,t);return t;
+   const t={id,cpu,tib,stack,stackSize,tls,entry,argument,errno:0,status:'runnable',waitKey:null,steps:0,allocations};this.threads.set(id,t);return t;
   }catch(error){for(const p of allocations.reverse())try{s.free(p);}catch{}throw error;}
+ }
+ adoptContext({id,cpu,tib,stack,stackSize=65536,tibSize=0x4000,errno=0}={}){
+  if(this.disposed||this.running||!Number.isInteger(id)||id<1||id>0xffffffff||this.threads.has(id))throw Error('Invalid retained context adoption');
+  if(tibSize<0x60||stackSize<8||!Number.isInteger(errno)||errno< -2147483648||errno>2147483647)throw Error('Invalid retained context layout');
+  const ranges=[[cpu,4096],[tib,tibSize],[stack,stackSize]],s=this.services;
+  for(const [p,n] of ranges){if(!Number.isSafeInteger(p)||p<=0||!Number.isSafeInteger(n)||n<=0)throw Error('Invalid retained context range');s.range(BigInt(p),n);}
+  const overlaps=(a,b)=>a[0]<b[0]+b[1]&&b[0]<a[0]+a[1];
+  for(let i=0;i<ranges.length;i++)for(let j=0;j<i;j++)if(overlaps(ranges[i],ranges[j]))throw Error('Overlapping retained context');
+  for(const t of this.threads.values())for(const r of ranges)for(const p of [[t.cpu,4096],[t.tib,t.tibSize??0x4000],[t.stack,t.stackSize]])if(overlaps(r,p))throw Error('Context storage already registered');
+  const v=new DataView(s.memory.buffer),sp=v.getBigUint64(cpu+32,true);
+  if(v.getBigUint64(cpu+2328,true)!==BigInt(tib)||v.getBigUint64(tib+0x48,true)!==BigInt(id)||sp<BigInt(stack)||sp>BigInt(stack+stackSize-8))throw Error('Retained CPU/TIB identity mismatch');
+  const tlsArray=v.getBigUint64(tib+0x58,true);s.range(tlsArray,8);const tls=v.getBigUint64(Number(tlsArray),true);s.range(tls,1);
+  const t={id,cpu,tib,tibSize,stack,stackSize,tls:Number(tls),errno,status:'runnable',waitKey:null,steps:0,allocations:[],borrowed:true};
+  this.threads.set(id,t);while(this.threads.has(this.nextId))this.nextId++;return t;
  }
  runRound(execute){
   if(this.disposed||this.running||typeof execute!=='function')throw Error('Invalid scheduler dispatch');
