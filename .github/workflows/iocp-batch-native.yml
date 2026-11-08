@@ -1,0 +1,25 @@
+name: IOCP batch native oracle
+on:
+  push:
+    paths:
+      - '.github/workflows/iocp-batch-native.yml'
+      - 'integration-tests/iocp-batch-native.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: windows-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: 'x64'
+      - name: Probe actual Windows batch completions
+        run: python integration-tests/iocp-batch-native.py iocp-batch-native-result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iocp-batch-native-evidence
+          path: iocp-batch-native-result.json
