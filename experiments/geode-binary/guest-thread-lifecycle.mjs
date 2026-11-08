@@ -17,6 +17,20 @@ export class GuestThreadLifecycle {
   if(idOutput)new DataView(this.services.memory.buffer).setUint32(Number(idOutput),context.id,true);
   return {handle,id:context.id,context};
  }
+ completeStart(cpu,imageBase,existingContext){
+  const s=this.services,v=new DataView(s.memory.buffer),sp=v.getBigUint64(cpu+32,true);
+  s.range(sp,56);if(v.getBigUint64(cpu+192,true)!==BigInt(s.addresses._beginthreadex))throw Error('Not at thread API entry');
+  const ret=v.getBigUint64(Number(sp),true),idOutput=v.getBigUint64(Number(sp)+48,true);
+  if(ret<BigInt(imageBase)||ret>=BigInt(imageBase+17035264))throw Error('Unverified thread return address');
+  const result=this.start({entry:v.getBigUint64(cpu+64,true),argument:v.getBigUint64(cpu+72,true),security:v.getBigUint64(cpu+8,true),stackSize:v.getUint32(cpu+16,true),flags:v.getUint32(Number(sp)+40,true),idOutput,existingContext});
+  const after=new DataView(s.memory.buffer);after.setBigUint64(cpu,result.handle,true);after.setBigUint64(cpu+192,ret,true);after.setBigUint64(cpu+32,sp+8n,true);s.calls.push('_beginthreadex');return result;
+ }
+ closeCall(cpu,address){
+  const s=this.services,v=new DataView(s.memory.buffer),handle=v.getBigUint64(cpu+8,true);
+  if(address!==BigInt(s.addresses.CloseHandle)||!this.handles.has(handle))return false;
+  const sp=v.getBigUint64(cpu+32,true);s.range(sp,8);const ret=v.getBigUint64(Number(sp),true);
+  this.close(handle);v.setBigUint64(cpu,1n,true);v.setBigUint64(cpu+192,ret,true);v.setBigUint64(cpu+32,sp+8n,true);s.calls.push('CloseHandle');return true;
+ }
  lookup(handle){if(this.scheduler.disposed)throw Error('Disposed thread runtime');const t=this.handles.get(handle);if(t&&['failed','disposed'].includes(t.status))throw Error('Failed thread cannot be polled as live');return t;}
  poll(handle){const t=this.lookup(handle);return !t?{result:0xffffffff,error:6}:t.status==='exited'?{result:0,error:0}:{result:258,error:0};}
  exitCode(handle){const t=this.lookup(handle);return !t?{ok:false,error:6}:{ok:true,code:t.status==='exited'?t.exitCode:259,error:0};}
@@ -28,3 +42,4 @@ export class GuestThreadLifecycle {
   return this.scheduler.wake('thread:'+id);
  }
 }
+

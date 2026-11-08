@@ -272,7 +272,7 @@ def main():
    # does not execute the DLL's complete CRT entrypoint or TLS callbacks.
    onexit={image_base+0xfb1960:{'callbacks':[],'buffer':0,'capacity':0}}
    uc.mem_write(image_base+0xfb1960,b'\0'*24)
-   current_id=1;worker_mode=False;worker_checkpoints=[]
+   current_id=1;worker_mode=False;worker_checkpoints=[];parent_resume=False;thread_handles=set();parent_lifter=WideLifter(pe)
    trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000];cwd=['C:\\GeometryDash'];thread_names={}
    stdio_state={'base':0,'streams':{},'fds':{},'nextHandle':0x61000010}
    pipe_state={'nextHandle':0x62000000,'pipes':[],'byName':{},'ends':{},'completions':[],'outputs':[]}
@@ -297,6 +297,8 @@ def main():
     emu.emu_stop()
    uc.hook_add(unicorn.UC_HOOK_MEM_READ,import_read)
    def hook(emu,address,n,_):
+    if parent_resume and len(trace)>=4000:
+     boundary.update(rva=address-image_base,service='Parent instruction budget',kind='parent-budget-yield');emu.emu_stop();return
     if worker_checkpoints and len(trace)-worker_checkpoints[0]['steps']>=4096:
      boundary.update(rva=address-image_base,service='Worker instruction budget',kind='worker-budget-yield')
      if address in services.values():boundary['stopService']=next(k for k,v in services.items() if v==address)
@@ -394,6 +396,8 @@ def main():
      elif name=='GetLastError':emu.reg_write(x.UC_X86_REG_RAX,int.from_bytes(emu.mem_read(tib+0x68,4),'little'))
      elif name=='GetCurrentThreadId':emu.reg_write(x.UC_X86_REG_RAX,current_id)
      elif name=='GetCurrentProcessId':emu.reg_write(x.UC_X86_REG_RAX,1)
+     elif name=='CloseHandle' and ptr in thread_handles:
+      thread_handles.remove(ptr);emu.reg_write(x.UC_X86_REG_RAX,1)
      elif name=='CloseHandle' and ptr in port_state['ports']:
       del port_state['ports'][ptr];emu.reg_write(x.UC_X86_REG_RAX,1)
      elif name in iocp_names:
@@ -761,6 +765,10 @@ def main():
        boundary['pipeRequest']={'path':raw.decode('utf-16le'),'openMode':emu.reg_read(x.UC_X86_REG_RDX)&0xffffffff,'pipeMode':emu.reg_read(x.UC_X86_REG_R8)&0xffffffff,'maxInstances':emu.reg_read(x.UC_X86_REG_R9)&0xffffffff,
         'outBufferSize':int.from_bytes(emu.mem_read(rsp+32,4),'little'),'inBufferSize':int.from_bytes(emu.mem_read(rsp+40,4),'little'),'defaultTimeout':int.from_bytes(emu.mem_read(rsp+48,4),'little'),'security':hex(int.from_bytes(emu.mem_read(rsp+56,8),'little'))}
       emu.emu_stop();return
+    if parent_resume and rva not in observed:
+     try:parent_lifter.add(preferred+rva)
+     except LiftError as error:
+      boundary.update(rva=rva,service=str(error),kind='unsupported-parent-instruction');emu.emu_stop();return
     instruction=str(ctx.disassemble(pe.get_data(rva,16),base_address=preferred+rva,max_instructions=1).instructions[0])
     mnemonic=instruction.split(': ',1)[1].split(' ',1)[0]
     if mnemonic=='SAR' and 'R9' in instruction and sar_fixture[0] is None:sar_fixture[0]=(rva,n)
@@ -856,6 +864,32 @@ def main():
     cases[-1]['worker']['checkpoints']=worker_checkpoints
     cases[-1]['worker']['resumePauseTicks']=resume_pause
     print(json.dumps({'workerBoundary':boundary,'steps':len(trace),'checkpoints':worker_checkpoints,'imageBase':hex(image_base)}),flush=True)
+    # Continue the saved parent under the same explicit static-TLS component
+    # model, with a real owned worker and a Windows-oracle handle/ID contract.
+    root=cases[-1];tib=root['tib'];tls_array=root['tlsArray'];tls_data=root['tlsData'];stack_base=root['stackBase'];stack_size=65536;current_id=1;worker_mode=False;worker_checkpoints=[];parent_resume=True
+    for reg,value in zip(REGS,root['expected']):uc.reg_write(getattr(x,'UC_X86_REG_'+reg),int(value,16))
+    for i,value in enumerate(root['expectedXmm']):uc.reg_write(getattr(x,'UC_X86_REG_XMM'+str(i)),int(value,16))
+    uc.reg_write(x.UC_X86_REG_GS_BASE,tib);uc.reg_write(x.UC_X86_REG_EFLAGS,root['expectedFlags']);defined_flags=[root['definedFlagsMask']]
+    rsp=uc.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(uc.mem_read(rsp,8),'little');id_out=int(request['threadIdOutput'],16)
+    assert int(request['security'],16)==0 and request['stackSize']==0 and request['initFlags']==0 and id_out
+    uc.mem_write(id_out,(2).to_bytes(4,'little'));thread_handles.add(0x64000000)
+    uc.reg_write(x.UC_X86_REG_RAX,0x64000000);uc.reg_write(x.UC_X86_REG_RSP,rsp+8);uc.reg_write(x.UC_X86_REG_RIP,ret)
+    trace=[];boundary={};import_snapshot=[];service_calls=['_beginthreadex'];writes=[]
+    try:uc.emu_start(ret,0,count=10001)
+    except unicorn.UcError as error:raise RuntimeError(f'Parent continuation fault at {uc.reg_read(x.UC_X86_REG_RIP):#x}, recent={trace[-12:]}, calls={service_calls[-8:]}: {error}') from error
+    if import_snapshot:
+     for reg,value in import_snapshot:uc.reg_write(reg,value)
+     if trace and trace[-1]==boundary['rva']:trace.pop()
+    if not boundary:raise RuntimeError(f'Parent missing boundary at {uc.reg_read(x.UC_X86_REG_RIP):#x}, recent={trace[-12:]}')
+    final=bytes(uc.mem_read(image_base,size));changes=[];at=0
+    while at<size:
+     if final[at]==image[at]:at+=1;continue
+     start=at
+     while at<size and final[at]!=image[at]:at+=1
+     changes.append({'rva':start,'hex':final[start:at].hex()})
+    root['parentContinuation']={'steps':len(trace),'entryRva':ret-image_base,'boundary':boundary,'expected':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+r))) for r in REGS],'expectedXmm':[hex(uc.reg_read(getattr(x,'UC_X86_REG_XMM'+str(i)))) for i in range(16)],'expectedFlags':uc.reg_read(x.UC_X86_REG_EFLAGS),'definedFlagsMask':defined_flags[0],'stackHex':bytes(uc.mem_read(stack_base,65536)).hex(),'tlsHex':bytes(uc.mem_read(tls_data,tls_size+tls.SizeOfZeroFill)).hex(),'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'dllChanges':changes,'serviceCalls':service_calls,'threadHandles':[str(h) for h in sorted(thread_handles)],'threadIdOutput':hex(id_out),'clock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_last[0]) if clock_reads[0] else None},'mutexState':[[p,e['type'],e['owner'],e['count']] for p,e in mutex_state.items()]}
+    print(json.dumps({'parentContinuation':boundary,'steps':len(trace),'imageBase':hex(image_base)}),flush=True)
+
  lifter=WideLifter(pe)
  for rva in sorted(observed):
   raw=pe.get_data(rva,16);instruction=ctx.disassemble(raw,base_address=preferred+rva,max_instructions=1).instructions[0]
@@ -870,4 +904,5 @@ def main():
  (out/'manifest.json').write_text(json.dumps(manifest,indent=2))
  print(json.dumps({k:v for k,v in manifest.items() if k not in ['instructions','cases']},indent=2))
 if __name__=='__main__':main()
+
 

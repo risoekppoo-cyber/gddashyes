@@ -5,6 +5,7 @@ import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {instantiateStartupLift} from '../experiments/geode-binary/handoff/startup-module.mjs';
 import {mapPe64} from '../experiments/geode-binary/pe-image.mjs';
+import {GuestThreadLifecycle} from '../experiments/geode-binary/guest-thread-lifecycle.mjs';
 import {GuestScheduler} from '../experiments/geode-binary/guest-scheduler.mjs';
 const dir=resolve(process.argv[2]),dll=await readFile('/tmp/Geode.dll');
 const {ServiceClass,SERVICE_NAMES}=await import(pathToFileURL(dir+'/services.mjs'));
@@ -128,6 +129,34 @@ for(const [index,c] of manifest.cases.entries()){
   const expectedWorkerImage=Buffer.from(baselineImage);for(const change of w.dllChanges)Buffer.from(change.hex,'hex').copy(expectedWorkerImage,change.rva);
   assert.deepEqual(Buffer.from(memory.buffer,c.imageBase,image.size),expectedWorkerImage,'worker DLL writes');
   assert.deepEqual(Buffer.from(memory.buffer,gh.base,4096),Buffer.from(gh.hex,'hex'),'worker preserves game headers');assert.deepEqual(Buffer.from(memory.buffer,cc.pageBase,4096),Buffer.from(cc.pageHex,'hex'),'worker preserves Cocos');
+  if(c.parentContinuation){
+   const p=c.parentContinuation,threadRuntime=new GuestThreadLifecycle(scheduler,{entry:thread.entry,returnAddress:BigInt(w.returnAddress),tlsTemplate:new Uint8Array(memory.buffer,c.imageBase+t.templateRva,t.templateSize),tlsZeroFill:t.zeroFill});
+   const parent=scheduler.adoptContext({id:1,cpu,tib:c.tib,tibSize:65536,stack:c.stackBase,stackSize:65536,errno:services.errno});
+   const previousState=services.threadState,old=services.calls.length;services.selectThread(parent);
+   try{
+    threadRuntime.completeStart(cpu,c.imageBase,thread);
+    const stop=p.boundary.stopService?BigInt(services.addresses[p.boundary.stopService]):BigInt(c.imageBase+p.boundary.rva);
+    let steps=0,done=false;
+    for(let turns=0;turns<10000;turns++){
+     const budget=p.boundary.kind==='parent-budget-yield'?Math.min(mode==='whole'?20000:quantum(),p.steps-steps):mode==='whole'?20000:quantum();
+     const r=instance.exports.lift_slice(cpu,BigInt(c.imageBase),0,p.boundary.kind==='parent-budget-yield'?0xffffffffffffffffn:stop,budget)>>>0;steps+=r&0x3fffffff;
+     if(p.boundary.kind==='parent-budget-yield'&&steps===p.steps){done=true;break;}
+     if(r&0x40000000)continue;
+     if(!(r&0x80000000)){done=true;break;}
+     const pc=v.getBigUint64(cpu+192,true);if(!threadRuntime.closeCall(cpu,pc))services.invoke(cpu,pc);
+    }
+    assert.ok(done);assert.equal(steps,p.steps);assert.equal(v.getBigUint64(cpu+192,true),stop);
+    p.expected.forEach((n,i)=>assert.equal(v.getBigUint64(cpu+i*8,true),BigInt(n),'resumed parent GPR '+i));
+    p.expectedXmm.forEach((n,i)=>assert.equal(v.getBigUint64(cpu+512+i*16,true)|(v.getBigUint64(cpu+520+i*16,true)<<64n),BigInt(n),'resumed parent XMM '+i));
+    for(const bit of [0,2,4,6,7,11])if(p.definedFlagsMask&(1<<bit))assert.equal(v.getUint8(cpu+2560+bit),(p.expectedFlags>>>bit)&1);
+    assert.deepEqual(Buffer.from(memory.buffer,c.stackBase,65536),Buffer.from(p.stackHex,'hex'),'resumed parent stack');
+    assert.deepEqual(Buffer.from(memory.buffer,c.tlsData,p.tlsHex.length/2),Buffer.from(p.tlsHex,'hex'),'resumed parent TLS');
+    const expected=Buffer.from(p.heapHex,'hex');for(const bit of [0,2,4,6,7,11])if(!(w.definedFlagsMask&(1<<bit)))expected[thread.cpu-0x1800000+2560+bit]=v.getUint8(thread.cpu+2560+bit);
+    assert.deepEqual(Buffer.from(memory.buffer,0x1800000,expected.length),expected,'resumed parent process heap');
+    const imageExpected=Buffer.from(baselineImage);for(const change of p.dllChanges)Buffer.from(change.hex,'hex').copy(imageExpected,change.rva);assert.deepEqual(Buffer.from(memory.buffer,c.imageBase,image.size),imageExpected,'resumed parent DLL');
+    assert.deepEqual(services.calls.slice(old),p.serviceCalls);assert.deepEqual([...threadRuntime.handles.keys()].map(String),p.threadHandles);assert.deepEqual(services.clockSnapshot(),p.clock);assert.deepEqual(services.mutexSnapshot(),p.mutexState);
+   }finally{services.threadState=previousState;}
+  }
   scheduler.dispose();if(mode==='sliced')slicedWorkerCases++;
  }
 
@@ -167,9 +196,10 @@ for(const [rva,width,operand,length] of [[0x4f060f,32,64,3],[0x4f074e,32,72,3],[
   const before=Buffer.from(memory.buffer,cpu,4096).slice();assert.throws(()=>instance.exports.lift_run(cpu,entry,imageBase,0,entry+BigInt(length),2),/Startup lift fault 5 /);assert.deepEqual(Buffer.from(memory.buffer,cpu,4096),before,'divide fault preserves complete CPU shadow');divisionCases++;
  }
 }
-const result={status:'DEFERRED_NATIVE_REFERENCE_PASS',sliceContractCases,slicedCases,slicedWorkerCases,workerSlices,divisionCases,cases:manifest.cases.length,workerCases:manifest.cases.filter(c=>c.worker).length,workerBoundaries:manifest.cases.filter(c=>c.worker).map(c=>({imageBase:c.imageBase,...c.worker.boundary,steps:c.worker.steps,entryRva:c.worker.entryRva,resumePauseTicks:c.worker.resumePauseTicks,checkpoints:c.worker.checkpoints.map(p=>({rva:p.rva,steps:p.steps}))})),uniqueInstructions:manifest.uniqueInstructions,boundaries:manifest.boundaries,wasmSha256:createHash('sha256').update(wasm).digest('hex'),fullGeodeLoader:false};
+const result={status:'DEFERRED_NATIVE_REFERENCE_PASS',sliceContractCases,slicedCases,slicedWorkerCases,workerSlices,divisionCases,cases:manifest.cases.length,workerCases:manifest.cases.filter(c=>c.worker).length,parentContinuations:manifest.cases.filter(c=>c.parentContinuation).map(c=>({imageBase:c.imageBase,steps:c.parentContinuation.steps,boundary:c.parentContinuation.boundary})),workerBoundaries:manifest.cases.filter(c=>c.worker).map(c=>({imageBase:c.imageBase,...c.worker.boundary,steps:c.worker.steps,entryRva:c.worker.entryRva,resumePauseTicks:c.worker.resumePauseTicks,checkpoints:c.worker.checkpoints.map(p=>({rva:p.rva,steps:p.steps}))})),uniqueInstructions:manifest.uniqueInstructions,boundaries:manifest.boundaries,wasmSha256:createHash('sha256').update(wasm).digest('hex'),fullGeodeLoader:false};
 await writeFile(dir+'/reference-result.json',JSON.stringify(result,null,2));
 const first=manifest.cases[0];
-await writeFile(dir+'/runtime-manifest.json',JSON.stringify({dllSha256:manifest.dllSha256,wasmSha256:result.wasmSha256,servicesSha256:createHash('sha256').update(await readFile(dir+'/services.mjs')).digest('hex'),entryRva:manifest.entryRva,stopRva:first.stopRva,steps:first.steps,nextService:manifest.boundaries[0].service,stopService:manifest.boundaries[0].stopService,nextThreadRequest:manifest.boundaries[0].threadRequest,nextBoundaryKind:manifest.boundaries[0].kind,worker:first.worker?{checkpoints:first.worker.checkpoints.map(p=>({rva:p.rva,steps:p.steps})),sliceQuantum:127,nextCompletionRequest:first.worker.boundary.completionRequest,clockDependent:first.worker.performanceClock.counterReads>0,entryRva:first.worker.entryRva,steps:first.worker.steps,stopRva:first.worker.boundary.rva,stopService:first.worker.boundary.stopService,nextService:first.worker.boundary.service,nextBoundaryKind:first.worker.boundary.kind||'service-call'}:undefined,nextDialog:manifest.boundaries[0].dialog,nextPipeRequest:manifest.boundaries[0].pipeRequest,cocos:manifest.cocos,bootstrap:manifest.bootstrap,tls:manifest.tls,gsOffset:manifest.gsOffset,onexitTables:manifest.onexitTables},null,2));
+await writeFile(dir+'/runtime-manifest.json',JSON.stringify({dllSha256:manifest.dllSha256,wasmSha256:result.wasmSha256,servicesSha256:createHash('sha256').update(await readFile(dir+'/services.mjs')).digest('hex'),entryRva:manifest.entryRva,stopRva:first.stopRva,steps:first.steps,nextService:manifest.boundaries[0].service,stopService:manifest.boundaries[0].stopService,nextThreadRequest:manifest.boundaries[0].threadRequest,nextBoundaryKind:manifest.boundaries[0].kind,parentContinuation:first.parentContinuation?{steps:first.parentContinuation.steps,entryRva:first.parentContinuation.entryRva,boundary:first.parentContinuation.boundary}:undefined,worker:first.worker?{checkpoints:first.worker.checkpoints.map(p=>({rva:p.rva,steps:p.steps})),sliceQuantum:127,nextCompletionRequest:first.worker.boundary.completionRequest,clockDependent:first.worker.performanceClock.counterReads>0,entryRva:first.worker.entryRva,steps:first.worker.steps,stopRva:first.worker.boundary.rva,stopService:first.worker.boundary.stopService,nextService:first.worker.boundary.service,nextBoundaryKind:first.worker.boundary.kind||'service-call'}:undefined,nextDialog:manifest.boundaries[0].dialog,nextPipeRequest:manifest.boundaries[0].pipeRequest,cocos:manifest.cocos,bootstrap:manifest.bootstrap,tls:manifest.tls,gsOffset:manifest.gsOffset,onexitTables:manifest.onexitTables},null,2));
 console.log(JSON.stringify(result,null,2));
+
 
