@@ -9,7 +9,7 @@ export class GuestIocp extends GuestCritical{
   let port=existing;if(!port){port=this.nextPort++;this.ports.set(port,{concurrency,queue:[]});}
   if(file!==0xffffffffffffffffn)this.associations.set(file,{port,key});return {value:port,error:0};
  }
- complete(request,data,error=0){super.complete(request,data,error);const a=this.associations.get(request.handle),port=a&&this.ports.get(a.port);if(port)port.queue.push({bytes:data.length,key:a.key,ov:request.ov,error});}
+ complete(request,data,error=0){super.complete(request,data,error);const a=this.associations.get(request.handle),port=a&&this.ports.get(a.port);if(port)port.queue.push({bytes:data.length,key:a.key,ov:request.ov,error,status:BigInt(this.ioResults.get(request.ov).status)});}
  closePipe(handle){const result=super.closePipe(handle);this.associations.delete(handle);return result;}
  iocpSnapshot(){return {ports:[...this.ports].map(([h,p])=>({handle:String(h),concurrency:p.concurrency,queue:p.queue.map(q=>({bytes:q.bytes,key:String(q.key),ov:String(q.ov),error:q.error}))})),associations:[...this.associations].map(([h,a])=>[String(h),String(a.port),String(a.key)])};}
  invoke(cpu,address){

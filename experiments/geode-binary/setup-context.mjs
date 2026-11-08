@@ -84,14 +84,14 @@ class SetupContext{
   for(const [snapshot,pointer] of [[before,rootCpu],[parentStack,this.stack],[parentTib,this.tib]])if(!snapshot.every((b,i)=>new Uint8Array(e.memory.buffer)[pointer+i]===b))throw Error('Worker changed parent CPU/stack/TIB');
   let pendingCompletionRequest;
   if(w.nextCompletionRequest){
-   const v=new DataView(e.memory.buffer),sp=v.getBigUint64(thread.cpu+32,true);s.range(sp,48);
-   pendingCompletionRequest={entryCount:v.getUint32(thread.cpu+64,true),timeoutMs:v.getUint32(Number(sp)+32,true),alertable:v.getUint32(Number(sp)+40,true),entriesNonNull:v.getBigUint64(thread.cpu+16,true)!==0n,removedNonNull:v.getBigUint64(thread.cpu+72,true)!==0n,ownedPort:s.ports.has(v.getBigUint64(thread.cpu+8,true))};
+   const v=new DataView(e.memory.buffer),sp=v.getBigUint64(thread.cpu+32,true);s.range(sp,w.stopService?56:48);const tail=Number(sp)+(w.stopService?40:32);
+   pendingCompletionRequest={entryCount:v.getUint32(thread.cpu+64,true),timeoutMs:v.getUint32(tail,true),alertable:v.getUint32(tail+8,true),entriesNonNull:v.getBigUint64(thread.cpu+16,true)!==0n,removedNonNull:v.getBigUint64(thread.cpu+72,true)!==0n,ownedPort:s.ports.has(v.getBigUint64(thread.cpu+8,true))};
    for(const key of ['entryCount','alertable','entriesNonNull','removedNonNull','ownedPort'])if(pendingCompletionRequest[key]!==w.nextCompletionRequest[key])throw Error('Live IOCP request differs from native profile: '+key);
    if(!w.clockDependent&&pendingCompletionRequest.timeoutMs!==w.nextCompletionRequest.timeoutMs)throw Error('Live IOCP timeout differs from native profile');
   }
   // Keep an owned parent snapshot: the handoff frees its temporary CPU shadow.
   this.savedRoot=Number(s.allocate(4096n));if(!this.savedRoot)throw Error('Could not retain parent CPU');new Uint8Array(e.memory.buffer,this.savedRoot,4096).set(before);
-  return {status:'WORKER_CALLBACK_BOUNDARY_PASS',id:thread.id,entryRva:w.entryRva,instructions:thread.steps,nextRequiredService:w.nextService,nextBoundaryKind:w.nextBoundaryKind,rootCpuPreserved:true,rootCpuRetained:true,contextRetained:true,threadCreationImplemented:false,crtThreadStartupImplemented:false,performanceClock:s.clockSnapshot?.(),mutexes:s.mutexSnapshot?.(),pendingCompletionRequest,executedServices:s.calls.slice(oldCalls)};
+  return {status:'WORKER_CALLBACK_BOUNDARY_PASS',id:thread.id,entryRva:w.entryRva,instructions:thread.steps,nextRequiredService:w.nextService,nextBoundaryKind:w.nextBoundaryKind,rootCpuPreserved:true,rootCpuRetained:true,contextRetained:true,threadCreationImplemented:false,crtThreadStartupImplemented:false,performanceClock:s.clockSnapshot?.(),mutexes:s.mutexSnapshot?.(),batchPolls:s.batchSnapshot?.(),pendingCompletionRequest,executedServices:s.calls.slice(oldCalls)};
  }
  release(){let first;try{this.scheduler?.dispose();}catch(error){first=error;}try{this.services?.releaseHeap();}catch(error){first??=error;}for(const p of this.allocations.splice(0)){try{this.e.free(p);}catch(error){first??=error;}}if(first)throw first;}
 }

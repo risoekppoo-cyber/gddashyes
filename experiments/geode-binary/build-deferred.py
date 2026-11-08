@@ -197,7 +197,7 @@ def main():
    iocp_names=['CreateIoCompletionPort','PostQueuedCompletionStatus','GetQueuedCompletionStatus']
    exception_names=['?__ExceptionPtrCreate@@YAXPEAX@Z','?__ExceptionPtrDestroy@@YAXPEAX@Z','?__ExceptionPtrCopy@@YAXPEAXPEBX@Z','?__ExceptionPtrAssign@@YAXPEAXPEBX@Z','?__ExceptionPtrToBool@@YA_NPEBX@Z']
    mutex_names=['_Mtx_init_in_situ','_Mtx_destroy_in_situ','_Mtx_lock','_Mtx_trylock','_Mtx_unlock','_Mtx_current_owns']
-   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','powf','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services+critical_names+iocp_names+['_beginthreadex']+exception_names+['QueryPerformanceFrequency','QueryPerformanceCounter']+mutex_names)}
+   services={n:0x70000000+i*16 for i,n in enumerate(['AcquireSRWLockExclusive','ReleaseSRWLockExclusive','GetModuleFileNameW','GetLastError','SetLastError']+crt+encoding+['GetFullPathNameW']+file_services+lifecycle+['GetAsyncKeyState','ceilf','GetModuleHandleW','GetCurrentThreadId','powf','RaiseException']+console+stdio+['GetCurrentProcessId']+pipe_services+critical_names+iocp_names+['_beginthreadex']+exception_names+['QueryPerformanceFrequency','QueryPerformanceCounter']+mutex_names+['GetQueuedCompletionStatusEx'])}
    def bound(name):return name.split('!')[-1] in services or name in external
    for rva,name in imports.items():image[rva:rva+8]=services.get(name.split('!')[-1],external.get(name,0)).to_bytes(8,'little')
    uc=unicorn.Uc(unicorn.UC_ARCH_X86,unicorn.UC_MODE_64)
@@ -269,7 +269,7 @@ def main():
    trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000];cwd=['C:\\GeometryDash'];thread_names={}
    stdio_state={'base':0,'streams':{},'fds':{},'nextHandle':0x61000010}
    pipe_state={'nextHandle':0x62000000,'pipes':[],'byName':{},'ends':{},'completions':[],'outputs':[]}
-   critical_state={};mutex_state={};exception_state=set();clock_value=[1000000000];clock_reads=[0]
+   critical_state={};batch_history=[];mutex_state={};exception_state=set();clock_value=[1000000000];clock_reads=[0]
    port_state={'next':0x63000000,'ports':{},'associations':{}}
    def memory_write(emu,_access,address,n,_value,_):
     if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
@@ -299,7 +299,28 @@ def main():
       boundary.update(rva=address-image_base,service='api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex',kind='thread-start-request',stopService='_beginthreadex')
       boundary['threadRequest']={'security':hex(ptr),'stackSize':emu.reg_read(x.UC_X86_REG_RDX)&0xffffffff,'entryAddress':hex(start),'entryRva':start-image_base if image_base<=start<image_base+size else None,'argument':hex(argument),'argumentIsNull':argument==0,'initFlags':int.from_bytes(emu.mem_read(rsp+40,4),'little'),'threadIdOutput':hex(id_out),'threadIdOutputIsNull':id_out==0,'threadCreationImplemented':False}
       emu.emu_stop();return
-     if name in mutex_names:
+     if name=='GetQueuedCompletionStatusEx':
+      rsp=emu.reg_read(x.UC_X86_REG_RSP);entries=emu.reg_read(x.UC_X86_REG_RDX);capacity=emu.reg_read(x.UC_X86_REG_R8)&0xffffffff;removed=emu.reg_read(x.UC_X86_REG_R9);timeout=int.from_bytes(emu.mem_read(rsp+40,4),'little');alertable=int.from_bytes(emu.mem_read(rsp+48,4),'little')
+      if timeout or alertable:
+       boundary.update(rva=address-image_base,service='KERNEL32.dll!GetQueuedCompletionStatusEx',kind='unsupported-batch-wait',stopService=name)
+       boundary['completionRequest']={'entryCount':capacity,'timeoutMs':timeout,'alertable':alertable,'entriesNonNull':entries!=0,'removedNonNull':removed!=0,'ownedPort':ptr in port_state['ports']};emu.emu_stop();return
+      if capacity>64:raise RuntimeError('Unsupported native completion batch capacity')
+      port=port_state['ports'].get(ptr);error=0;result=0;n=0;statuses=[]
+      if capacity==0:error=87
+      elif port is None:error=6
+      elif not port['queue']:emu.mem_write(removed,b'\0'*4);error=258
+      else:
+       packets=port['queue'][:capacity]
+       for packet in packets:
+        status=packet.get('status',0 if packet['error']==0 else None)
+        if status is None or not 0<=status<(1<<64):raise RuntimeError('Missing native completion packet status')
+        statuses.append(str(status))
+       for i,packet in enumerate(packets):emu.mem_write(entries+i*32,struct.pack('<QQQQ',packet['key'],packet['ov'],int(statuses[i]),packet['bytes']))
+       n=len(packets);del port['queue'][:n];emu.mem_write(removed,n.to_bytes(4,'little'));result=1
+      if error:emu.mem_write(tib+0x68,error.to_bytes(4,'little'))
+      batch_history.append({'port':str(ptr),'capacity':capacity,'removed':n,'error':error,'timeoutMs':timeout,'alertable':alertable,'packetStatuses':statuses})
+      emu.reg_write(x.UC_X86_REG_RAX,result)
+     elif name in mutex_names:
       if ptr%8:raise RuntimeError('Unaligned native MSVC mutex')
       raw=bytes(emu.mem_read(ptr,80));kind=int.from_bytes(raw[:4],'little',signed=True);entry=mutex_state.get(ptr);result=None
       if name=='_Mtx_init_in_situ':
@@ -774,7 +795,7 @@ def main():
      'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex() if heap_at[0]>0x1800000 else '',
      'performanceClock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_value[0]) if clock_reads[0] else None},'exceptionState':[str(p) for p in sorted(exception_state)],'onexitCallbacks':[str(callback) for table in onexit.values() for callback in table['callbacks']],'threadNames':list(thread_names.items()),
      'stdioState':{'streams':[[str(p),fd] for p,fd in stdio_state['streams'].items()],'fds':[[fd,d['channel'],str(d['handle'])] for fd,d in stdio_state['fds'].items()]},
-     'pipeState':{'pipes':[{'name':p['name'],'server':str(p['server']),'clients':[str(h) for h in p['clients']],'queuedHex':p['queued'].hex(),'closed':p['closed'],'everConnected':p['everConnected']} for p in pipe_state['pipes']],'completions':pipe_state['completions'],'outputs':pipe_state['outputs']},'mutexState':[[p,e['type'],e['owner'],e['count']] for p,e in mutex_state.items()],'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],
+     'pipeState':{'pipes':[{'name':p['name'],'server':str(p['server']),'clients':[str(h) for h in p['clients']],'queuedHex':p['queued'].hex(),'closed':p['closed'],'everConnected':p['everConnected']} for p in pipe_state['pipes']],'completions':pipe_state['completions'],'outputs':pipe_state['outputs']},'batchState':list(batch_history),'mutexState':[[p,e['type'],e['owner'],e['count']] for p,e in mutex_state.items()],'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],
      'iocpState':{'ports':[{'handle':str(h),'concurrency':p['concurrency'],'queue':[{'bytes':q['bytes'],'key':str(q['key']),'ov':str(q['ov']),'error':q['error']} for q in p['queue']]} for h,p in port_state['ports'].items()],'associations':[[str(h),str(a[0]),str(a[1])] for h,a in port_state['associations'].items()]}})
    boundaries.append(boundary)
    if variant==0:
@@ -807,7 +828,7 @@ def main():
      start=at
      while at<size and final[at]!=image[at]:at+=1
      changes.append({'rva':start,'hex':final[start:at].hex()})
-    cases[-1]['worker']={'id':2,'cpu':worker_cpu,'tib':tib,'stack':stack_base,'entryRva':worker_entry-image_base,'argument':hex(worker_argument),'returnAddress':'0x120ff0','boundary':boundary,'steps':len(trace),'expected':[hex(n) for n in expected],'expectedXmm':[hex(n) for n in expected_xmm],'expectedFlags':expected_flags,'definedFlagsMask':defined_flags[0],'dllChanges':changes,'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'serviceCalls':service_calls,'threadNames':list(thread_names.items()),'mutexState':[[p,e['type'],e['owner'],e['count']] for p,e in mutex_state.items()],'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],'performanceClock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_value[0]) if clock_reads[0] else None},'exceptionState':[str(p) for p in sorted(exception_state)]}
+    cases[-1]['worker']={'id':2,'cpu':worker_cpu,'tib':tib,'stack':stack_base,'entryRva':worker_entry-image_base,'argument':hex(worker_argument),'returnAddress':'0x120ff0','boundary':boundary,'steps':len(trace),'expected':[hex(n) for n in expected],'expectedXmm':[hex(n) for n in expected_xmm],'expectedFlags':expected_flags,'definedFlagsMask':defined_flags[0],'dllChanges':changes,'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'serviceCalls':service_calls,'threadNames':list(thread_names.items()),'batchState':list(batch_history),'mutexState':[[p,e['type'],e['owner'],e['count']] for p,e in mutex_state.items()],'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],'performanceClock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_value[0]) if clock_reads[0] else None},'exceptionState':[str(p) for p in sorted(exception_state)]}
     print(json.dumps({'workerBoundary':boundary,'steps':len(trace),'imageBase':hex(image_base)}),flush=True)
  lifter=WideLifter(pe)
  for rva in sorted(observed):

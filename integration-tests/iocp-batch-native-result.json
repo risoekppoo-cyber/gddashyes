@@ -1,0 +1,109 @@
+{
+  "status": "IOCP_BATCH_NATIVE_PASS",
+  "pointerBytes": 8,
+  "entryBytes": 32,
+  "offsets": {
+    "key": 0,
+    "ov": 8,
+    "internal": 16,
+    "bytes": 24
+  },
+  "guardsPreserved": true,
+  "empty": {
+    "ok": false,
+    "error": 258,
+    "removed": 0,
+    "entries": [],
+    "unusedEntriesPreserved": true
+  },
+  "invalid": {
+    "ok": false,
+    "error": 6,
+    "removed": 123,
+    "entries": [],
+    "unusedEntriesPreserved": true
+  },
+  "zeroCapacity": {
+    "ok": false,
+    "error": 87,
+    "removed": 123,
+    "entries": [],
+    "unusedEntriesPreserved": true
+  },
+  "firstBatch": {
+    "ok": true,
+    "error": 17185,
+    "removed": 2,
+    "entries": [
+      {
+        "key": 48879,
+        "ov": 305419896,
+        "internal": 0,
+        "bytes": 7,
+        "hex": "efbe000000000000785634120000000000000000000000000700000000000000"
+      },
+      {
+        "key": 64206,
+        "ov": 0,
+        "internal": 0,
+        "bytes": 11,
+        "hex": "cefa000000000000000000000000000000000000000000000b00000000000000"
+      }
+    ],
+    "unusedEntriesPreserved": true
+  },
+  "secondBatch": {
+    "ok": true,
+    "error": 17185,
+    "removed": 1,
+    "entries": [
+      {
+        "key": 51966,
+        "ov": 2557891634,
+        "internal": 0,
+        "bytes": 0,
+        "hex": "feca000000000000325476980000000000000000000000000000000000000000"
+      }
+    ],
+    "unusedEntriesPreserved": true
+  },
+  "afterDrain": {
+    "ok": false,
+    "error": 258,
+    "removed": 0,
+    "entries": [],
+    "unusedEntriesPreserved": true
+  },
+  "pipeSuccess": {
+    "ok": true,
+    "error": 17185,
+    "removed": 1,
+    "entries": [
+      {
+        "key": 4660,
+        "ov": 65536,
+        "internal": 0,
+        "bytes": 3,
+        "hex": "3412000000000000000001000000000000000000000000000300000000000000"
+      }
+    ],
+    "unusedEntriesPreserved": true
+  },
+  "pipeFailure": {
+    "ok": true,
+    "error": 17185,
+    "removed": 1,
+    "entries": [
+      {
+        "key": 4660,
+        "ov": 65536,
+        "internal": 3221225803,
+        "bytes": 0,
+        "hex": "341200000000000000000100000000004b0100c0000000000000000000000000"
+      }
+    ],
+    "unusedEntriesPreserved": true
+  },
+  "dataHex": "6c6f67",
+  "blockingAndApcSemanticsTested": false
+}
