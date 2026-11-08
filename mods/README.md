@@ -14,3 +14,10 @@ entries are not downloadable here.
 
 Validation: `.github/workflows/jukebox-browser.yml` runs the actual game in Chromium
 with a real index and MP3, without mocked server responses or placeholder audio.
+
+The adapter also refreshes the game’s decoded FMOD/Web Audio song cache and routes
+new sounds to the selected replacement before existing AppData downloads. Active
+channels are restarted at their current playback position when their buffer changes.
+The browser test verifies a live game audio source uses the downloaded track, and
+that a pre-existing original at an AppData path cannot shadow an active replacement.
+

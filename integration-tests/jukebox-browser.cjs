@@ -7,6 +7,19 @@ const assert = require('node:assert/strict');
   const browser = await chromium.launch({headless: true, args: ['--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required']});
   const page = await browser.newPage({viewport: {width: 1280, height: 800}});
   const report = {status: 'RUNNING', errors: []};
+  // The untouched first-run terms dialog does not start menu music. Exercise
+  // the game's own FMOD bridge without relying on coordinates or accepting terms.
+  const menuAudio = async play => {
+    await page.evaluate(({filename, play}) => {
+      if (!Module.__gdAudio) gd_js_audio(0, 0, 0, 0, 0);
+      const engine = Module.__gdAudio;
+      let sound = Object.values(engine.sounds).find(sound => sound.path.replace(/\\/g, '/').split('/').pop() === filename);
+      if (!sound) sound = engine.sounds[engine.soundNew('/Resources/' + filename, true)];
+      window.__jbProbeSound = sound.id;
+      if (play) window.__jbProbeChannel = engine.play(sound.id, 0, false);
+    }, {filename: report.baseline.filename, play});
+    await page.waitForFunction(() => Module.__gdAudio.sounds[window.__jbProbeSound]?.state === 1, {}, {timeout: 30000});
+  };
   page.on('pageerror', error => report.errors.push(String(error)));
   try {
     await page.goto('http://127.0.0.1:8765/index.html?quality=low', {waitUntil: 'domcontentloaded', timeout: 60000});
@@ -20,7 +33,7 @@ const assert = require('node:assert/strict');
       if (!filename) throw Error('No built-in song available for original restoration check');
       return {filename, sha256: await hash(Module.FS.readFile(dir + '/' + filename))};
     });
-    await page.waitForFunction(() => Object.values(Module.__gdAudio?.sounds || {}).some(sound => /menuLoop\.mp3$/.test(sound.path) && sound.state === 1), {}, {timeout: 30000});
+    await menuAudio(true);
     report.gameAudioBefore = await page.evaluate(() => Object.values(Module.__gdAudio.sounds).filter(sound => /menuLoop\.mp3$/.test(sound.path)).map(sound => ({id: sound.id, path: sound.path, duration: sound.buf?.duration})));
     await page.locator('#jb-toggle').click();
     await page.locator('#jb-song-id').fill('1323633');
@@ -69,6 +82,7 @@ const assert = require('node:assert/strict');
     await page.reload({waitUntil: 'domcontentloaded'});
     await page.waitForFunction(() => window.GDJukebox && window.__gdRuntimeReady && window.__gdSavesRestored, {}, {timeout: 240000});
     await page.evaluate(() => GDJukebox.ready);
+    await menuAudio(false);
     report.reloaded = await page.evaluate(() => GDJukebox.getState());
     assert.equal(report.reloaded.active[0].key, '6ad1c23ecc40bb69f37264f9');
     await page.locator('#jb-toggle').click();
