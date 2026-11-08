@@ -7,6 +7,7 @@ on:
       - 'integration-tests/TASK_06_tests.cjs'
       - 'integration-tests/TASK_08_mock_test.cjs'
       - 'integration-tests/prologue.mjs'
+      - 'experiments/geode-binary/fetch-startup-dll.py'
       - 'integration-tests/owned-image.mjs'
       - 'integration-tests/browser-smoke.cjs'
       - 'integration-tests/memory-intervals*.mjs'
@@ -30,6 +31,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Restore pinned DLL cache
+        uses: actions/cache@v4
+        with:
+          path: integration-input/Geode.dll
+          key: geode-startup-dll-ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499
       - name: Focused checks and real prologue references
         run: |
           node integration-tests/TASK_05_tests.cjs
