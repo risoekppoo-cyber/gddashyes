@@ -26,6 +26,9 @@ on:
       - 'experiments/geode-binary/windows-exception-ptr.mjs'
       - 'integration-tests/windows-exception-ptr.mjs'
       - 'experiments/geode-binary/windows-performance-clock.mjs'
+      - 'experiments/geode-binary/windows-msvc-mutex.mjs'
+      - 'integration-tests/windows-msvc-mutex.mjs'
+      - 'integration-tests/msvc-mutex-native-result.json'
       - 'integration-tests/windows-performance-clock.mjs'
       - 'integration-tests/performance-clock-native-result.json'
       - 'experiments/geode-binary/guest-scheduler.mjs'
@@ -82,6 +85,7 @@ jobs:
           node integration-tests/thread-boundary.mjs
           node integration-tests/windows-exception-ptr.mjs
           node integration-tests/windows-performance-clock.mjs
+          node integration-tests/windows-msvc-mutex.mjs
           node integration-tests/guest-scheduler.mjs
           cp /tmp/deferred/deferred.wasm experiments/geode-binary/handoff/setup.wasm
           cp /tmp/deferred/runtime-manifest.json experiments/geode-binary/handoff/setup-manifest.json

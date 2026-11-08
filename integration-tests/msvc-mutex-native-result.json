@@ -1,0 +1,136 @@
+{
+  "status": "MSVC_MUTEX_NATIVE_PASS",
+  "pointerBytes": 8,
+  "storageBytes": 80,
+  "offsets": {
+    "type": 0,
+    "unused": 8,
+    "srw": 16,
+    "owner": 72,
+    "count": 76
+  },
+  "success": 0,
+  "busy": 3,
+  "guardsPreserved": true,
+  "profiles": [
+    {
+      "type": 2,
+      "states": [
+        {
+          "label": "initialized",
+          "type": 2,
+          "owner": -1,
+          "count": 0,
+          "srw": 0,
+          "hex": "02000000a5a5a5a500000000000000000000000000000000a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5ffffffff00000000"
+        },
+        {
+          "label": "locked",
+          "type": 2,
+          "owner": 1,
+          "count": 1,
+          "srw": 1,
+          "hex": "02000000a5a5a5a500000000000000000100000000000000a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a50100000001000000"
+        },
+        {
+          "label": "other-thread-try",
+          "type": 2,
+          "owner": 1,
+          "count": 1,
+          "srw": 1,
+          "hex": "02000000a5a5a5a500000000000000000100000000000000a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a50100000001000000"
+        },
+        {
+          "label": "same-thread-lock-and-try",
+          "type": 2,
+          "owner": 1,
+          "count": 1,
+          "srw": 1,
+          "hex": "02000000a5a5a5a500000000000000000100000000000000a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a50100000001000000"
+        },
+        {
+          "label": "unlocked",
+          "type": 2,
+          "owner": -1,
+          "count": 0,
+          "srw": 0,
+          "hex": "02000000a5a5a5a500000000000000000000000000000000a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5ffffffff00000000"
+        },
+        {
+          "label": "destroyed",
+          "type": 2,
+          "owner": -1,
+          "count": 0,
+          "srw": 0,
+          "hex": "02000000a5a5a5a500000000000000000000000000000000a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5ffffffff00000000"
+        }
+      ],
+      "otherThread": {
+        "tryResult": 3,
+        "owns": 0
+      },
+      "sameThreadLock": 3,
+      "sameThreadTry": 3
+    },
+    {
+      "type": 258,
+      "states": [
+        {
+          "label": "initialized",
+          "type": 258,
+          "owner": -1,
+          "count": 0,
+          "srw": 0,
+          "hex": "02010000a5a5a5a500000000000000000000000000000000a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5ffffffff00000000"
+        },
+        {
+          "label": "locked",
+          "type": 258,
+          "owner": 1,
+          "count": 1,
+          "srw": 1,
+          "hex": "02010000a5a5a5a500000000000000000100000000000000a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a50100000001000000"
+        },
+        {
+          "label": "other-thread-try",
+          "type": 258,
+          "owner": 1,
+          "count": 1,
+          "srw": 1,
+          "hex": "02010000a5a5a5a500000000000000000100000000000000a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a50100000001000000"
+        },
+        {
+          "label": "same-thread-lock-and-try",
+          "type": 258,
+          "owner": 1,
+          "count": 3,
+          "srw": 1,
+          "hex": "02010000a5a5a5a500000000000000000100000000000000a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a50100000003000000"
+        },
+        {
+          "label": "unlocked",
+          "type": 258,
+          "owner": -1,
+          "count": 0,
+          "srw": 0,
+          "hex": "02010000a5a5a5a500000000000000000000000000000000a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5ffffffff00000000"
+        },
+        {
+          "label": "destroyed",
+          "type": 258,
+          "owner": -1,
+          "count": 0,
+          "srw": 0,
+          "hex": "02010000a5a5a5a500000000000000000000000000000000a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5ffffffff00000000"
+        }
+      ],
+      "otherThread": {
+        "tryResult": 3,
+        "owns": 0
+      },
+      "sameThreadLock": 0,
+      "sameThreadTry": 0
+    }
+  ],
+  "blockingContentionTested": false
+}
