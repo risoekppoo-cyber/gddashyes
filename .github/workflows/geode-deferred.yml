@@ -37,6 +37,9 @@ on:
       - 'integration-tests/performance-clock-native-result.json'
       - 'experiments/geode-binary/guest-scheduler.mjs'
       - 'integration-tests/guest-scheduler.mjs'
+      - 'experiments/geode-binary/guest-thread-lifecycle.mjs'
+      - 'integration-tests/guest-thread-lifecycle.mjs'
+      - 'integration-tests/beginthreadex-native-result.json'
       - 'experiments/geode-binary/game-imports.mjs'
       - 'experiments/geode-binary/setup-context.mjs'
       - 'experiments/geode-binary/handoff/runtime.js'
@@ -97,6 +100,7 @@ jobs:
           node integration-tests/windows-msvc-mutex.mjs
           node integration-tests/windows-iocp-batch.mjs
           node integration-tests/guest-scheduler.mjs
+          node integration-tests/guest-thread-lifecycle.mjs
           cp /tmp/deferred/deferred.wasm experiments/geode-binary/handoff/setup.wasm
           cp /tmp/deferred/runtime-manifest.json experiments/geode-binary/handoff/setup-manifest.json
           cp /tmp/deferred/services.mjs experiments/geode-binary/handoff/setup-services.mjs
