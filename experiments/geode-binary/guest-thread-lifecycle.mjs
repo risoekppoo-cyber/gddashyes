@@ -5,12 +5,14 @@ export class GuestThreadLifecycle {
   if(typeof entry!=='bigint'||typeof returnAddress!=='bigint')throw Error('Missing verified callback profile');
   this.scheduler=scheduler;this.services=scheduler.services;this.profile={entry,returnAddress,tlsTemplate:tlsTemplate.slice(),tlsZeroFill};this.handles=new Map();this.nextHandle=0x64000000n;
  }
- start({entry,argument,security=0n,stackSize=0,flags=0,idOutput=0n}={}){
+ start({entry,argument=0n,security=0n,stackSize=0,flags=0,idOutput=0n,existingContext}={}){
   if(this.scheduler.disposed||this.scheduler.running)throw Error('Thread creation requires an idle scheduler boundary');
   if(entry!==this.profile.entry||security!==0n||stackSize!==0||flags!==0)throw Error('Unverified thread creation profile');
   if(typeof idOutput!=='bigint'||idOutput<0n)throw Error('Invalid thread ID output');
   if(idOutput)this.services.range(idOutput,4);
-  const context=this.scheduler.createContext({...this.profile,argument});
+  if(existingContext&&(this.scheduler.threads.get(existingContext.id)!==existingContext||existingContext.entry!==entry||existingContext.argument!==argument||!['runnable','blocked','exited'].includes(existingContext.status)))throw Error('Unverified existing callback context');
+  if(existingContext&&[...this.handles.values()].includes(existingContext))throw Error('Callback already has a creation handle');
+  const context=existingContext??this.scheduler.createContext({...this.profile,argument});
   const handle=this.nextHandle++;this.handles.set(handle,context);
   if(idOutput)new DataView(this.services.memory.buffer).setUint32(Number(idOutput),context.id,true);
   return {handle,id:context.id,context};

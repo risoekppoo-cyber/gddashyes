@@ -26,7 +26,7 @@ export class GuestScheduler {
    v.setBigUint64(tib+8,BigInt(stack+stackSize),true);v.setBigUint64(tib+16,BigInt(stack),true);v.setBigUint64(tib+0x30,BigInt(tib),true);
    v.setBigUint64(tib+0x40,1n,true);v.setBigUint64(tib+0x48,BigInt(id),true);v.setBigUint64(tib+0x58,BigInt(tib+0x1000),true);v.setBigUint64(tib+0x1000,BigInt(tls),true);
    new Uint8Array(s.memory.buffer,tls,template.length).set(template);
-   const t={id,cpu,tib,stack,stackSize,tls,errno:0,status:'runnable',waitKey:null,steps:0,allocations};this.threads.set(id,t);return t;
+   const t={id,cpu,tib,stack,stackSize,tls,entry,argument,errno:0,status:'runnable',waitKey:null,steps:0,allocations};this.threads.set(id,t);return t;
   }catch(error){for(const p of allocations.reverse())try{s.free(p);}catch{}throw error;}
  }
  adoptContext({id,cpu,tib,stack,stackSize=65536,tibSize=0x4000,errno=0}={}){
