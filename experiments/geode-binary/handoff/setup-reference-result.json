@@ -7,6 +7,140 @@
   "divisionCases": 1032,
   "cases": 40,
   "workerCases": 6,
+  "parentContinuations": [
+    {
+      "imageBase": 33554432,
+      "steps": 42,
+      "boundary": {
+        "rva": 1845494864,
+        "service": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
+        "kind": "thread-start-request",
+        "stopService": "_beginthreadex",
+        "threadRequest": {
+          "security": "0x0",
+          "stackSize": 0,
+          "entryAddress": "0x24ffab0",
+          "entryRva": 5241520,
+          "argument": "0x18168e0",
+          "argumentIsNull": false,
+          "initFlags": 0,
+          "threadIdOutput": "0x10e508",
+          "threadIdOutputIsNull": false,
+          "threadCreationImplemented": false
+        }
+      }
+    },
+    {
+      "imageBase": 33554432,
+      "steps": 42,
+      "boundary": {
+        "rva": 1845494864,
+        "service": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
+        "kind": "thread-start-request",
+        "stopService": "_beginthreadex",
+        "threadRequest": {
+          "security": "0x0",
+          "stackSize": 0,
+          "entryAddress": "0x24ffab0",
+          "entryRva": 5241520,
+          "argument": "0x18168e0",
+          "argumentIsNull": false,
+          "initFlags": 0,
+          "threadIdOutput": "0x10e508",
+          "threadIdOutputIsNull": false,
+          "threadCreationImplemented": false
+        }
+      }
+    },
+    {
+      "imageBase": 33554432,
+      "steps": 42,
+      "boundary": {
+        "rva": 1845494864,
+        "service": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
+        "kind": "thread-start-request",
+        "stopService": "_beginthreadex",
+        "threadRequest": {
+          "security": "0x0",
+          "stackSize": 0,
+          "entryAddress": "0x24ffab0",
+          "entryRva": 5241520,
+          "argument": "0x18168e0",
+          "argumentIsNull": false,
+          "initFlags": 0,
+          "threadIdOutput": "0x10e508",
+          "threadIdOutputIsNull": false,
+          "threadCreationImplemented": false
+        }
+      }
+    },
+    {
+      "imageBase": 369098752,
+      "steps": 42,
+      "boundary": {
+        "rva": 1509950544,
+        "service": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
+        "kind": "thread-start-request",
+        "stopService": "_beginthreadex",
+        "threadRequest": {
+          "security": "0x0",
+          "stackSize": 0,
+          "entryAddress": "0x164ffab0",
+          "entryRva": 5241520,
+          "argument": "0x18168e0",
+          "argumentIsNull": false,
+          "initFlags": 0,
+          "threadIdOutput": "0x10e508",
+          "threadIdOutputIsNull": false,
+          "threadCreationImplemented": false
+        }
+      }
+    },
+    {
+      "imageBase": 369098752,
+      "steps": 42,
+      "boundary": {
+        "rva": 1509950544,
+        "service": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
+        "kind": "thread-start-request",
+        "stopService": "_beginthreadex",
+        "threadRequest": {
+          "security": "0x0",
+          "stackSize": 0,
+          "entryAddress": "0x164ffab0",
+          "entryRva": 5241520,
+          "argument": "0x18168e0",
+          "argumentIsNull": false,
+          "initFlags": 0,
+          "threadIdOutput": "0x10e508",
+          "threadIdOutputIsNull": false,
+          "threadCreationImplemented": false
+        }
+      }
+    },
+    {
+      "imageBase": 369098752,
+      "steps": 42,
+      "boundary": {
+        "rva": 1509950544,
+        "service": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
+        "kind": "thread-start-request",
+        "stopService": "_beginthreadex",
+        "threadRequest": {
+          "security": "0x0",
+          "stackSize": 0,
+          "entryAddress": "0x164ffab0",
+          "entryRva": 5241520,
+          "argument": "0x18168e0",
+          "argumentIsNull": false,
+          "initFlags": 0,
+          "threadIdOutput": "0x10e508",
+          "threadIdOutputIsNull": false,
+          "threadCreationImplemented": false
+        }
+      }
+    }
+  ],
   "workerBoundaries": [
     {
       "imageBase": 33554432,
@@ -147,7 +281,7 @@
       ]
     }
   ],
-  "uniqueInstructions": 6512,
+  "uniqueInstructions": 6528,
   "boundaries": [
     {
       "rva": 1845494864,
@@ -428,6 +562,6 @@
       }
     }
   ],
-  "wasmSha256": "0fdb341063078a479f2268784ffeec5f140e7d4aa17a02484459f4dbaef66084",
+  "wasmSha256": "ca47412d66bd8f110c7db48078d9253a3cbd33a05961471a6395e58b0ef52151",
   "fullGeodeLoader": false
 }
