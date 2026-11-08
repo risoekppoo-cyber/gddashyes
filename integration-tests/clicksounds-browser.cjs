@@ -78,8 +78,16 @@ const assert = require('node:assert/strict');
     await page.locator('#cs-remove-press').click(); await page.locator('#cs-remove-release').click();
     await page.waitForFunction(() => !GDClickSounds.getState().imports.press && !GDClickSounds.getState().imports.release);
     await page.screenshot({path: out + '/import-mobile.png'});
-    await page.reload({waitUntil: 'domcontentloaded'}); await page.waitForFunction(() => window.GDClickSounds?.getState().loaded && window.__gdInputReady, {}, {timeout: 240000});
     report.importsRemoved = await state(); assert.deepEqual(report.importsRemoved.imports, {}); assert.equal(report.importsRemoved.settings.press, '2'); assert.equal(report.importsRemoved.settings.release, 'random');
+    report.storedImportsAfterRemoval = await page.evaluate(() => new Promise((resolve, reject) => {
+      const request = indexedDB.open('gd-clicksounds-audio', 1);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const db = request.result, tx = db.transaction('sounds', 'readonly'), count = tx.objectStore('sounds').count();
+        tx.oncomplete = () => {db.close(); resolve(count.result);}; tx.onerror = () => {db.close(); reject(tx.error);};
+      };
+    }));
+    assert.equal(report.storedImportsAfterRemoval, 0);
     const frames = await page.evaluate(() => Module._gd_frames_get()); await page.waitForFunction(n => Module._gd_frames_get() > n + 30, frames); report.framesAfter = await page.evaluate(() => Module._gd_frames_get());
     assert.deepEqual(report.errors, []); report.status = 'CLICK_SOUNDS_DROPDOWN_PASS';
   } catch (e) {report.status = 'FAIL'; report.error = String(e); report.stack = e.stack; report.state = await state().catch(() => null); await page.screenshot({path: out + '/failure.png'}).catch(() => {}); process.exitCode = 1;}
