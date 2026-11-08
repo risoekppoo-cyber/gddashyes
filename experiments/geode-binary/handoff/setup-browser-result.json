@@ -7,7 +7,7 @@
     "deferredLoaderInitialized": false,
     "callbackPrologueExecuted": true,
     "callbackPrologueOnly": false,
-    "gameFrames": 134,
+    "gameFrames": 152,
     "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
     "sourceDllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
     "gameModuleSha256": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
@@ -56,8 +56,8 @@
       "0xa"
     ],
     "sharedGameMemory": true,
-    "nextRequiredService": "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
-    "nextBoundaryKind": "thread-start-request",
+    "nextRequiredService": "MSVCP140.dll!_Cnd_signal",
+    "nextBoundaryKind": "service-call",
     "nextServiceArguments": [
       "0x0",
       "0x0",
@@ -377,25 +377,13 @@
         0
       ]
     ],
-    "pendingThreadRequest": {
-      "security": "0x0",
-      "stackSize": 0,
-      "entryAddress": "0x15a0fab0",
-      "entryRva": 5241520,
-      "argument": "0x16570b50",
-      "argumentIsNull": false,
-      "initFlags": 0,
-      "threadIdOutput": "0x1550ea48",
-      "threadIdOutputIsNull": false,
-      "threadCreationImplemented": false
-    },
     "worker": {
       "status": "WORKER_CALLBACK_BOUNDARY_PASS",
       "id": 2,
       "entryRva": 5241520,
-      "instructions": 4383,
+      "instructions": 4379,
       "sliceQuantum": 127,
-      "sliceCount": 38,
+      "sliceCount": 37,
       "maxSliceSteps": 127,
       "continuations": 3,
       "continuedFromSavedCpu": true,
@@ -421,7 +409,7 @@
         {
           "startPc": "0x15a0165b",
           "endPc": "0x15a0165b",
-          "instructions": 891,
+          "instructions": 887,
           "kind": "worker-poll-yield"
         }
       ],
@@ -433,12 +421,12 @@
       "rootCpuRetained": true,
       "contextRetained": true,
       "runnable": true,
-      "threadCreationImplemented": false,
+      "threadCreationImplemented": true,
       "crtThreadStartupImplemented": false,
       "performanceClock": {
         "frequency": "10000000",
         "counterReads": 12,
-        "lastCounter": "89835000"
+        "lastCounter": "110748999"
       },
       "mutexes": [
         [
@@ -538,6 +526,55 @@
         "_Mtx_unlock",
         "GetQueuedCompletionStatusEx"
       ],
+      "parentContinuation": {
+        "status": "COMPONENT_PARENT_CONTINUATION_PASS",
+        "instructions": 836,
+        "slices": 25,
+        "nextRequiredService": "MSVCP140.dll!_Cnd_signal",
+        "nextBoundaryKind": "service-call",
+        "handle": "0x64000000",
+        "threadId": 2,
+        "createdThreadCount": 4,
+        "runnableWorkers": 4,
+        "idOutputWritten": true,
+        "existingWorkerReused": true,
+        "workerPrivateStoragePreserved": true,
+        "executedServices": [
+          "_beginthreadex",
+          "malloc",
+          "_beginthreadex",
+          "malloc",
+          "_beginthreadex",
+          "malloc",
+          "_beginthreadex",
+          "_register_onexit_function",
+          "AcquireSRWLockExclusive",
+          "ReleaseSRWLockExclusive",
+          "WakeAllConditionVariable",
+          "malloc",
+          "?__ExceptionPtrCreate@@YAXPEAX@Z",
+          "malloc",
+          "?__ExceptionPtrCreate@@YAXPEAX@Z",
+          "malloc",
+          "_Mtx_lock",
+          "malloc",
+          "memmove",
+          "memmove",
+          "memset",
+          "memset",
+          "malloc",
+          "_Mtx_unlock"
+        ],
+        "activeThreadHandles": [
+          "0x64000000",
+          "0x64000001",
+          "0x64000002",
+          "0x64000003"
+        ],
+        "crtThreadStartupImplemented": false,
+        "tlsCallbacksExecuted": false,
+        "staticTlsComponentModel": true
+      },
       "browserDispatches": [
         {
           "gameFrames": 1,
@@ -551,15 +588,64 @@
         },
         {
           "gameFrames": 3,
-          "instructions": 4383,
+          "instructions": 4379,
           "originalGameCpuPreserved": true
         }
       ],
       "originalGameCpuPreservedBetweenTurns": true
     },
-    "totalTranslatedInstructions": 16606,
+    "totalTranslatedInstructions": 17438,
     "originalGameCpuPreserved": true,
     "liveStackRestored": true,
+    "parentContinuation": {
+      "status": "COMPONENT_PARENT_CONTINUATION_PASS",
+      "instructions": 836,
+      "slices": 25,
+      "nextRequiredService": "MSVCP140.dll!_Cnd_signal",
+      "nextBoundaryKind": "service-call",
+      "handle": "0x64000000",
+      "threadId": 2,
+      "createdThreadCount": 4,
+      "runnableWorkers": 4,
+      "idOutputWritten": true,
+      "existingWorkerReused": true,
+      "workerPrivateStoragePreserved": true,
+      "executedServices": [
+        "_beginthreadex",
+        "malloc",
+        "_beginthreadex",
+        "malloc",
+        "_beginthreadex",
+        "malloc",
+        "_beginthreadex",
+        "_register_onexit_function",
+        "AcquireSRWLockExclusive",
+        "ReleaseSRWLockExclusive",
+        "WakeAllConditionVariable",
+        "malloc",
+        "?__ExceptionPtrCreate@@YAXPEAX@Z",
+        "malloc",
+        "?__ExceptionPtrCreate@@YAXPEAX@Z",
+        "malloc",
+        "_Mtx_lock",
+        "malloc",
+        "memmove",
+        "memmove",
+        "memset",
+        "memset",
+        "malloc",
+        "_Mtx_unlock"
+      ],
+      "activeThreadHandles": [
+        "0x64000000",
+        "0x64000001",
+        "0x64000002",
+        "0x64000003"
+      ],
+      "crtThreadStartupImplemented": false,
+      "tlsCallbacksExecuted": false,
+      "staticTlsComponentModel": true
+    },
     "gameContinuedAfterHandoff": true
   },
   "images": [
@@ -586,6 +672,6 @@
     }
   ],
   "jspi": true,
-  "seconds": 15.926,
+  "seconds": 16.392,
   "events": []
 }
