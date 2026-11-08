@@ -1,0 +1,16 @@
+{
+  "status": "UCRT_THREAD_NATIVE_PASS",
+  "securityNull": true,
+  "stackSize": 0,
+  "flags": 0,
+  "idOutputMatchesCallback": true,
+  "childInitialErrno": 0,
+  "childInitialStaticTls": 123,
+  "parentErrnoAndTlsPreserved": true,
+  "pendingWait": 258,
+  "exitCode": 305441741,
+  "closedHandleError": 6,
+  "browserThreadImplemented": false,
+  "geodeDllTlsCallbacksVerified": false,
+  "validationRun": 42489081782
+}
