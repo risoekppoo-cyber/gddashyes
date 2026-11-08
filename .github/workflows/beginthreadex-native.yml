@@ -1,0 +1,26 @@
+name: UCRT thread lifecycle oracle
+on:
+  push:
+    paths:
+      - 'integration-tests/beginthreadex-native.c'
+      - '.github/workflows/beginthreadex-native.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Build actual UCRT probe
+        shell: cmd
+        run: cl /nologo /W4 /WX /O2 integration-tests/beginthreadex-native.c /Fe:beginthreadex-native.exe
+      - name: Run with a hard process timeout
+        run: python -c "import subprocess,pathlib; r=subprocess.run(['beginthreadex-native.exe'],capture_output=True,text=True,timeout=15); print(r.stdout); print(r.stderr); pathlib.Path('beginthreadex-native-result.json').write_text(r.stdout); raise SystemExit(r.returncode)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ucrt-thread-native-result
+          path: beginthreadex-native-result.json
