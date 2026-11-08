@@ -1,11 +1,16 @@
 # Verified startup checkpoint - 8 November 2026
 
-The checkpoint executes 12,223 parent instructions and 1,710 worker instructions
-(13,933 total). Native-reference checks pass at two image bases, including 36
-reference cases, two worker comparisons and 1,032 differential division checks.
-The real Chromium run continued for 133 game frames, preserved the original CPU
-snapshot and restored the live game stack. Full Geode initialization and existing
-.geode package loading remain unsupported.
+The parent executes 12,223 instructions to _beginthreadex. The requested worker
+now completes four empty nonblocking completion polls, resuming its retained CPU
+between browser frames. The final Chromium run executed 4,379 worker instructions
+(16,602 total), continued for 142 game frames, preserved the original game CPU
+and restored the live stack. Full Geode initialization and existing .geode
+package loading remain unsupported.
+
+The independent deterministic native trace executes 4,383 worker instructions.
+The live monotonic clock can choose a shorter observed branch; the browser
+report records its actual count. Unknown instruction targets and unsupported
+service calls still stop explicitly.
 
 ## Completed continuation
 
@@ -44,34 +49,44 @@ snapshot and restored the live game stack. Full Geode initialization and existin
 The real browser has created and connected the geode-stdout-1 named pipe,
 redirected stdout to its client, preserved the original stdout as descriptor 3,
 initialized an idle critical section and created an empty completion port. The
-worker performed one real nonblocking IOCP poll on the owned empty port. Pipe
+worker performed four real nonblocking IOCP polls on the owned empty port. Pipe
 bytes were not delivered to that worker in this run; transport and completion
 payloads are checked separately against actual Windows and focused guest tests.
 
-## Next exact boundary
 
-The scheduler now executes the real requested callback at RVA 0x4ffab0 in a
-separate context, with the supplied argument and a copied static TLS template.
-The independent native comparison passes at two DLL bases: the worker executes
-1,710 instructions, including its arc-worker-0 thread-name event, mutex lock/
-unlock and GetQueuedCompletionStatusEx. It now pauses immediately after the poll
-returns, at RVA 0x4f165b.
+## Resumption now verified
 
-The call requested 64 entries, timeout zero and alertable false. The empty port
-produced false/error 258 and zero removed entries, leaving the entry array
-untouched. No packet was invented. This stop is a deliberate cooperative
-checkpoint, not a newly discovered unsupported Windows API.
+The actual callback at RVA 0x4ffab0 receives the original owned argument and its
+own CPU, stack, TIB/TLS, thread ID and errno. Static TLS is initialized once.
+The first poll returns at RVA 0x4f165b after 1,710 native instructions. Subsequent
+dispatches resume that saved RIP; they do not restart the callback entry.
 
-The retained worker has scheduler state runnable, but the current integration
-executes only this bounded prefix. The callback has not been resumed beyond the
-poll return, and the instruction dispatcher still needs safe resumable slices.
+The slice export retains RIP/registers at its instruction budget. Seven direct
+contract checks cover zero budgets, exact-budget stops, unknown transfers,
+invalid limits and the legacy lift_run failure contract. The browser uses at
+most 127 native instructions per slice. Its three later dispatches ran at game
+frames 1, 2 and 3, completing four real polls in total.
+
+An independently owned compiler stack remains valid after the temporary handoff
+stack is freed. The parent CPU clone, parent private stack/TIB and child
+CPU/stack/TIB/TLS remain owned until release. Every dispatch preserves the
+parent's private storage and the current original game CPU. Page hide cancels
+pending browser dispatch and releases owned storage.
+
+This diagnostic deliberately stops after the measured four-poll sequence. The
+worker remains runnable at the poll-return checkpoint; it is not an unbounded
+background loop. A nonzero completion wait is retained at API entry as blocked,
+without supplying an API result or inventing a packet. Timed waits and wakeup
+delivery remain future work. See RESUMABLE-SLICES.md for the exact contract.
+
+## Next exact blocker
 
 The parent still stops at the actual thread-creation API entry:
 
     api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex
     Worker entry RVA: 0x4ffab0
 
-Native reference and browser agree on the complete call profile:
+Native reference and browser agree on the request:
 
     security:           null
     stackSize:          0 (default)
@@ -80,40 +95,32 @@ Native reference and browser agree on the complete call profile:
     initFlags:          0 (start runnable)
     threadIdOutput:     non-null guest stack address
 
-The import trap captures the actual API arguments before any successful return.
-The diagnostic scheduler invokes the native-verified callback prefix under the
-explicit static-TLS model. This does not implement the UCRT thread-start wrapper,
-per-thread CRT initialization, a returned thread handle, join or thread exit.
-No successful _beginthreadex return or thread-ID output write is fabricated.
+No successful return, handle or thread-ID write has been fabricated. The child
+runs under the explicit static-TLS diagnostic model; UCRT thread initialization,
+full TLS callbacks, handle lifetime, exit and join are not yet implemented.
+The next useful advance is actual thread-creation/lifecycle integration followed
+by parent resumption, rather than increasing the number of empty worker polls.
 
-The browser retains the child's CPU/stack/TIB/TLS and a copy of the parent's CPU;
-the parent's private stack and TIB remain owned by SetupContext. Worker execution
-checks that the parent CPU, stack and TIB stay unchanged. Explicit block/wake
-states exist; the worker is deliberately paused at the poll-return frontier.
-Root continuation still requires actual thread-creation/lifecycle integration.
-The next stage is resumable dispatch from the saved CPU state, not restarting
-its callback entry or silently treating the worker as a running background task.
-
-Report fields worker and totalTranslatedInstructions distinguish the 1,710 worker
-instructions from the 12,223 parent instructions (13,933 total). The worker report
-keeps threadCreationImplemented and crtThreadStartupImplemented false. Full
-loader/package-support flags remain false. Raw pointers vary by allocator and
-must not be hard-coded. Full CRT startup, TLS callbacks and arbitrary native
-Cocos method execution remain unfinished.
+worker.threadCreationImplemented and worker.crtThreadStartupImplemented remain
+false. Raw pointers vary with the allocator and must not be hard-coded. Full
+CRT startup and arbitrary native Cocos method execution remain unfinished.
 
 ## Validation
 
-[Native-reference and real-browser validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42472850120)
-passes 36 reference cases, two worker cases, 1,032 differential arithmetic checks
-and the actual-browser preservation check.
-The comparison includes GPRs, XMMs, defined flags, stack, TLS, DLL/heap writes,
-callback registration, stdio/pipe/critical/IOCP state and the exact worker request.
-Two additional worker comparisons check CPU/XMM/defined flags, the full allocated
-heap (including private stack/TIB/TLS), DLL writes and unchanged parent storage.
-The focused service and scheduler-foundation tests pass. Recorded Windows oracles cover pipe/CRT text
-behavior, critical-section recursion, powf and completion-port packet semantics.
+[Native-reference and browser validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42482024559)
+passes 40 whole reference cases and their 40 sliced counterparts at both DLL
+bases, including six worker/clock-profile cases and six sliced worker cases.
+Clock profiles insert zero, approximately 17 ms, or 100 ms between continuations.
+Worker checks used 702 scheduler slices; seven slice-contract checks and 1,032
+independent differential arithmetic checks also pass.
 
-Generated setup WASM, bundled services, manifests and result JSON are published
-only after reference and browser validation pass. The launcher revision is
-setup-iocp-batch-20261108. See NEXT-CHAT-TASKS.md for the next small tasks;
-the older Chat-mode ZIP describes a superseded checkpoint.
+The comparison includes GPRs, XMMs, defined flags, service order, complete
+allocated heap/stack/TIB/TLS, DLL writes and unchanged parent storage. Existing
+stdio, pipes, critical sections, completion ports, mutexes and exception-pointer
+tests remain passing. Recorded Windows API oracles remain unchanged.
+
+[Live handoff regression validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42482024387)
+also passes. Generated setup WASM, bundled services, manifests and result JSON
+are published only after reference and browser checks succeed. The launcher
+revision is setup-worker-frames-20261108. NEXT-CHAT-TASKS.md records the current
+continuation; older source ZIPs describe superseded checkpoints.
