@@ -693,6 +693,9 @@ def main():
      if slot in imports and (not bound(imports[slot]) or imports[slot] in external):
       boundary.update(rva=rva,service=imports[slot],iatRva=slot)
       boundary['arguments']=[hex(emu.reg_read(getattr(x,'UC_X86_REG_'+r))) for r in ['RCX','RDX','R8','R9']]
+      if imports[slot].endswith('!GetQueuedCompletionStatusEx'):
+       rsp=emu.reg_read(x.UC_X86_REG_RSP)
+       boundary['completionRequest']={'entryCount':emu.reg_read(x.UC_X86_REG_R8)&0xffffffff,'timeoutMs':int.from_bytes(emu.mem_read(rsp+32,4),'little'),'alertable':int.from_bytes(emu.mem_read(rsp+40,4),'little'),'entriesNonNull':emu.reg_read(x.UC_X86_REG_RDX)!=0,'removedNonNull':emu.reg_read(x.UC_X86_REG_R9)!=0,'ownedPort':emu.reg_read(x.UC_X86_REG_RCX) in port_state['ports']}
       if imports[slot].endswith('!CreateFileW'):
        pointer=emu.reg_read(x.UC_X86_REG_RCX);raw=bytearray()
        for i in range(32768):
