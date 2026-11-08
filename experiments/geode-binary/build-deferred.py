@@ -186,7 +186,7 @@ def main():
    for imp in desc.imports:imports[imp.address-preferred]=desc.dll.decode()+'!'+(imp.name.decode() if imp.name else '#'+str(imp.ordinal))
  cases=[];observed=set();boundaries=[];sar_fixture=[None]
  for image_base in [0x2000000,0x16000000]:
-  for variant in range(18):
+  for variant,resume_pause in [(v,0) for v in range(18)]+[(0,166667),(0,1000000)]:
    image=bytearray(original)
    for block in pe.DIRECTORY_ENTRY_BASERELOC:
     for rel in block.entries:
@@ -276,7 +276,7 @@ def main():
    trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000];cwd=['C:\\GeometryDash'];thread_names={}
    stdio_state={'base':0,'streams':{},'fds':{},'nextHandle':0x61000010}
    pipe_state={'nextHandle':0x62000000,'pipes':[],'byName':{},'ends':{},'completions':[],'outputs':[]}
-   critical_state={};batch_history=[];mutex_state={};exception_state=set();clock_value=[1000000000];clock_reads=[0]
+   critical_state={};batch_history=[];mutex_state={};exception_state=set();clock_value=[1000000000];clock_reads=[0];clock_last=[None]
    port_state={'next':0x63000000,'ports':{},'associations':{}}
    def memory_write(emu,_access,address,n,_value,_):
     if stack_base<=address<stack_base+stack_size:writes.append((address,address+n))
@@ -297,6 +297,10 @@ def main():
     emu.emu_stop()
    uc.hook_add(unicorn.UC_HOOK_MEM_READ,import_read)
    def hook(emu,address,n,_):
+    if worker_checkpoints and len(trace)-worker_checkpoints[0]['steps']>=4096:
+     boundary.update(rva=address-image_base,service='Worker instruction budget',kind='worker-budget-yield')
+     if address in services.values():boundary['stopService']=next(k for k,v in services.items() if v==address)
+     emu.emu_stop();return
     if address in services.values():
      name=next(k for k,v in services.items() if v==address);ptr=emu.reg_read(x.UC_X86_REG_RCX)
      if worker_mode and name in ['ReadFile','WriteFile','GetOverlappedResult','GetQueuedCompletionStatus']:
@@ -361,7 +365,7 @@ def main():
       if result is not None:emu.reg_write(x.UC_X86_REG_RAX,result)
      elif name in ['QueryPerformanceFrequency','QueryPerformanceCounter']:
       if name=='QueryPerformanceFrequency':value=10000000
-      else:clock_value[0]+=10000;clock_reads[0]+=1;value=clock_value[0]
+      else:clock_value[0]+=10000;clock_reads[0]+=1;value=clock_value[0];clock_last[0]=value
       emu.mem_write(ptr,value.to_bytes(8,'little',signed=True));emu.reg_write(x.UC_X86_REG_RAX,1)
      elif name in exception_names:
       if ptr%8:raise RuntimeError('Unaligned native exception_ptr')
@@ -708,8 +712,6 @@ def main():
      return
     rva=address-image_base
     if not 0<=rva<size:raise RuntimeError(f'Unexpected target {address:#x}')
-    if worker_checkpoints and len(trace)-worker_checkpoints[0]['steps']>=4096:
-     boundary.update(rva=rva,service='Worker instruction budget',kind='worker-budget-yield');emu.emu_stop();return
     if variant>=4 and rva==entry_rva+division_length:
      boundary.update(rva=rva,service='Unsigned-division fixture stop');emu.emu_stop();return
     if variant==2 and rva==0x12df21:
@@ -805,7 +807,7 @@ def main():
      'tib':tib,'tlsArray':tls_array,'tlsData':tls_data,'tlsHex':bytes(uc.mem_read(tls_data,tls_size+tls.SizeOfZeroFill)).hex(),
      'serviceCalls':service_calls,'stackBelow':sp-min([a for a,b in writes]+[sp]),'stackAbove':max([b for a,b in writes]+[sp])-sp,
      'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex() if heap_at[0]>0x1800000 else '',
-     'performanceClock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_value[0]) if clock_reads[0] else None},'exceptionState':[str(p) for p in sorted(exception_state)],'onexitCallbacks':[str(callback) for table in onexit.values() for callback in table['callbacks']],'threadNames':list(thread_names.items()),
+     'performanceClock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_last[0]) if clock_reads[0] else None},'exceptionState':[str(p) for p in sorted(exception_state)],'onexitCallbacks':[str(callback) for table in onexit.values() for callback in table['callbacks']],'threadNames':list(thread_names.items()),
      'stdioState':{'streams':[[str(p),fd] for p,fd in stdio_state['streams'].items()],'fds':[[fd,d['channel'],str(d['handle'])] for fd,d in stdio_state['fds'].items()]},
      'pipeState':{'pipes':[{'name':p['name'],'server':str(p['server']),'clients':[str(h) for h in p['clients']],'queuedHex':p['queued'].hex(),'closed':p['closed'],'everConnected':p['everConnected']} for p in pipe_state['pipes']],'completions':pipe_state['completions'],'outputs':pipe_state['outputs']},'batchState':list(batch_history),'mutexState':[[p,e['type'],e['owner'],e['count']] for p,e in mutex_state.items()],'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],
      'iocpState':{'ports':[{'handle':str(h),'concurrency':p['concurrency'],'queue':[{'bytes':q['bytes'],'key':str(q['key']),'ov':str(q['ov']),'error':q['error']} for q in p['queue']]} for h,p in port_state['ports'].items()],'associations':[[str(h),str(a[0]),str(a[1])] for h,a in port_state['associations'].items()]}})
@@ -828,9 +830,9 @@ def main():
      for reg,value in import_snapshot:uc.reg_write(reg,value)
      if trace and trace[-1]==boundary['rva']:trace.pop()
     if not boundary:raise RuntimeError(f'Worker stopped without a boundary: RIP={uc.reg_read(x.UC_X86_REG_RIP):#x}, instructions={len(trace)}, recent={trace[-12:]}, services={service_calls[-8:]}')
-    if boundary.get('kind')=='worker-poll-yield':
+    while boundary.get('kind')=='worker-poll-yield' and len(worker_checkpoints)<3:
      worker_checkpoints.append({'rva':boundary['rva'],'steps':len(trace),'serviceCalls':list(service_calls),'expected':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+r))) for r in REGS],'expectedXmm':[hex(uc.reg_read(getattr(x,'UC_X86_REG_XMM'+str(i)))) for i in range(16)],'expectedFlags':uc.reg_read(x.UC_X86_REG_EFLAGS),'definedFlagsMask':defined_flags[0]})
-     boundary={};import_snapshot=[]
+     boundary={};import_snapshot=[];clock_value[0]+=resume_pause
      # Same CPU, stack, TLS, heap, clock and service instances; no callback restart.
      try:uc.emu_start(uc.reg_read(x.UC_X86_REG_RIP),0,count=5001)
      except unicorn.UcError as error:raise RuntimeError(f'Worker continuation fault: RIP={uc.reg_read(x.UC_X86_REG_RIP):#x}, instructions={len(trace)}, recent={trace[-12:]}, services={service_calls[-8:]}: {error}') from error
@@ -850,8 +852,9 @@ def main():
      start=at
      while at<size and final[at]!=image[at]:at+=1
      changes.append({'rva':start,'hex':final[start:at].hex()})
-    cases[-1]['worker']={'id':2,'cpu':worker_cpu,'tib':tib,'stack':stack_base,'entryRva':worker_entry-image_base,'argument':hex(worker_argument),'returnAddress':'0x120ff0','boundary':boundary,'steps':len(trace),'expected':[hex(n) for n in expected],'expectedXmm':[hex(n) for n in expected_xmm],'expectedFlags':expected_flags,'definedFlagsMask':defined_flags[0],'dllChanges':changes,'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'serviceCalls':service_calls,'threadNames':list(thread_names.items()),'batchState':list(batch_history),'mutexState':[[p,e['type'],e['owner'],e['count']] for p,e in mutex_state.items()],'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],'performanceClock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_value[0]) if clock_reads[0] else None},'exceptionState':[str(p) for p in sorted(exception_state)]}
+    cases[-1]['worker']={'id':2,'cpu':worker_cpu,'tib':tib,'stack':stack_base,'entryRva':worker_entry-image_base,'argument':hex(worker_argument),'returnAddress':'0x120ff0','boundary':boundary,'steps':len(trace),'expected':[hex(n) for n in expected],'expectedXmm':[hex(n) for n in expected_xmm],'expectedFlags':expected_flags,'definedFlagsMask':defined_flags[0],'dllChanges':changes,'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'serviceCalls':service_calls,'threadNames':list(thread_names.items()),'batchState':list(batch_history),'mutexState':[[p,e['type'],e['owner'],e['count']] for p,e in mutex_state.items()],'criticalState':[[p,e['owner'],e['recursion']] for p,e in critical_state.items()],'performanceClock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_last[0]) if clock_reads[0] else None},'exceptionState':[str(p) for p in sorted(exception_state)]}
     cases[-1]['worker']['checkpoints']=worker_checkpoints
+    cases[-1]['worker']['resumePauseTicks']=resume_pause
     print(json.dumps({'workerBoundary':boundary,'steps':len(trace),'checkpoints':worker_checkpoints,'imageBase':hex(image_base)}),flush=True)
  lifter=WideLifter(pe)
  for rva in sorted(observed):

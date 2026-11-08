@@ -16,14 +16,29 @@
   const mapRequested=new URLSearchParams(location.search).get('geodemap')==='1';
   const setupRequested=new URLSearchParams(location.search).get('geodesetup')==='1';
   if(setupRequested&&!mapRequested)throw Error('Setup requires the owned DLL mapping');
-  const setupContext=setupRequested?await (await import(new URL('../setup-context.mjs?rev=setup-worker-slices-20261108',base).href)).loadSetup(e,helper,base):null;
+  const setupContext=setupRequested?await (await import(new URL('../setup-context.mjs?rev=setup-worker-frames-20261108',base).href)).loadSetup(e,helper,base):null;
   let mapHelper,preparedImage,mappedImage;
   if(mapRequested){
    if(!root.WestminsterGeodeDllBytes)throw Error('Select the pinned DLL on the mapped check page first');
-   mapHelper=await import(new URL('../owned-image.mjs?rev=setup-worker-slices-20261108',base).href);
+   mapHelper=await import(new URL('../owned-image.mjs?rev=setup-worker-frames-20261108',base).href);
    preparedImage=await mapHelper.prepareGeodeImage(await root.WestminsterGeodeDllBytes);
   }
-  let observed=false;
+  let observed=false,workerDispatch=0;const workerTurns=[];
+  const scheduleWorker=cpu=>{
+   workerDispatch=root.requestAnimationFrame(()=>{
+    workerDispatch=0;if(setupContext.disposed||report.status==='HANDOFF_STOPPED')return;
+    try{
+     const before=new Uint8Array(e.memory.buffer,cpu,208).slice(),gameFrames=e.gd_frames_get?.()??0;
+     const worker=setupContext.resumeWorker();
+     if(!before.every((b,i)=>new Uint8Array(e.memory.buffer)[cpu+i]===b))throw Error('Worker dispatch changed original game CPU');
+     workerTurns.push({gameFrames,instructions:worker.instructions,originalGameCpuPreserved:true});
+     worker.browserDispatches=workerTurns.slice();worker.originalGameCpuPreservedBetweenTurns=true;
+     report.worker=worker;report.totalTranslatedInstructions=report.instructions+worker.instructions;
+     if(worker.pendingContinuations)scheduleWorker(cpu);
+    }catch(error){fail(error);}
+    update();
+   });
+  };
   await prototype.install(out.instance,prepared.targets,{before(target,cpu){if(target.id!=='startup'||observed)return;
    const initial=new DataView(e.memory.buffer),resume=initial.getUint32(346324656,true);if(resume&&resume!==m.gameTarget.address)return;observed=true;
    let saved,stackLinear,shadow=0,compiler=0,succeeded=false,failed=false,firstError;
@@ -39,7 +54,7 @@
      report.dllMappedIntoLiveGame=true;report.dllReservation=mappedImage.reservation;
      report.unresolvedImportCount=mappedImage.image.unresolvedImports.length;
      report.dllRelocations=mappedImage.image.relocationCount;
-     root.addEventListener('pagehide',()=>{try{mappedImage.release();report.dllReservation.active=false;}finally{setupContext?.release();}},{once:true});
+     root.addEventListener('pagehide',()=>{if(workerDispatch)root.cancelAnimationFrame(workerDispatch);try{mappedImage.release();report.dllReservation.active=false;}finally{setupContext?.release();}},{once:true});
     }
     shadow=e.malloc(4096);compiler=e.malloc(65536);if(!shadow||!compiler)throw Error('Could not reserve isolated translator state');
     if([[shadow,4096],[compiler,65536]].some(([p,n])=>p<stackLinear+544&&p+n>stackLinear))throw Error('Translator allocation overlaps live stack');
@@ -76,7 +91,7 @@
     if(failed&&mappedImage){try{mappedImage.release();report.dllReservation.active=false;report.dllMappedIntoLiveGame=false;}catch(error){remember(error);}}
     if(failed&&setupContext){try{setupContext.release();}catch(error){remember(error);}}
     if(failed)fail(firstError);
-    else if(succeeded)report.status=setupRequested?'LIVE_SETUP_SERVICE_BOUNDARY_PASS':mapRequested?'LIVE_DLL_MAPPING_PROLOGUE_PASS':'LIVE_CALLBACK_PROLOGUE_PASS';
+    else if(succeeded){report.status=setupRequested?'LIVE_SETUP_SERVICE_BOUNDARY_PASS':mapRequested?'LIVE_DLL_MAPPING_PROLOGUE_PASS':'LIVE_CALLBACK_PROLOGUE_PASS';if(report.worker?.pendingContinuations)scheduleWorker(cpu);}
     update();
    }
   }});
@@ -85,4 +100,5 @@
   return out;
  }catch(error){fail(error);throw error;}};
 })(globalThis);
+
 
