@@ -157,7 +157,8 @@
     for (const sound of sounds) {
       let audio = decoded;
       if (!audio) {
-        const override = active.get(filename), candidates = override ? [pathFor(filename)] : engine.candidates(sound.path || sound.name).concat('/AppData/' + filename);
+        const override = active.get(filename), originalPath = String(sound.path || sound.name || filename).replace(/\\/g, '/');
+        const candidates = override ? [pathFor(filename)] : [pathFor(filename), ...engine.candidates(originalPath), '/AppData/' + filename];
         let bytes;
         for (const candidate of candidates) {
           try { bytes = fs.readFile(candidate); break; } catch (_) { /* Try the next original path. */ }

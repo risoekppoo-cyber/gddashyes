@@ -103,6 +103,7 @@ const assert = require('node:assert/strict');
     report.custom = await page.evaluate(() => GDJukebox.getState());
     report.originalPathRouting = await page.evaluate(async filename => {
       const engine = Module.__gdAudio, originalPath = '/AppData/1323633.mp3';
+      Module.FS.mkdirTree('/AppData');
       const existed = Module.FS.analyzePath(originalPath).exists, original = existed ? Module.FS.readFile(originalPath).slice() : null;
       Module.FS.writeFile(originalPath, Module.FS.readFile('/Resources/' + filename));
       const id = engine.soundNew(originalPath, true);
