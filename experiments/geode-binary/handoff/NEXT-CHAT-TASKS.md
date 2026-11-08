@@ -1,5 +1,20 @@
 # Current continuation — 8 November 2026
 
+## Thread batch now implemented — do not repeat its groundwork
+
+Read ../mods/jukebox/CRITICAL-PATH.md. GuestScheduler.adoptContext and
+GuestThreadLifecycle now implement retained parent adoption (including errno),
+owned child/ID allocation, handle/poll/exit/join lifetime, and reuse of a worker
+that has already advanced. Duplicate adoption and failed-thread polling stop
+explicitly. Native UCRT evidence and focused regression tests are recorded.
+
+The actual startup API adapter is still disabled. The next batch must wire
+these helpers to the _beginthreadex stop, extend the independent parent native
+reference, then compare parent/child state and execute the real browser. Do not
+claim thread creation works in-game until that path passes. Do not restart the
+existing child or replace the original Jukebox UI.
+
+
 ## Latest user requirement — original mods only
 
 No remade menu or manual-import substitute. Keep the real upstream UI,
