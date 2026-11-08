@@ -1,5 +1,28 @@
 # Current continuation — 8 November 2026
 
+Read PARENT-CONTINUATION.md first. The live thread-creation adapter is now
+connected for the observed static-TLS component profile; the older notes below
+describe prerequisites and earlier checkpoints.
+
+Latest result: the parent resumed for 836 instructions and created four owned
+worker contexts (IDs 2–5). It now stops at MSVCP140.dll!_Cnd_signal, RVA 0xa55970.
+Native and sliced references and the real browser pass. Original game CPU/stack
+preserved; 152 game frames, 17,438 total translated instructions.
+
+Next: implement the required MSVC condition-variable notifications and resume
+the SAME retained parent/handles/contexts from this new boundary. Do not replay
+thread creation or re-adopt the existing parent. Full CRT/DLL thread callbacks,
+full Geode loading and Jukebox UI execution remain unverified/false.
+
+User requirement: original mod UI/functionality and real servers; no remade
+menu. Original Jukebox package, compatible upstream build, archive extraction
+and real server requests are already verified. Save usage by working only on
+the new runtime blocker. Next prompt reasoning: High.
+
+---
+
+# Current continuation — 8 November 2026
+
 ## Thread batch now implemented — do not repeat its groundwork
 
 Read ../mods/jukebox/CRITICAL-PATH.md. GuestScheduler.adoptContext and

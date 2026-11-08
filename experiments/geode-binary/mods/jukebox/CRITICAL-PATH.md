@@ -1,3 +1,14 @@
+# Original Jukebox: current critical path
+
+Read ../../handoff/PARENT-CONTINUATION.md for the verified state and next batch.
+Parent/thread integration now works for the observed component profile, and
+the next measured blocker is MSVCP140.dll!_Cnd_signal. Resume existing state;
+do not rebuild thread foundations or replace the original mod UI.
+
+The previous critical-path planning notes follow for context.
+
+---
+
 # Original Jukebox: critical-path work
 
 The next deliverable is a parent loader that actually continues after its
