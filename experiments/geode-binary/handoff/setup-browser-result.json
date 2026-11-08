@@ -7,7 +7,7 @@
     "deferredLoaderInitialized": false,
     "callbackPrologueExecuted": true,
     "callbackPrologueOnly": false,
-    "gameFrames": 146,
+    "gameFrames": 137,
     "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
     "sourceDllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
     "gameModuleSha256": "523d9362955eba27a8ce64ec9b4fda496c8ecc30e6ac9ca1f01cc76c89a5a15a",
@@ -22,7 +22,7 @@
       "linearEnd": 374665216,
       "active": true
     },
-    "unresolvedImportCount": 1933,
+    "unresolvedImportCount": 1931,
     "dllRelocations": 56939,
     "memoryLayout": {
       "memoryBytes": 377487360,
@@ -292,7 +292,9 @@
       "QueryPerformanceCounter",
       "powf",
       "QueryPerformanceCounter",
-      "QueryPerformanceCounter"
+      "QueryPerformanceCounter",
+      "_Mtx_lock",
+      "_Mtx_unlock"
     ],
     "staticTlsTemplateInitialized": true,
     "tlsCallbacksExecuted": false,
@@ -390,8 +392,8 @@
       "status": "WORKER_CALLBACK_BOUNDARY_PASS",
       "id": 2,
       "entryRva": 5241520,
-      "instructions": 1654,
-      "nextRequiredService": "MSVCP140.dll!_Mtx_lock",
+      "instructions": 1709,
+      "nextRequiredService": "KERNEL32.dll!GetQueuedCompletionStatusEx",
       "nextBoundaryKind": "service-call",
       "rootCpuPreserved": true,
       "rootCpuRetained": true,
@@ -401,8 +403,16 @@
       "performanceClock": {
         "frequency": "10000000",
         "counterReads": 3,
-        "lastCounter": "60852999"
+        "lastCounter": "93023999"
       },
+      "mutexes": [
+        [
+          374801680,
+          2,
+          -1,
+          0
+        ]
+      ],
       "executedServices": [
         "memcpy",
         "GetCurrentThreadId",
@@ -417,10 +427,12 @@
         "QueryPerformanceCounter",
         "powf",
         "QueryPerformanceCounter",
-        "QueryPerformanceCounter"
+        "QueryPerformanceCounter",
+        "_Mtx_lock",
+        "_Mtx_unlock"
       ]
     },
-    "totalTranslatedInstructions": 13877,
+    "totalTranslatedInstructions": 13932,
     "originalGameCpuPreserved": true,
     "liveStackRestored": true,
     "gameContinuedAfterHandoff": true
@@ -449,13 +461,6 @@
     }
   ],
   "jspi": true,
-  "seconds": 11.86,
-  "events": [
-    "Access to fetch at 'https://boomlings.ale7208.workers.dev/?url=https%3A%2F%2Fwww.boomlings.com%2Fdatabase%2FgetCustomContentURL.php' from origin 'http://127.0.0.1:8765' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
-    "Failed to load resource: net::ERR_FAILED",
-    "Access to fetch at 'https://boomlings.ale7208.workers.dev/?url=https%3A%2F%2Fgeometrydashfiles.b-cdn.net%2Fnews%2Fnews_version.txt%3Ftoken%3D40oWjKj2wMrM5VtPKZ-nuw%26expires%3D1794096154' from origin 'http://127.0.0.1:8765' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
-    "Failed to load resource: net::ERR_FAILED",
-    "Access to fetch at 'https://boomlings.ale7208.workers.dev/?url=https%3A%2F%2Fgeometrydashfiles.b-cdn.net%2Fnews%2Fnews.dat%3Ftoken%3DE_VYjbCFezoc7C3hiCBy1w%26expires%3D1794096154' from origin 'http://127.0.0.1:8765' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
-    "Failed to load resource: net::ERR_FAILED"
-  ]
+  "seconds": 19.329,
+  "events": []
 }

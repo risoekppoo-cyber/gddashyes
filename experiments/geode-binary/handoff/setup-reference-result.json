@@ -6,34 +6,34 @@
   "workerBoundaries": [
     {
       "imageBase": 33554432,
-      "rva": 10836112,
-      "service": "MSVCP140.dll!_Mtx_lock",
-      "iatRva": 15261928,
+      "rva": 5183061,
+      "service": "KERNEL32.dll!GetQueuedCompletionStatusEx",
+      "iatRva": 15259824,
       "arguments": [
-        "0x1801260",
-        "0x39c128",
-        "0x39c128",
-        "0x64"
+        "0x63000000",
+        "0x1815cf8",
+        "0x40",
+        "0x1815cbc"
       ],
-      "steps": 1654,
+      "steps": 1709,
       "entryRva": 5241520
     },
     {
       "imageBase": 369098752,
-      "rva": 10836112,
-      "service": "MSVCP140.dll!_Mtx_lock",
-      "iatRva": 15261928,
+      "rva": 5183061,
+      "service": "KERNEL32.dll!GetQueuedCompletionStatusEx",
+      "iatRva": 15259824,
       "arguments": [
-        "0x1801260",
-        "0x39c128",
-        "0x39c128",
-        "0x64"
+        "0x63000000",
+        "0x1815cf8",
+        "0x40",
+        "0x1815cbc"
       ],
-      "steps": 1654,
+      "steps": 1709,
       "entryRva": 5241520
     }
   ],
-  "uniqueInstructions": 6391,
+  "uniqueInstructions": 6446,
   "boundaries": [
     {
       "rva": 1845494864,
@@ -242,6 +242,6 @@
       "kind": "division-error"
     }
   ],
-  "wasmSha256": "97c15f169200c1f2ce307f10c06ca37764b16af5b56701ddec6801be0df9a67c",
+  "wasmSha256": "28b39c077beb3f77b10915635e43709620ae1c91f52f6ab9c5949333835bf183",
   "fullGeodeLoader": false
 }
