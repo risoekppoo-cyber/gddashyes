@@ -1,0 +1,25 @@
+name: MSVC mutex native oracle
+on:
+  push:
+    paths:
+      - '.github/workflows/msvc-mutex-native.yml'
+      - 'integration-tests/msvc-mutex-native.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: windows-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: 'x64'
+      - name: Probe actual MSVC mutex behavior
+        run: python integration-tests/msvc-mutex-native.py msvc-mutex-native-result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: msvc-mutex-native-evidence
+          path: msvc-mutex-native-result.json
