@@ -79,7 +79,7 @@ class SetupContext{
     if(!(r&0x80000000)){if((!w.clockDependent&&steps!==w.steps)||v.getBigUint64(thread.cpu+192,true)!==stop)throw Error('Unexpected worker boundary');completed=true;break;}
     s.invoke(thread.cpu,v.getBigUint64(thread.cpu+192,true));pc=new DataView(e.memory.buffer).getBigUint64(thread.cpu+192,true);
    }
-   if(!completed)throw Error('Worker transfer budget exhausted');return {steps,state:'blocked',waitKey:'verified-worker-boundary'};
+   if(!completed)throw Error('Worker transfer budget exhausted');return {steps,state:w.nextBoundaryKind==='worker-poll-yield'?'runnable':'blocked',waitKey:'verified-worker-boundary'};
   });
   for(const [snapshot,pointer] of [[before,rootCpu],[parentStack,this.stack],[parentTib,this.tib]])if(!snapshot.every((b,i)=>new Uint8Array(e.memory.buffer)[pointer+i]===b))throw Error('Worker changed parent CPU/stack/TIB');
   let pendingCompletionRequest;
@@ -91,7 +91,7 @@ class SetupContext{
   }
   // Keep an owned parent snapshot: the handoff frees its temporary CPU shadow.
   this.savedRoot=Number(s.allocate(4096n));if(!this.savedRoot)throw Error('Could not retain parent CPU');new Uint8Array(e.memory.buffer,this.savedRoot,4096).set(before);
-  return {status:'WORKER_CALLBACK_BOUNDARY_PASS',id:thread.id,entryRva:w.entryRva,instructions:thread.steps,nextRequiredService:w.nextService,nextBoundaryKind:w.nextBoundaryKind,rootCpuPreserved:true,rootCpuRetained:true,contextRetained:true,threadCreationImplemented:false,crtThreadStartupImplemented:false,performanceClock:s.clockSnapshot?.(),mutexes:s.mutexSnapshot?.(),batchPolls:s.batchSnapshot?.(),pendingCompletionRequest,executedServices:s.calls.slice(oldCalls)};
+  return {status:'WORKER_CALLBACK_BOUNDARY_PASS',id:thread.id,entryRva:w.entryRva,instructions:thread.steps,nextRequiredService:w.nextService,nextBoundaryKind:w.nextBoundaryKind,rootCpuPreserved:true,rootCpuRetained:true,contextRetained:true,runnable:thread.status==='runnable',threadCreationImplemented:false,crtThreadStartupImplemented:false,performanceClock:s.clockSnapshot?.(),mutexes:s.mutexSnapshot?.(),batchPolls:s.batchSnapshot?.(),pendingCompletionRequest,executedServices:s.calls.slice(oldCalls)};
  }
  release(){let first;try{this.scheduler?.dispose();}catch(error){first=error;}try{this.services?.releaseHeap();}catch(error){first??=error;}for(const p of this.allocations.splice(0)){try{this.e.free(p);}catch(error){first??=error;}}if(first)throw first;}
 }

@@ -695,7 +695,10 @@ def main():
       emu.reg_write(x.UC_X86_REG_RAX,result);emu.mem_write(tib+0x68,error.to_bytes(4,'little'))
      service_calls.append(name)
      rsp=emu.reg_read(x.UC_X86_REG_RSP);ret=int.from_bytes(emu.mem_read(rsp,8),'little')
-     emu.reg_write(x.UC_X86_REG_RSP,rsp+8);emu.reg_write(x.UC_X86_REG_RIP,ret);return
+     emu.reg_write(x.UC_X86_REG_RSP,rsp+8);emu.reg_write(x.UC_X86_REG_RIP,ret)
+     if worker_mode and name=='GetQueuedCompletionStatusEx':
+      boundary.update(rva=ret-image_base,service='Worker scheduler continuation',kind='worker-poll-yield');emu.emu_stop()
+     return
     rva=address-image_base
     if not 0<=rva<size:raise RuntimeError(f'Unexpected target {address:#x}')
     if variant>=4 and rva==entry_rva+division_length:

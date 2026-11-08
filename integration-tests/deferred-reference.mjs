@@ -85,7 +85,7 @@ for(const [index,c] of manifest.cases.entries()){
     if(!(r&0x80000000)){completed=true;break;}
     services.invoke(thread.cpu,v.getBigUint64(thread.cpu+192,true));pc=v.getBigUint64(thread.cpu+192,true);
    }
-   assert.equal(completed,true);assert.equal(steps,w.steps);return {steps,state:'blocked',waitKey:'verified-worker-boundary'};
+   assert.equal(completed,true);assert.equal(steps,w.steps);return {steps,state:w.boundary.kind==='worker-poll-yield'?'runnable':'blocked',waitKey:'verified-worker-boundary'};
   });
   assert.equal(services.threadState,previous);assert.deepEqual(Buffer.from(memory.buffer,cpu,4096),rootCpu,'root CPU unchanged by actual worker');assert.deepEqual(Buffer.from(memory.buffer,c.stackBase,65536),rootStack,'root stack preserved');assert.deepEqual(Buffer.from(memory.buffer,c.tib,65536),rootTib,'root TIB preserved');
   w.expected.forEach((n,i)=>assert.equal(v.getBigUint64(thread.cpu+i*8,true),BigInt(n),`worker GPR ${i}`));
