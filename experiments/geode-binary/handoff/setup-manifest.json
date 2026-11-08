@@ -1,7 +1,7 @@
 {
   "dllSha256": "ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499",
-  "wasmSha256": "28b39c077beb3f77b10915635e43709620ae1c91f52f6ab9c5949333835bf183",
-  "servicesSha256": "314d681d7a3246447f8c877fe0904e2b9b8bfb44e33336daf1f74c4d71cb2404",
+  "wasmSha256": "2a2d3f11bb2d095faea61267c266494278177acf418ec456bb85c7c1fd6d6d95",
+  "servicesSha256": "ebe40d80296f77fdb6a4fa0ffad149d384bc65efe37c522b75f8d362e22d32a1",
   "entryRva": 1241600,
   "stopRva": 1845494864,
   "steps": 12223,
@@ -21,20 +21,12 @@
   },
   "nextBoundaryKind": "thread-start-request",
   "worker": {
-    "nextCompletionRequest": {
-      "entryCount": 64,
-      "timeoutMs": 0,
-      "alertable": 0,
-      "entriesNonNull": true,
-      "removedNonNull": true,
-      "ownedPort": true
-    },
     "clockDependent": true,
     "entryRva": 5241520,
-    "steps": 1709,
-    "stopRva": 5183061,
-    "nextService": "KERNEL32.dll!GetQueuedCompletionStatusEx",
-    "nextBoundaryKind": "service-call"
+    "steps": 1710,
+    "stopRva": 5183067,
+    "nextService": "Worker scheduler continuation",
+    "nextBoundaryKind": "worker-poll-yield"
   },
   "cocos": {
     "base": 268435456,

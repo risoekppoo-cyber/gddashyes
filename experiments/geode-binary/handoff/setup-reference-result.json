@@ -6,50 +6,22 @@
   "workerBoundaries": [
     {
       "imageBase": 33554432,
-      "rva": 5183061,
-      "service": "KERNEL32.dll!GetQueuedCompletionStatusEx",
-      "iatRva": 15259824,
-      "arguments": [
-        "0x63000000",
-        "0x1815cf8",
-        "0x40",
-        "0x1815cbc"
-      ],
-      "completionRequest": {
-        "entryCount": 64,
-        "timeoutMs": 0,
-        "alertable": 0,
-        "entriesNonNull": true,
-        "removedNonNull": true,
-        "ownedPort": true
-      },
-      "steps": 1709,
+      "rva": 5183067,
+      "service": "Worker scheduler continuation",
+      "kind": "worker-poll-yield",
+      "steps": 1710,
       "entryRva": 5241520
     },
     {
       "imageBase": 369098752,
-      "rva": 5183061,
-      "service": "KERNEL32.dll!GetQueuedCompletionStatusEx",
-      "iatRva": 15259824,
-      "arguments": [
-        "0x63000000",
-        "0x1815cf8",
-        "0x40",
-        "0x1815cbc"
-      ],
-      "completionRequest": {
-        "entryCount": 64,
-        "timeoutMs": 0,
-        "alertable": 0,
-        "entriesNonNull": true,
-        "removedNonNull": true,
-        "ownedPort": true
-      },
-      "steps": 1709,
+      "rva": 5183067,
+      "service": "Worker scheduler continuation",
+      "kind": "worker-poll-yield",
+      "steps": 1710,
       "entryRva": 5241520
     }
   ],
-  "uniqueInstructions": 6446,
+  "uniqueInstructions": 6447,
   "boundaries": [
     {
       "rva": 1845494864,
@@ -258,6 +230,6 @@
       "kind": "division-error"
     }
   ],
-  "wasmSha256": "28b39c077beb3f77b10915635e43709620ae1c91f52f6ab9c5949333835bf183",
+  "wasmSha256": "2a2d3f11bb2d095faea61267c266494278177acf418ec456bb85c7c1fd6d6d95",
   "fullGeodeLoader": false
 }

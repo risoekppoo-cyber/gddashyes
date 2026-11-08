@@ -530,7 +530,7 @@ class GuestIocp extends GuestCritical{
   let port=existing;if(!port){port=this.nextPort++;this.ports.set(port,{concurrency,queue:[]});}
   if(file!==0xffffffffffffffffn)this.associations.set(file,{port,key});return {value:port,error:0};
  }
- complete(request,data,error=0){super.complete(request,data,error);const a=this.associations.get(request.handle),port=a&&this.ports.get(a.port);if(port)port.queue.push({bytes:data.length,key:a.key,ov:request.ov,error});}
+ complete(request,data,error=0){super.complete(request,data,error);const a=this.associations.get(request.handle),port=a&&this.ports.get(a.port);if(port)port.queue.push({bytes:data.length,key:a.key,ov:request.ov,error,status:BigInt(this.ioResults.get(request.ov).status)});}
  closePipe(handle){const result=super.closePipe(handle);this.associations.delete(handle);return result;}
  iocpSnapshot(){return {ports:[...this.ports].map(([h,p])=>({handle:String(h),concurrency:p.concurrency,queue:p.queue.map(q=>({bytes:q.bytes,key:String(q.key),ov:String(q.ov),error:q.error}))})),associations:[...this.associations].map(([h,a])=>[String(h),String(a.port),String(a.key)])};}
  invoke(cpu,address){
@@ -680,6 +680,41 @@ class GuestMsvcMutex extends GuestPerformanceClock{
  }
 }
 
+// windows-iocp-batch.mjs
+const IOCP_BATCH_NAMES=['GetQueuedCompletionStatusEx'];
+// Observed x64 profile: up to 64 entries, timeout zero, non-alertable.
+// This consumes real owned packets; it does not implement blocking/APC waits.
+class GuestIocpBatch extends GuestMsvcMutex{
+ constructor(memory,addresses,options={}){super(memory,addresses,options);this.batchPolls=[];}
+ batchSnapshot(){return this.batchPolls.map(p=>({...p,packetStatuses:[...p.packetStatuses]}));}
+ invoke(cpu,address){
+  if(this.addresses.GetQueuedCompletionStatusEx===undefined||BigInt(this.addresses.GetQueuedCompletionStatusEx)!==address)return super.invoke(cpu,address);
+  const v=new DataView(this.memory.buffer),portHandle=v.getBigUint64(cpu+8,true),entries=v.getBigUint64(cpu+16,true),capacity=v.getUint32(cpu+64,true),removed=v.getBigUint64(cpu+72,true),sp=v.getBigUint64(cpu+32,true);
+  this.range(sp,56);const timeout=v.getUint32(Number(sp)+40,true),alertable=v.getUint32(Number(sp)+48,true);
+  if(timeout!==0||alertable!==0)throw Error('Batch completion wait/APC dispatch requires scheduler support');
+  if(capacity>64)throw Error('Unsupported completion batch capacity');
+  this.range(entries,capacity*32);this.range(removed,4);
+  if(capacity&&entries<removed+4n&&removed<entries+BigInt(capacity*32))throw Error('Overlapping completion batch outputs');
+  const port=this.ports.get(portHandle);let error=0,result=0n,n=0,packets=[];
+  if(capacity===0)error=87; // Native invalid-parameter path preserves outputs.
+  else if(!port)error=6; // Native invalid-handle path preserves removed count.
+  else if(!port.queue.length){v.setUint32(Number(removed),0,true);error=258;}
+  else{
+   packets=port.queue.slice(0,capacity).map(p=>{
+    const status=p.status??(p.error===0?0n:undefined);
+    if(!Number.isInteger(p.bytes)||p.bytes<0||p.bytes>0xffffffff||[p.key,p.ov,status].some(x=>typeof x!=='bigint'||x<0n||x>0xffffffffffffffffn))throw Error('Unverified completion packet status or payload');
+    return {...p,status};
+   });
+   n=packets.length;
+   packets.forEach((p,i)=>{const at=Number(entries)+32*i;v.setBigUint64(at,p.key,true);v.setBigUint64(at+8,p.ov,true);v.setBigUint64(at+16,p.status,true);v.setBigUint64(at+24,BigInt(p.bytes),true);});
+   v.setUint32(Number(removed),n,true);port.queue.splice(0,n);result=1n;
+  }
+  if(error)v.setUint32(this.tib+0x68,error,true);
+  this.batchPolls.push({port:String(portHandle),capacity,removed:n,error,timeoutMs:timeout,alertable,packetStatuses:packets.map(p=>String(p.status))});
+  v.setBigUint64(cpu,result,true);this.calls.push('GetQueuedCompletionStatusEx');v.setBigUint64(cpu+192,v.getBigUint64(Number(sp),true),true);v.setBigUint64(cpu+32,sp+8n,true);
+ }
+}
+
 // guest-scheduler.mjs
 // Cooperative, synchronous scheduling foundation. No _beginthreadex shim is
 // installed here: the real worker closure and CRT trampoline remain unverified.
@@ -779,5 +814,5 @@ function inspectCocos(memory,fs){
  return {...image,dll:COCOS_DLL,name:COCOS_NODE_SPACE,...target,pageBase,pageHex:Array.from(bytes.subarray(pageBase,pageBase+4096),b=>b.toString(16).padStart(2,'0')).join(''),candidates,primaryIatCount:iat.length};
 }
 
-export {GuestMsvcMutex as ServiceClass,GuestScheduler,gameFilesystem,BrowserModifiers,inspectCocos};
-export const SERVICE_NAMES=["AcquireSRWLockExclusive","ReleaseSRWLockExclusive","GetModuleFileNameW","GetLastError","SetLastError",...CRT_NAMES,...ENCODING_NAMES,...PATH_NAMES,...FILE_NAMES,...LIFECYCLE_NAMES,...INPUT_NAMES,...DEBUGGER_NAMES,...CONSOLE_NAMES,...STDIO_NAMES,...PROCESS_NAMES,...PIPE_NAMES,...PIPE_CRT_NAMES,...CRITICAL_NAMES,...IOCP_NAMES,...THREAD_BOUNDARY_NAMES,...EXCEPTION_PTR_NAMES,...PERFORMANCE_CLOCK_NAMES,...MSVC_MUTEX_NAMES];
+export {GuestIocpBatch as ServiceClass,GuestScheduler,gameFilesystem,BrowserModifiers,inspectCocos};
+export const SERVICE_NAMES=["AcquireSRWLockExclusive","ReleaseSRWLockExclusive","GetModuleFileNameW","GetLastError","SetLastError",...CRT_NAMES,...ENCODING_NAMES,...PATH_NAMES,...FILE_NAMES,...LIFECYCLE_NAMES,...INPUT_NAMES,...DEBUGGER_NAMES,...CONSOLE_NAMES,...STDIO_NAMES,...PROCESS_NAMES,...PIPE_NAMES,...PIPE_CRT_NAMES,...CRITICAL_NAMES,...IOCP_NAMES,...THREAD_BOUNDARY_NAMES,...EXCEPTION_PTR_NAMES,...PERFORMANCE_CLOCK_NAMES,...MSVC_MUTEX_NAMES,...IOCP_BATCH_NAMES];
