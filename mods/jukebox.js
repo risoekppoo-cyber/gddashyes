@@ -131,21 +131,33 @@
       const record = active.get(audioFilename(path));
       const id = soundNew.call(this, record ? pathFor(record.filename) : path, stream);
       // Retain the game's original path so reverting can find downloaded originals.
-      if (record && this.sounds[id]) this.sounds[id].path = path;
+      if (this.sounds[id]) this.sounds[id].path = path;
       return id;
     };
     audioAdapter = engine;
     return true;
   }
+  // FMOD also hands the browser bytes already read by the guest game. Override
+  // that exact decode point so an AppData original cannot shadow the selection.
+  const patchLoader = window.WestminsterTitle.patchLoader;
+  window.WestminsterTitle.patchLoader = function (code) {
+    code = patchLoader.call(this, code);
+    const start = code.indexOf('function gd_js_audio_sound_data(p, len, name) {');
+    const end = code.indexOf('gd_js_audio_sound_data.sig', start);
+    const needle = 'var bytes = HEAPU8.slice(p, end);';
+    if (start < 0 || end < start || code.slice(start, end).split(needle).length !== 2) throw Error('The game audio bridge changed; Jukebox needs an update.');
+    return code.slice(0, start) + code.slice(start, end).replace(needle,
+      'var bytes = window.GDJukebox.audioBytes(s.name) || HEAPU8.slice(p, end);') + code.slice(end);
+  };
   async function refreshAudio(filename, decoded) {
     if (!attachAudio()) return;
     const engine = audioAdapter, fs = window.Module.FS;
-    const sounds = Object.values(engine.sounds).filter(sound => audioFilename(sound.path) === filename);
+    const sounds = Object.values(engine.sounds).filter(sound => audioFilename(sound.path || sound.name) === filename);
     if (!sounds.length) return;
     for (const sound of sounds) {
       let audio = decoded;
       if (!audio) {
-        const override = active.get(filename), candidates = override ? [pathFor(filename)] : engine.candidates(sound.path);
+        const override = active.get(filename), candidates = override ? [pathFor(filename)] : engine.candidates(sound.path || sound.name).concat('/AppData/' + filename);
         let bytes;
         for (const candidate of candidates) {
           try { bytes = fs.readFile(candidate); break; } catch (_) { /* Try the next original path. */ }
@@ -293,6 +305,7 @@
     }
   }, true);
   window.GDJukebox = {open, close, search, activate, revert, ready: ready.then(() => restored), source: SOURCE,
+    audioBytes: name => active.get(audioFilename(name))?.bytes.slice() || null,
     getState: () => ({busy, active: [...active.values()].map(({bytes, ...record}) => ({...record, byteLength: bytes.length}))})};
   let restored;
   function mount() {

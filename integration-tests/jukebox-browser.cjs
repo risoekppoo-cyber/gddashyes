@@ -13,7 +13,7 @@ const assert = require('node:assert/strict');
     await page.evaluate(({filename, play}) => {
       if (!Module.__gdAudio) gd_js_audio(0, 0, 0, 0, 0);
       const engine = Module.__gdAudio;
-      let sound = Object.values(engine.sounds).find(sound => sound.path.replace(/\\/g, '/').split('/').pop() === filename);
+      let sound = Object.values(engine.sounds).find(sound => String(sound.path || sound.name || '').replace(/\\/g, '/').split('/').pop() === filename);
       if (!sound) sound = engine.sounds[engine.soundNew('/Resources/' + filename, true)];
       window.__jbProbeSound = sound.id;
       if (play) window.__jbProbeChannel = engine.play(sound.id, 0, false);
@@ -34,7 +34,7 @@ const assert = require('node:assert/strict');
       return {filename, sha256: await hash(Module.FS.readFile(dir + '/' + filename))};
     });
     await menuAudio(true);
-    report.gameAudioBefore = await page.evaluate(() => Object.values(Module.__gdAudio.sounds).filter(sound => /menuLoop\.mp3$/.test(sound.path)).map(sound => ({id: sound.id, path: sound.path, duration: sound.buf?.duration})));
+    report.gameAudioBefore = await page.evaluate(() => Object.values(Module.__gdAudio.sounds).filter(sound => /menuLoop\.mp3$/.test(sound.path || sound.name)).map(sound => ({id: sound.id, path: sound.path || sound.name, duration: sound.buf?.duration})));
     await page.locator('#jb-toggle').click();
     await page.locator('#jb-song-id').fill('1323633');
     await page.locator('#jb-panel button[type=submit]').click();
@@ -50,11 +50,11 @@ const assert = require('node:assert/strict');
     assert(report.first.active[0].duration > 1);
     await page.waitForFunction(() => {
       const engine = Module.__gdAudio;
-      return Object.values(engine.channels).some(channel => /menuLoop\.mp3$/.test(engine.sounds[channel.sound]?.path) && channel.src?.buffer.duration > 109 && channel.src?.buffer.duration < 110);
+      return Object.values(engine.channels).some(channel => /menuLoop\.mp3$/.test(engine.sounds[channel.sound]?.path || engine.sounds[channel.sound]?.name) && channel.src?.buffer.duration > 109 && channel.src?.buffer.duration < 110);
     }, {}, {timeout: 30000});
     report.gamePlayback = await page.evaluate(() => {
       const engine = Module.__gdAudio;
-      return Object.values(engine.channels).filter(channel => /menuLoop\.mp3$/.test(engine.sounds[channel.sound]?.path) && channel.src).map(channel => ({sound: channel.sound, duration: channel.src.buffer.duration, usesUpdatedBuffer: channel.src.buffer === engine.sounds[channel.sound].buf, context: engine.ctx.state}));
+      return Object.values(engine.channels).filter(channel => /menuLoop\.mp3$/.test(engine.sounds[channel.sound]?.path || engine.sounds[channel.sound]?.name) && channel.src).map(channel => ({sound: channel.sound, duration: channel.src.buffer.duration, usesUpdatedBuffer: channel.src.buffer === engine.sounds[channel.sound].buf, context: engine.ctx.state}));
     });
     assert(report.gamePlayback.some(channel => channel.usesUpdatedBuffer && channel.context === 'running'));
     report.routing = await page.evaluate(async filename => {
@@ -93,7 +93,7 @@ const assert = require('node:assert/strict');
       return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(n => n.toString(16).padStart(2, '0')).join('');
     }, report.baseline.filename);
     assert.equal(report.originalRestored, report.baseline.sha256);
-    report.gameAudioRestored = await page.evaluate(() => Object.values(Module.__gdAudio.sounds).filter(sound => /menuLoop\.mp3$/.test(sound.path)).map(sound => ({id: sound.id, duration: sound.buf?.duration})));
+    report.gameAudioRestored = await page.evaluate(() => Object.values(Module.__gdAudio.sounds).filter(sound => /menuLoop\.mp3$/.test(sound.path || sound.name)).map(sound => ({id: sound.id, duration: sound.buf?.duration})));
     assert.equal(report.gameAudioRestored[0].duration, report.gameAudioBefore[0].duration);
     // Cached index + ordinary song-ID activation. This is still the real server MP3.
     await page.locator('#jb-song-id').fill('1323633');
@@ -114,6 +114,22 @@ const assert = require('node:assert/strict');
     }, report.baseline.filename);
     assert.equal(report.originalPathRouting.state, 1);
     assert(Math.abs(report.originalPathRouting.duration - report.custom.active[0].duration) < 0.001);
+    report.memoryAudioRouting = await page.evaluate(async filename => {
+      const original = Module.FS.readFile('/Resources/' + filename), name = new TextEncoder().encode('/AppData/1323633.mp3\0');
+      const dataPointer = Module._malloc(original.length), namePointer = Module._malloc(name.length);
+      let id;
+      try {
+        Module.HEAPU8.set(original, dataPointer); Module.HEAPU8.set(name, namePointer);
+        id = gd_js_audio_sound_data(dataPointer, original.length, namePointer);
+      } finally {Module._free(dataPointer); Module._free(namePointer);}
+      const engine = Module.__gdAudio;
+      await new Promise((resolve, reject) => {const start = Date.now(); const timer = setInterval(() => {if (engine.sounds[id]?.state !== 0) {clearInterval(timer); resolve();} else if (Date.now() - start > 30000) {clearInterval(timer); reject(Error('Game memory audio decoder timed out'));}}, 50);});
+      const sound = engine.sounds[id], result = {duration: sound?.buf?.duration, state: sound?.state, name: sound?.name, storedBytesIntact: GDJukebox.getState().active[0].byteLength > 100000};
+      delete engine.sounds[id]; return result;
+    }, report.baseline.filename);
+    assert.equal(report.memoryAudioRouting.state, 1);
+    assert(Math.abs(report.memoryAudioRouting.duration - report.custom.active[0].duration) < 0.001);
+    assert(report.memoryAudioRouting.storedBytesIntact);
     await page.getByRole('button', {name: 'Restore original'}).click();
     await page.waitForFunction(() => !GDJukebox.getState().busy && !GDJukebox.getState().active.length);
     // Typed IDs do not enter the game's keyboard queue; Escape is isolated too.
