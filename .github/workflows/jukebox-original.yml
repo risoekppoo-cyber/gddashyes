@@ -1,0 +1,88 @@
+name: Original Jukebox prerequisites
+on:
+  push:
+    paths:
+      - '.github/workflows/jukebox-original.yml'
+      - 'integration-tests/jukebox-*.py'
+      - 'integration-tests/jukebox-network-browser.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@v4
+        with:
+          path: integration-input/Geode.dll
+          key: geode-startup-dll-ccedc2f1c86baf342f6720b9685991ca31fba246453efe2a1daf609dc40b6499
+      - run: |
+          python -m pip install pefile==2024.8.26
+          python experiments/geode-binary/fetch-startup-dll.py integration-input/Geode.dll
+          python integration-tests/jukebox-package-preflight.py integration-input/Geode.dll
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: original-jukebox-package-preflight
+          path: jukebox-package-preflight.json
+  browser-network:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node integration-tests/jukebox-network-browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: original-jukebox-browser-network
+          path: jukebox-network-result.json
+  original-source-build:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Fleeym/jukebox
+          ref: abb0b3c9f87336acb594278de5b25525d9177dcf
+          path: integration-input/jukebox-source
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Set only the SDK build target
+        run: python integration-tests/jukebox-source-prepare.py integration-input/jukebox-source
+      - name: Compile the original UI and behavior against our pinned SDK
+        uses: geode-sdk/build-geode-mod@61a56c697aea9655e3f31c6c1b83870431f30434
+        with:
+          sdk: '6.0.0-alpha.1'
+          target: Win64
+          path: integration-input/jukebox-source
+          use-lto: false
+          ccache-variant: ccache
+          build-args: '--parallel 4'
+      - name: Verify untouched source and inspect rebuilt ABI
+        run: |
+          python integration-tests/jukebox-source-prepare.py integration-input/jukebox-source --verify
+          python -m pip install pefile==2024.8.26
+          python experiments/geode-binary/fetch-startup-dll.py integration-input/Geode.dll
+          python integration-tests/jukebox-package-preflight.py integration-input/Geode.dll --package output/fleym.nongd.geode --rebuilt --out jukebox-rebuilt-preflight.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: original-jukebox-geode6-build
+          path: |
+            output/*
+            jukebox-source-build-receipt.json
+            jukebox-rebuilt-preflight.json
+            integration-input/jukebox-source/LICENSE
