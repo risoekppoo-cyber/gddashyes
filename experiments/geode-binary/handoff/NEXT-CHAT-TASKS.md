@@ -1,56 +1,69 @@
-# Current continuation
+# Current continuation — 8 November 2026
 
-Use current main; earlier source ZIPs are historical. The parent reaches
-_beginthreadex after 12,223 instructions. The real requested callback at RVA
-0x4ffab0 now runs 1,654 instructions through GuestScheduler, stopping at
-MSVCP140.dll!_Mtx_lock (RVA 0xa55890).
-Native worker comparisons pass at two image bases. The browser executed the
-same worker prefix and preserved 146 game frames (13,877 combined instructions). Full loader initialization
-and existing .geode packages remain unsupported.
+Use current main; local mirrors and older source ZIPs may be stale. The parent
+reaches _beginthreadex after 12,223 instructions. Its actual requested callback
+at RVA 0x4ffab0 runs 1,709 instructions through GuestScheduler, stopping before
+KERNEL32.dll!GetQueuedCompletionStatusEx at RVA 0x4f1655.
 
-## Implemented
+The final browser check preserved 123 game frames and the original game CPU/
+stack (13,932 combined parent/worker instructions). The Windows mutex oracle,
+36 reference cases, two worker comparisons and 1,032 division checks pass.
+Full CRT thread startup and existing .geode package loading remain unsupported.
 
-- Owned CPU, stack and TIB/TLS per callback context; bounded synchronous dispatch,
-  explicit block/wake states, failure/exit state and independent cleanup.
-- Shared process memory/handles/services with per-thread IDs, last-error/errno,
-  critical-section ownership and SRW ownership.
-- Actual translated worker callback under the explicit static-TLS fixture model.
-  Parent CPU/stack/TIB preservation and two native worker state comparisons.
-- Performance queries use a real monotonic browser clock and fixed 10 MHz units.
-  The native reference injects deterministic samples. Arithmetic supports the
-  observed unsigned divisions, including 128-bit dividends with 64-bit divisors.
-- Retained worker context and owned copy of the parent CPU at the browser stop.
+## Next immediate task — Medium reasoning
 
-## Next small tasks
+Implement the observed nonblocking batch completion-port poll. The captured
+worker.pendingCompletionRequest in setup-browser-result.json specifies:
 
-1. Inspect the MSVC STL implementation and initialized guest object behind the
-   observed _Mtx_lock. Verify layout, type, ownership and contention behavior
-   against a native Windows probe, then implement the observed lock operations.
-   Do not return success for a contended mutex without actual blocking/wakeup.
-   Empty exception pointers and performance queries are implemented; do not
-   repeat those tasks. Non-empty exception dispatch remains unsupported.
-2. Extend the worker native fixture and translation only through its next observed
-   dependency. Keep both image bases, parent/worker isolation and full memory
-   comparisons. Stop explicitly when another unknown service is reached.
-3. Implement actual _beginthreadex lifecycle: inspect the UCRT wrapper and its
-   per-thread initialization, connect the already-owned callback context to a
-   real guest thread handle/ID, then resume the retained parent. The current
-   callback diagnostic does not return a successful creation or write the ID.
-4. Implement real block/wake delivery for pipe and completion-port consumers,
-   followed by observed join/exit/handle cleanup. Use instruction slices that
-   yield safely; lift_run currently faults if its instruction limit is exhausted.
-   Dispatch one verified callback prefix only until resumable slicing is wired.
-5. Continue startup and compare independent native traces, then test the actual
-   browser. Keep loader/package-support flags false until they truly work.
+| Field | Observed value |
+| --- | --- |
+| Entry capacity | 64 |
+| Timeout | 0 ms |
+| Alertable | 0 |
+| Completion port | Owned guest IOCP |
+| Entries output | Non-null |
+| Removed-count output | Non-null |
 
-Relevant files: experiments/geode-binary/{guest-scheduler,setup-context,
-thread-boundary,windows-pipes,windows-iocp,windows-critical}.mjs,
-build-deferred.py, handoff/runtime.js, integration-tests/deferred-reference.mjs,
-integration-tests/guest-scheduler.mjs, integration-tests/browser-smoke.cjs and
-.github/workflows/geode-deferred.yml.
+1. Read the official GetQueuedCompletionStatusEx contract and verify output
+   layout, empty polls, batch ordering/counts and failed-operation status with
+   an actual Windows probe. A Windows CI runner is available through the
+   existing repository workflow pattern when local execution is unavailable.
+2. Extend windows-iocp.mjs (or a bounded subclass) to consume the actual owned
+   packet queue. Preserve count/output semantics on timeout/failure and reject
+   unsupported blocking/APC behavior. Do not fabricate packets or return
+   successful completion without delivering them.
+3. Extend the independent native fixture, service names/bundle and focused tests.
+   Compare batch memory/queue state and rerun the actual browser check, then
+   record its next precise dependency.
 
-Preserve allocator ownership, original game CPU/stack and captured Cocos code.
-Do not enable parallel shared-memory execution or infer free memory from zeros.
-Report actual commands/results and use NOT_RUN for unavailable execution.
-A mocked trace alone is insufficient validation. Inspect current result JSON;
-worker.contextRetained is not a claim of complete UCRT thread startup.
+## Completed — do not repeat
+
+- Owned CPU/stack/TIB/TLS, bounded cooperative dispatch and explicit block/wake
+  states. Parent CPU/stack/TIB preservation and retained contexts are verified.
+- Shared process services with per-thread identity/error state and lock ownership.
+- Native-checked pipes, CRT redirection, empty C++ exception-pointer lifetimes,
+  monotonic performance-clock queries and required unsigned division.
+- MSVC mutex types 2 and 0x102: in-situ init/destroy, lock/try/unlock/current-owns.
+  Kernel SRW bookkeeping is shared. Busy locks never report fake success.
+- The actual worker called _Mtx_lock and _Mtx_unlock before the new IOCP stop.
+  Its tracked mutex is idle at the captured boundary.
+
+## Later stages
+
+- Real _beginthreadex lifecycle and UCRT per-thread initialization, followed by
+  resuming the retained parent with genuine handle/ID ownership.
+- Real completion-port/pipe blocking and wakeups, joins and thread exit.
+- Safe resumable instruction slices: lift_run still faults at its instruction
+  limit. The current callback executes one bounded prefix, not a background loop.
+- Continue loader initialization and actual mod testing. Keep loader/package
+  support flags false until the corresponding operations genuinely work.
+
+Relevant code includes windows-msvc-mutex.mjs, windows-iocp.mjs,
+guest-scheduler.mjs, setup-context.mjs, thread-boundary.mjs, build-deferred.py,
+handoff/runtime.js, integration-tests/deferred-reference.mjs and browser-smoke.cjs.
+MSVC-MUTEX.md records the pinned source and Windows probe evidence.
+
+Preserve allocator ownership and original game state. Do not enable parallel
+shared-memory execution or infer free memory from zero bytes. Report actual
+results; use NOT_RUN for unavailable checks. Recommend the next prompt's setting
+when finishing each task, as the user requested.

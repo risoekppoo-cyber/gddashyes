@@ -1,13 +1,17 @@
-# Verified startup checkpoint - 7 November 2026
+# Verified startup checkpoint - 8 November 2026
 
-The checkpoint executes 12,223 parent instructions and 1,654 worker instructions
-(13,877 total). Native-reference checks pass at two image bases, including 36
+The checkpoint executes 12,223 parent instructions and 1,709 worker instructions
+(13,932 total). Native-reference checks pass at two image bases, including 36
 reference cases, two worker comparisons and 1,032 differential division checks.
-The real Chromium run continued for 146 game frames, preserved the original CPU
+The real Chromium run continued for 123 game frames, preserved the original CPU
 snapshot and restored the live game stack. Full Geode initialization and existing
 .geode package loading remain unsupported.
 
 ## Completed continuation
+
+- Windows-verified MSVC mutex initialization, ownership, ordinary/recursive
+  behavior, try-lock, unlock and disposal. The worker acquires and releases its
+  actual mutex; its stop-state mutex is idle. See MSVC-MUTEX.md.
 
 - Fixed-frequency performance queries backed by the real monotonic browser clock;
   one domain is shared across logical threads. See PERFORMANCE-CLOCK.md.
@@ -45,11 +49,16 @@ native Windows probes; they are not claimed as worker activity in the browser.
 The scheduler now executes the real requested callback at RVA 0x4ffab0 in a
 separate context, with the supplied argument and a copied static TLS template.
 The independent native comparison passes at two DLL bases: the worker executes
-1,654 instructions, including shared-process service calls and its arc-worker-0
+1,709 instructions, including shared-process service calls and its arc-worker-0
 thread-name event, then pauses at:
 
-    MSVCP140.dll!_Mtx_lock
-    Worker stop RVA: 0xa55890
+    KERNEL32.dll!GetQueuedCompletionStatusEx
+    Worker stop RVA: 0x4f1655
+
+The complete browser and native request is captured: capacity 64, timeout 0,
+alertable 0, non-null entries/count outputs, and an owned completion port. This
+is a nonblocking poll. GetQueuedCompletionStatusEx is not implemented, and no
+completion packet or successful dequeue is fabricated.
 
 The parent still stops at the actual thread-creation API entry:
 
@@ -76,10 +85,10 @@ the parent's private stack and TIB remain owned by SetupContext. Worker executio
 checks that the parent CPU, stack and TIB stay unchanged. Explicit block/wake
 states exist, but the worker is paused at an unsupported service rather than
 waiting on a running pipe consumer. Root continuation still requires actual
-thread-creation/lifecycle integration and the next mutex/runtime dependencies.
+thread-creation/lifecycle integration and the next completion-port/runtime dependencies.
 
-Report fields worker and totalTranslatedInstructions distinguish the 1,654 worker
-instructions from the 12,223 parent instructions (13,877 total). The worker report
+Report fields worker and totalTranslatedInstructions distinguish the 1,709 worker
+instructions from the 12,223 parent instructions (13,932 total). The worker report
 keeps threadCreationImplemented and crtThreadStartupImplemented false. Full
 loader/package-support flags remain false. Raw pointers vary by allocator and
 must not be hard-coded. Full CRT startup, TLS callbacks and arbitrary native
@@ -87,7 +96,7 @@ Cocos method execution remain unfinished.
 
 ## Validation
 
-[Native-reference and real-browser validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42423271250)
+[Native-reference and real-browser validation](https://github.com/risoekppoo-cyber/gddashyes/actions/runs/42429150743)
 passes 36 reference cases, two worker cases, 1,032 differential arithmetic checks
 and the actual-browser preservation check.
 The comparison includes GPRs, XMMs, defined flags, stack, TLS, DLL/heap writes,
@@ -99,5 +108,5 @@ behavior, critical-section recursion, powf and completion-port packet semantics.
 
 Generated setup WASM, bundled services, manifests and result JSON are published
 only after reference and browser validation pass. The launcher revision is
-setup-clock-live-20261107. See NEXT-CHAT-TASKS.md for the next small tasks;
+setup-msvc-mutex-request-20261108. See NEXT-CHAT-TASKS.md for the next small tasks;
 the older Chat-mode ZIP describes a superseded checkpoint.
