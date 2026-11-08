@@ -22,7 +22,7 @@ const assert = require('node:assert/strict');
     await page.locator('#cs-preview-press').click();
     await page.waitForFunction(() => GDClickSounds.getState().stats.preview > 0);
     report.preview = await state();
-    assert.equal(report.preview.stats.last.sample, 2); assert.equal(report.preview.stats.last.context, 'running'); assert(report.preview.stats.last.duration > 0); assert.equal(report.preview.stats.last.gain, 0.37);
+    assert.equal(report.preview.stats.last.sample, 2); assert.equal(report.preview.stats.last.context, 'running'); assert(report.preview.stats.last.duration > 0); assert(Math.abs(report.preview.stats.last.gain - 0.37) < 0.000001);
     await page.screenshot({path: out + '/desktop.png'});
     // Switching through the dropdown closes the other tool and UI typing is silent.
     await page.locator('#jb-toggle').click(); await page.locator('#mod-jukebox').click();
@@ -56,3 +56,4 @@ const assert = require('node:assert/strict');
   } catch (e) {report.status = 'FAIL'; report.error = String(e); report.stack = e.stack; report.state = await state().catch(() => null); await page.screenshot({path: out + '/failure.png'}).catch(() => {}); process.exitCode = 1;}
   finally {fs.writeFileSync(out + '/result.json', JSON.stringify(report, null, 2)); console.log(JSON.stringify(report, null, 2)); await browser.close();}
 })();
+
