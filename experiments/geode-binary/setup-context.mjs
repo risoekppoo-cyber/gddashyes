@@ -129,9 +129,39 @@ class SetupContext{
   state.checkpoints.push({startPc:'0x'+startPc.toString(16),endPc:'0x'+endPc.toString(16),instructions:thread.steps-startSteps,kind});
   state.previousNative=point.steps;state.index++;
   const pendingContinuations=!state.pendingWait&&thread.status==='runnable'&&state.index<state.points.length;
-  return {status:'WORKER_CALLBACK_BOUNDARY_PASS',id:thread.id,entryRva:w.entryRva,instructions:thread.steps,sliceQuantum:quantum,sliceCount:state.rounds,maxSliceSteps:state.maxSliceSteps,continuations:state.checkpoints.length-1,continuedFromSavedCpu:state.checkpoints.length>1,checkpoints:state.checkpoints.slice(),pendingContinuations,compilerStackRetained:true,nextRequiredService:state.pendingWait?'KERNEL32.dll!GetQueuedCompletionStatusEx':state.index===state.points.length?w.nextService:'Worker scheduler continuation',nextBoundaryKind:kind,rootCpuPreserved:true,rootCpuRetained:true,contextRetained:true,runnable:thread.status==='runnable',threadCreationImplemented:false,crtThreadStartupImplemented:false,performanceClock:s.clockSnapshot?.(),mutexes:s.mutexSnapshot?.(),batchPolls:s.batchSnapshot?.(),pendingCompletionRequest:state.pendingWait,executedServices:s.calls.slice(state.oldCalls)};
+  const report={status:'WORKER_CALLBACK_BOUNDARY_PASS',id:thread.id,entryRva:w.entryRva,instructions:thread.steps,sliceQuantum:quantum,sliceCount:state.rounds,maxSliceSteps:state.maxSliceSteps,continuations:state.checkpoints.length-1,continuedFromSavedCpu:state.checkpoints.length>1,checkpoints:state.checkpoints.slice(),pendingContinuations,compilerStackRetained:true,nextRequiredService:state.pendingWait?'KERNEL32.dll!GetQueuedCompletionStatusEx':state.index===state.points.length?w.nextService:'Worker scheduler continuation',nextBoundaryKind:kind,rootCpuPreserved:true,rootCpuRetained:true,contextRetained:true,runnable:thread.status==='runnable',threadCreationImplemented:false,crtThreadStartupImplemented:false,performanceClock:s.clockSnapshot?.(),mutexes:s.mutexSnapshot?.(),batchPolls:s.batchSnapshot?.(),pendingCompletionRequest:state.pendingWait,executedServices:s.calls.slice(state.oldCalls)};
+  if(!pendingContinuations&&m.parentContinuation){state.parentReport??=this.resumeParent();report.parentContinuation=state.parentReport;report.threadCreationImplemented=true;}
+  return report;
+ }
+ resumeParent(){
+  const {e,metadata:m,services:s,workerState:w}=this,p=m.parentContinuation,cpu=this.savedRoot,previous=s.threadState;
+  const parent=this.scheduler.adoptContext({id:1,cpu,tib:this.tib,tibSize:65536,stack:this.stack,stackSize:65536,errno:s.errno});
+  const runtime=this.threadRuntime=new this.serviceTypes.GuestThreadLifecycle(this.scheduler,{entry:BigInt(w.imageBase+m.worker.entryRva),returnAddress:BigInt(this.tib+0xeff0),tlsTemplate:new Uint8Array(e.memory.buffer,w.imageBase+m.tls.templateRva,m.tls.templateSize),tlsZeroFill:m.tls.zeroFill});
+  const snapshots=[[w.thread.cpu,4096],[w.thread.stack,w.thread.stackSize],[w.thread.tib,0x4000]].map(([pointer,n])=>({pointer,bytes:new Uint8Array(e.memory.buffer,pointer,n).slice()})),old=s.calls.length;
+  s.selectThread(parent);let steps=0,done=false,turns=0,created;
+  try{
+   created=runtime.completeStart(cpu,w.imageBase,w.thread);
+   const stop=p.boundary.stopService?BigInt(s.addresses[p.boundary.stopService]):BigInt(w.imageBase+p.boundary.rva);
+   this.aux.exports.__stack_pointer.value=w.compilerTop;
+   for(;turns<1000;turns++){
+    if(steps>=4000)throw Error('Parent continuation exceeded bounded profile');
+    const budget=p.boundary.kind==='parent-budget-yield'?Math.min(127,p.steps-steps):Math.min(127,4000-steps);
+    const effectiveStop=p.boundary.kind==='parent-budget-yield'||p.boundary.stopService==='_beginthreadex'&&runtime.created.size<p.completedThreadStarts?0xffffffffffffffffn:stop;
+    const r=this.aux.exports.lift_slice(cpu,BigInt(w.imageBase),0,effectiveStop,budget)>>>0;steps+=r&0x3fffffff;
+    if(p.boundary.kind==='parent-budget-yield'&&steps===p.steps){done=true;break;}
+    if(r&0x40000000)continue;
+    if(!(r&0x80000000)){done=true;break;}
+    const pc=new DataView(e.memory.buffer).getBigUint64(cpu+192,true);if(pc===BigInt(s.addresses._beginthreadex))runtime.completeStart(cpu,w.imageBase);else if(!runtime.closeCall(cpu,pc))s.invoke(cpu,pc);
+   }
+   if(!done||runtime.created.size!==p.completedThreadStarts||steps!==p.steps||new DataView(e.memory.buffer).getBigUint64(cpu+192,true)!==stop)throw Error('Parent differs from native continuation boundary');
+   for(const {pointer,bytes} of snapshots)if(!bytes.every((b,i)=>new Uint8Array(e.memory.buffer)[pointer+i]===b))throw Error('Parent continuation changed worker private storage');
+   parent.steps+=steps;parent.status='blocked';parent.waitKey='verified-parent-boundary';
+   const nextThreadRequest=p.boundary.stopService==='_beginthreadex'?s.readThreadRequest(cpu,w.imageBase):undefined;
+   return {status:'COMPONENT_PARENT_CONTINUATION_PASS',instructions:steps,slices:turns+1,nextRequiredService:p.boundary.service,nextBoundaryKind:p.boundary.kind||'service-call',nextThreadRequest,handle:'0x'+created.handle.toString(16),threadId:created.id,createdThreadCount:runtime.created.size,runnableWorkers:[...this.scheduler.threads.values()].filter(t=>t.id!==1&&t.status==='runnable').length,idOutputWritten:true,existingWorkerReused:true,workerPrivateStoragePreserved:true,executedServices:s.calls.slice(old),activeThreadHandles:[...runtime.handles.keys()].map(h=>'0x'+h.toString(16)),crtThreadStartupImplemented:false,tlsCallbacksExecuted:false,staticTlsComponentModel:true};
+  }finally{s.threadState=previous;}
  }
  release(){if(this.disposed)return;this.disposed=true;let first;try{this.scheduler?.dispose();}catch(error){first=error;}try{this.services?.releaseHeap();}catch(error){first??=error;}for(const p of this.allocations.splice(0)){try{this.e.free(p);}catch(error){first??=error;}}if(first)throw first;}
 }
+
 
 

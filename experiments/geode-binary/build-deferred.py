@@ -272,7 +272,7 @@ def main():
    # does not execute the DLL's complete CRT entrypoint or TLS callbacks.
    onexit={image_base+0xfb1960:{'callbacks':[],'buffer':0,'capacity':0}}
    uc.mem_write(image_base+0xfb1960,b'\0'*24)
-   current_id=1;worker_mode=False;worker_checkpoints=[];parent_resume=False;thread_handles=set();parent_lifter=WideLifter(pe)
+   current_id=1;worker_mode=False;worker_checkpoints=[];parent_resume=False;thread_handles=set();parent_lifter=WideLifter(pe);created_workers=[]
    trace=[];boundary={};locks=set();service_calls=[];writes=[];defined_flags=[0x8d5];handles={};next_handle=[0x60000000];cwd=['C:\\GeometryDash'];thread_names={}
    stdio_state={'base':0,'streams':{},'fds':{},'nextHandle':0x61000010}
    pipe_state={'nextHandle':0x62000000,'pipes':[],'byName':{},'ends':{},'completions':[],'outputs':[]}
@@ -298,7 +298,9 @@ def main():
    uc.hook_add(unicorn.UC_HOOK_MEM_READ,import_read)
    def hook(emu,address,n,_):
     if parent_resume and len(trace)>=4000:
-     boundary.update(rva=address-image_base,service='Parent instruction budget',kind='parent-budget-yield');emu.emu_stop();return
+     boundary.update(rva=address-image_base,service='Parent instruction budget',kind='parent-budget-yield')
+     if address in services.values():boundary['stopService']=next(k for k,v in services.items() if v==address)
+     emu.emu_stop();return
     if worker_checkpoints and len(trace)-worker_checkpoints[0]['steps']>=4096:
      boundary.update(rva=address-image_base,service='Worker instruction budget',kind='worker-budget-yield')
      if address in services.values():boundary['stopService']=next(k for k,v in services.items() if v==address)
@@ -307,6 +309,15 @@ def main():
      name=next(k for k,v in services.items() if v==address);ptr=emu.reg_read(x.UC_X86_REG_RCX)
      if worker_mode and name in ['ReadFile','WriteFile','GetOverlappedResult','GetQueuedCompletionStatus']:
       boundary.update(rva=address-image_base,service=name,kind='worker-service-entry',stopService=name);emu.emu_stop();return
+     if name=='_beginthreadex' and parent_resume and len(created_workers)<7:
+      rsp=emu.reg_read(x.UC_X86_REG_RSP);entry=emu.reg_read(x.UC_X86_REG_R8);argument=emu.reg_read(x.UC_X86_REG_R9);out=int.from_bytes(emu.mem_read(rsp+48,8),'little')
+      if entry==worker_entry and ptr==0 and emu.reg_read(x.UC_X86_REG_RDX)==0 and int.from_bytes(emu.mem_read(rsp+40,4),'little')==0 and out:
+       tid=3+len(created_workers);handle=0x64000001+len(created_workers);tcpu=allocate(4096,True);ttib=allocate(0x4000,True);tstack=allocate(65536,True);tsp=((tstack+65536-64)//16)*16-8
+       for offset,value in [(8,tstack+65536),(16,tstack),(0x30,ttib),(0x40,1),(0x48,tid),(0x58,ttib+0x1000)]:emu.mem_write(ttib+offset,value.to_bytes(8,'little'))
+       emu.mem_write(ttib+0x1000,(ttib+0x2000).to_bytes(8,'little'));emu.mem_write(ttib+0x2000,bytes(emu.mem_read(image_base+tls_rva,tls_size)));emu.mem_write(tsp,(0x120ff0).to_bytes(8,'little'))
+       for offset,value in [(8,argument),(32,tsp),(192,entry),(2328,ttib)]:emu.mem_write(tcpu+offset,value.to_bytes(8,'little'))
+       emu.mem_write(out,tid.to_bytes(4,'little'));thread_handles.add(handle);created_workers.append({'id':tid,'cpu':tcpu,'tib':ttib,'stack':tstack,'entry':hex(entry),'argument':hex(argument)})
+       emu.reg_write(x.UC_X86_REG_RAX,handle);emu.reg_write(x.UC_X86_REG_RSP,rsp+8);emu.reg_write(x.UC_X86_REG_RIP,int.from_bytes(emu.mem_read(rsp,8),'little'));service_calls.append(name);return
      if name=='_beginthreadex':
       rsp=emu.reg_read(x.UC_X86_REG_RSP);start=emu.reg_read(x.UC_X86_REG_R8);argument=emu.reg_read(x.UC_X86_REG_R9);id_out=int.from_bytes(emu.mem_read(rsp+48,8),'little')
       boundary.update(rva=address-image_base,service='api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex',kind='thread-start-request',stopService='_beginthreadex')
@@ -887,7 +898,7 @@ def main():
      start=at
      while at<size and final[at]!=image[at]:at+=1
      changes.append({'rva':start,'hex':final[start:at].hex()})
-    root['parentContinuation']={'steps':len(trace),'entryRva':ret-image_base,'boundary':boundary,'expected':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+r))) for r in REGS],'expectedXmm':[hex(uc.reg_read(getattr(x,'UC_X86_REG_XMM'+str(i)))) for i in range(16)],'expectedFlags':uc.reg_read(x.UC_X86_REG_EFLAGS),'definedFlagsMask':defined_flags[0],'stackHex':bytes(uc.mem_read(stack_base,65536)).hex(),'tlsHex':bytes(uc.mem_read(tls_data,tls_size+tls.SizeOfZeroFill)).hex(),'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'dllChanges':changes,'serviceCalls':service_calls,'threadHandles':[str(h) for h in sorted(thread_handles)],'threadIdOutput':hex(id_out),'clock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_last[0]) if clock_reads[0] else None},'mutexState':[[p,e['type'],e['owner'],e['count']] for p,e in mutex_state.items()]}
+    root['parentContinuation']={'createdWorkers':created_workers,'completedThreadStarts':1+len(created_workers),'steps':len(trace),'entryRva':ret-image_base,'boundary':boundary,'expected':[hex(uc.reg_read(getattr(x,'UC_X86_REG_'+r))) for r in REGS],'expectedXmm':[hex(uc.reg_read(getattr(x,'UC_X86_REG_XMM'+str(i)))) for i in range(16)],'expectedFlags':uc.reg_read(x.UC_X86_REG_EFLAGS),'definedFlagsMask':defined_flags[0],'stackHex':bytes(uc.mem_read(stack_base,65536)).hex(),'tlsHex':bytes(uc.mem_read(tls_data,tls_size+tls.SizeOfZeroFill)).hex(),'heapHex':bytes(uc.mem_read(0x1800000,heap_at[0]-0x1800000)).hex(),'dllChanges':changes,'serviceCalls':service_calls,'threadHandles':[str(h) for h in sorted(thread_handles)],'threadIdOutput':hex(id_out),'clock':{'frequency':'10000000','counterReads':clock_reads[0],'lastCounter':str(clock_last[0]) if clock_reads[0] else None},'mutexState':[[p,e['type'],e['owner'],e['count']] for p,e in mutex_state.items()]}
     print(json.dumps({'parentContinuation':boundary,'steps':len(trace),'imageBase':hex(image_base)}),flush=True)
 
  lifter=WideLifter(pe)

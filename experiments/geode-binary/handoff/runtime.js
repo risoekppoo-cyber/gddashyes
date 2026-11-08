@@ -16,11 +16,11 @@
   const mapRequested=new URLSearchParams(location.search).get('geodemap')==='1';
   const setupRequested=new URLSearchParams(location.search).get('geodesetup')==='1';
   if(setupRequested&&!mapRequested)throw Error('Setup requires the owned DLL mapping');
-  const setupContext=setupRequested?await (await import(new URL('../setup-context.mjs?rev=setup-worker-frames-20261108',base).href)).loadSetup(e,helper,base):null;
+  const setupContext=setupRequested?await (await import(new URL('../setup-context.mjs?rev=setup-parent-resume-20261108',base).href)).loadSetup(e,helper,base):null;
   let mapHelper,preparedImage,mappedImage;
   if(mapRequested){
    if(!root.WestminsterGeodeDllBytes)throw Error('Select the pinned DLL on the mapped check page first');
-   mapHelper=await import(new URL('../owned-image.mjs?rev=setup-worker-frames-20261108',base).href);
+   mapHelper=await import(new URL('../owned-image.mjs?rev=setup-parent-resume-20261108',base).href);
    preparedImage=await mapHelper.prepareGeodeImage(await root.WestminsterGeodeDllBytes);
   }
   let observed=false,workerDispatch=0;const workerTurns=[];
@@ -33,7 +33,7 @@
      if(!before.every((b,i)=>new Uint8Array(e.memory.buffer)[cpu+i]===b))throw Error('Worker dispatch changed original game CPU');
      workerTurns.push({gameFrames,instructions:worker.instructions,originalGameCpuPreserved:true});
      worker.browserDispatches=workerTurns.slice();worker.originalGameCpuPreservedBetweenTurns=true;
-     report.worker=worker;report.totalTranslatedInstructions=report.instructions+worker.instructions;
+     report.worker=worker;report.parentContinuation=worker.parentContinuation;report.totalTranslatedInstructions=report.instructions+worker.instructions+(worker.parentContinuation?.instructions||0);if(worker.parentContinuation){report.nextRequiredService=worker.parentContinuation.nextRequiredService;report.nextBoundaryKind=worker.parentContinuation.nextBoundaryKind;report.pendingThreadRequest=worker.parentContinuation.nextThreadRequest;}
      if(worker.pendingContinuations)scheduleWorker(cpu);
     }catch(error){fail(error);}
     update();
@@ -100,5 +100,6 @@
   return out;
  }catch(error){fail(error);throw error;}};
 })(globalThis);
+
 
 
