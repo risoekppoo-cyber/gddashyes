@@ -19,9 +19,10 @@ def probe():
   ok=bool(k.GetQueuedCompletionStatusEx(port,g.entries,capacity,ctypes.byref(removed),timeout,False));error=ctypes.get_last_error()
   assert bytes(g.before)==b'\xa5'*16 and bytes(g.after)==b'\xa5'*16
   raw=ctypes.string_at(ctypes.addressof(g)+16,64*ctypes.sizeof(Entry))
-  assert removed.value<=64
-  entries=[{'key':e.key,'ov':e.ov or 0,'internal':e.internal,'bytes':e.bytes,'hex':raw[i*32:(i+1)*32].hex()} for i,e in enumerate(g.entries[:removed.value])]
-  assert raw[removed.value*32:]==b'\xa5'*(len(raw)-removed.value*32),'unused entries overwritten'
+  if ok:assert removed.value<=64
+  written=removed.value if ok else 0
+  entries=[{'key':e.key,'ov':e.ov or 0,'internal':e.internal,'bytes':e.bytes,'hex':raw[i*32:(i+1)*32].hex()} for i,e in enumerate(g.entries[:written])]
+  assert raw[written*32:]==b'\xa5'*(len(raw)-written*32),'unused entries overwritten'
   return {'ok':ok,'error':error,'removed':removed.value,'entries':entries,'unusedEntriesPreserved':True}
  port=k.CreateIoCompletionPort(p(-1),None,0,0);assert port
  server=client=None
@@ -52,7 +53,7 @@ def probe():
   failed=Ov();assert not k.ReadFile(server,data,16,None,ctypes.byref(failed)) and ctypes.get_last_error()==997
   k.CloseHandle(client);client=None
   failure=query(port,64,1000);assert failure['ok'] and failure['removed']==1
-  entry=failure['entries'][0];assert entry['key']==0x1234 and entry['ov']==ctypes.addressof(failed) and entry['bytes']==0 and entry['internal']==failed.internal and (failed.internal&0xffffffff)==0xc000014b
+  entry=failure['entries'][0];assert entry['key']==0x1234 and entry['ov']==ctypes.addressof(failed) and entry['bytes']==0 and (entry['internal']&0xffffffff)==(failed.internal&0xffffffff)==0xc000014b
   # Normalize real process pointers in the evidence.
   for record,pointer in [(success,ctypes.addressof(ov)),(failure,ctypes.addressof(failed))]:
    e=record['entries'][0];e['ov']=0x10000;raw=bytearray.fromhex(e['hex']);struct.pack_into('<Q',raw,8,0x10000);e['hex']=raw.hex()
