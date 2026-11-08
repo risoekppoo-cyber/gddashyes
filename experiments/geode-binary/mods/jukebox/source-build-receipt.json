@@ -1,0 +1,312 @@
+{
+  "sourceRepository": "Fleeym/jukebox",
+  "sourceCommit": "abb0b3c9f87336acb594278de5b25525d9177dcf",
+  "originalManifest": {
+    "geode": "5.11.2",
+    "version": "3.8.0",
+    "id": "fleym.nongd",
+    "name": "Jukebox",
+    "gd": {
+      "win": "2.2091",
+      "mac": "2.2081",
+      "ios": "2.2081",
+      "android": "2.2081"
+    },
+    "developers": [
+      "Fleym",
+      "Flafy"
+    ],
+    "description": "A simple song manager for Geometry Dash",
+    "repository": "https://github.com/Fleeym/jukebox",
+    "links": {
+      "community": "https://discord.gg/maSgd4zpEF",
+      "source": "https://github.com/Fleeym/jukebox"
+    },
+    "issues": {
+      "info": "For any issues regarding this mod, send me a message on my discord: 'fleeym', or open an issue on the project's GitHub. If you can, please give the level or song ID that you are having problems with.",
+      "url": "https://github.com/Fleeym/jukebox/issues"
+    },
+    "tags": [
+      "music",
+      "online",
+      "utility",
+      "interface"
+    ],
+    "settings": {
+      "downloads": {
+        "name": "Downloads",
+        "type": "title"
+      },
+      "indexes": {
+        "name": "Indexes",
+        "description": "An index is a JSON file that tells Jukebox where to fetch song data from. The default indexes that are provided fetch data from Song File Hub. The system is extensible, so you can add your own indexes!",
+        "type": "custom:indexes",
+        "default": [
+          {
+            "url": "https://raw.githubusercontent.com/FlafyDev/auto-nong-indexes/v2/auto-nong-index.min.json",
+            "enabled": true,
+            "userAdded": false
+          },
+          {
+            "url": "https://raw.githubusercontent.com/FlafyDev/auto-nong-indexes/v2/sfh-index.min.json",
+            "enabled": true,
+            "userAdded": false
+          }
+        ]
+      },
+      "request-timeout": {
+        "name": "Request timeout (s)",
+        "description": "How many seconds to wait for non-download web requests to finish until cancelling",
+        "type": "int",
+        "default": 60,
+        "min": 30
+      },
+      "download-timeout": {
+        "name": "Download timeout (s)",
+        "description": "How many seconds to wait when downloading a song until the download cancels",
+        "type": "int",
+        "default": 60,
+        "min": 30
+      },
+      "clear-cache": {
+        "type": "button",
+        "buttons": {
+          "clear-index-cache": "Clear index cache"
+        }
+      },
+      "visual-title": {
+        "name": "Visual",
+        "type": "title"
+      },
+      "old-label-display": {
+        "name": "Old popup flow",
+        "type": "bool",
+        "description": "Enables the old way to open the nong popup, by clicking on the song label",
+        "default": false
+      },
+      "fix-empty-size": {
+        "name": "Fix 0.0B",
+        "type": "bool",
+        "description": "Fixes levels with multiple songs (and sfx) showing 0.0B size.",
+        "default": true
+      },
+      "experimental-title": {
+        "name": "Experimental",
+        "type": "title",
+        "description": "Settings that may improve your life, or crash your game. Have fun! :)"
+      },
+      "autocomplete-metadata": {
+        "name": "Autocomplete metadata (unavailable)",
+        "type": "bool",
+        "description": "(TEMPORARILY UNAVAILABLE) Try to autocomplete song info from metadata when adding. Causes a tiny bit of lag after picking a song file. Doesn't play nice with UTF-8, at the moment",
+        "default": false
+      }
+    },
+    "resources": {
+      "spritesheets": {
+        "JukeboxSheet": [
+          "resources/*.png"
+        ]
+      }
+    }
+  },
+  "targetManifest": {
+    "geode": "6.0.0-alpha.1",
+    "version": "3.8.0",
+    "id": "fleym.nongd",
+    "name": "Jukebox",
+    "gd": {
+      "win": "2.2091",
+      "mac": "2.2081",
+      "ios": "2.2081",
+      "android": "2.2081"
+    },
+    "developers": [
+      "Fleym",
+      "Flafy"
+    ],
+    "description": "A simple song manager for Geometry Dash",
+    "repository": "https://github.com/Fleeym/jukebox",
+    "links": {
+      "community": "https://discord.gg/maSgd4zpEF",
+      "source": "https://github.com/Fleeym/jukebox"
+    },
+    "issues": {
+      "info": "For any issues regarding this mod, send me a message on my discord: 'fleeym', or open an issue on the project's GitHub. If you can, please give the level or song ID that you are having problems with.",
+      "url": "https://github.com/Fleeym/jukebox/issues"
+    },
+    "tags": [
+      "music",
+      "online",
+      "utility",
+      "interface"
+    ],
+    "settings": {
+      "downloads": {
+        "name": "Downloads",
+        "type": "title"
+      },
+      "indexes": {
+        "name": "Indexes",
+        "description": "An index is a JSON file that tells Jukebox where to fetch song data from. The default indexes that are provided fetch data from Song File Hub. The system is extensible, so you can add your own indexes!",
+        "type": "custom:indexes",
+        "default": [
+          {
+            "url": "https://raw.githubusercontent.com/FlafyDev/auto-nong-indexes/v2/auto-nong-index.min.json",
+            "enabled": true,
+            "userAdded": false
+          },
+          {
+            "url": "https://raw.githubusercontent.com/FlafyDev/auto-nong-indexes/v2/sfh-index.min.json",
+            "enabled": true,
+            "userAdded": false
+          }
+        ]
+      },
+      "request-timeout": {
+        "name": "Request timeout (s)",
+        "description": "How many seconds to wait for non-download web requests to finish until cancelling",
+        "type": "int",
+        "default": 60,
+        "min": 30
+      },
+      "download-timeout": {
+        "name": "Download timeout (s)",
+        "description": "How many seconds to wait when downloading a song until the download cancels",
+        "type": "int",
+        "default": 60,
+        "min": 30
+      },
+      "clear-cache": {
+        "type": "button",
+        "buttons": {
+          "clear-index-cache": "Clear index cache"
+        }
+      },
+      "visual-title": {
+        "name": "Visual",
+        "type": "title"
+      },
+      "old-label-display": {
+        "name": "Old popup flow",
+        "type": "bool",
+        "description": "Enables the old way to open the nong popup, by clicking on the song label",
+        "default": false
+      },
+      "fix-empty-size": {
+        "name": "Fix 0.0B",
+        "type": "bool",
+        "description": "Fixes levels with multiple songs (and sfx) showing 0.0B size.",
+        "default": true
+      },
+      "experimental-title": {
+        "name": "Experimental",
+        "type": "title",
+        "description": "Settings that may improve your life, or crash your game. Have fun! :)"
+      },
+      "autocomplete-metadata": {
+        "name": "Autocomplete metadata (unavailable)",
+        "type": "bool",
+        "description": "(TEMPORARILY UNAVAILABLE) Try to autocomplete song info from metadata when adding. Causes a tiny bit of lag after picking a song file. Doesn't play nice with UTF-8, at the moment",
+        "default": false
+      }
+    },
+    "resources": {
+      "spritesheets": {
+        "JukeboxSheet": [
+          "resources/*.png"
+        ]
+      }
+    }
+  },
+  "upstreamFiles": {
+    ".clang-format": "0f9fdf2197d8b2444eb4e6f715d285eb0aed8bd426a946c4154ef2a02a21e97f",
+    ".clang-tidy": "2fad3c3e7cf765873815ab1e08c749605e6b2965f52012967814fbb2e1a20c97",
+    ".editorconfig": "199bc28414f77b5bae1118b6fb7333d3493d8cbcf77af9cc74d8290e738e541b",
+    ".github/ISSUE_TEMPLATE/bug_report.md": "6304ffcf6a821bae3221d7da909b95d1aecfc8ba419e34b53180f81dc197a5c0",
+    ".github/ISSUE_TEMPLATE/feature_request.md": "13a2a9de90303d5f3c634194cc476f9be368789da550b747461d6f7b6830534f",
+    ".github/workflows/build.yml": "b163a633c64ce54cc02313f7cbd351e958cf2d5864b428e04147b9bff96e7be1",
+    ".gitignore": "839266180e76a4139dc828d001cd717251efe3ae98bd649a0dee00a93950044b",
+    "CMakeLists.txt": "7066457872be8ed12543c6d9adda0d7521751682a884620f8ae011c807972876",
+    "LICENSE": "3c2a577ab547148b86164db31775c1a2cf7487847b7cdfcf25a5ad76cb0d75db",
+    "README.md": "440ad087327682eedae55a4c14fe21ca64f630cd77dd5df950381d71e8be5818",
+    "about.md": "3773c7f66ea0521a8cf32a4932cfef5c7967d1481fff7182d4d9ff8cedd5e9d9",
+    "changelog.md": "7fcaed91d2da5a7f4443282e28611d3edbc0678f6b364665cdbe9ba931942a62",
+    "jukebox/jukebox/compat/compat.hpp": "7a67a5d4a75466c5460ab233b59af5e3e3ea0f0f01eef515d790f816f2d2b2ba",
+    "jukebox/jukebox/compat/v2.cpp": "03f60ae0a173ca42f6b8cf11c4dcfaa3dcd42b9ceee75d5276ed44456936342a",
+    "jukebox/jukebox/compat/v2.hpp": "34753d01a5f4eb18abfc608dc0bc6af36d97ddb831a4e191214acb48756d373e",
+    "jukebox/jukebox/download/hosted.cpp": "4f202909bd9e300d1dbd465e9a730a3c2b59eee9d47b93624789982b33a91af4",
+    "jukebox/jukebox/download/hosted.hpp": "302d168f027f3e787aa6f1c4bceb82222a2f53c481d63934d7554411c3de8405",
+    "jukebox/jukebox/download/youtube.cpp": "6a00e10e75ff6e4227bdb69dcc83ce168252ac041d72b4b5699f0ebe9996a706",
+    "jukebox/jukebox/download/youtube.hpp": "ad5e3059e12274063698b0c035a7f0062ca35022c5200ad0ca9309625a2fa06e",
+    "jukebox/jukebox/events/file_download_progress.hpp": "fee94648c51f35f2e71dc43a0f0211a0568891a3bb105bf8a607f10822b8bd0b",
+    "jukebox/jukebox/events/get_song_info.hpp": "6eb09c98396002f0727aa33dfaf4d586856f2d678e23f46a51bac2361a79cf17",
+    "jukebox/jukebox/events/indexes_loaded.hpp": "a066314a812fcd78b05d910c9b01879b419a8e8c8a3f53f7ef61705c98a5e46b",
+    "jukebox/jukebox/events/manual_song_added.hpp": "2e6d5506d06b158806e3bad1eb0494e73a3143f44c56f6644e9f20ca20c9330e",
+    "jukebox/jukebox/events/nong_deleted.hpp": "6dd5e8f6b483b3e0efd7037db3ef471307cf4bf247f1d53eeb08cf1685355468",
+    "jukebox/jukebox/events/song_download_failed.hpp": "32f3acf85117c5c40243692d407a690c2d0f385e6603b87256dc5ad445bcb990",
+    "jukebox/jukebox/events/song_download_finished.hpp": "670e4c4ec1fe1700bceba077deeeb8a0af8ca5511d86224a469d47e6bc07a9d0",
+    "jukebox/jukebox/events/song_download_progress.hpp": "ba242bc2e982dc50275ab44602eeb73a72688ded686ddfc58332e81509de814f",
+    "jukebox/jukebox/events/song_error.hpp": "d5d023fedf9103a7c777fef0598ef26a3d43b8313713f61613c272b32e1fafe8",
+    "jukebox/jukebox/events/song_state_changed.hpp": "c5ec444085b3f6759a8f173279df2b4f5d823ff27d03d172a4539adb9ac19614",
+    "jukebox/jukebox/events/start_download.hpp": "ae2a279032c1a5e5f68cc026bf01bba89fcc5efff86a4bbad16d6d1297d0e9da",
+    "jukebox/jukebox/hooks/custom_song_widget.cpp": "d95365f152a8fdfe9dfb57991bf0ac76b79b3effec107f4b048f3fcf754c61fb",
+    "jukebox/jukebox/hooks/fmod_audio_engine.cpp": "e6ca2fae0ae44b95afd33f68bc3c88966e93278d74364946d447d714e0482167",
+    "jukebox/jukebox/hooks/gj_game_level.cpp": "69693f1a8cf91efdcd92324115f26615f29dcc2ca76e1760fa46e4d214e1abe1",
+    "jukebox/jukebox/hooks/level_cell.cpp": "2415920d52d0ff06eb6ac5b58d9bd1da3b02c47747e8240f9b1783b6d0c3d650",
+    "jukebox/jukebox/hooks/level_tools.cpp": "3cbcfdc26d9db711ff5135393c2f28b3b5b35d4a6ee596d5034bdf71887b1b1f",
+    "jukebox/jukebox/hooks/menu_layer.cpp": "604b2be190872fb211e97c2dcfd2ba86805b0bed6b07b29d71c871e4f0d97a3b",
+    "jukebox/jukebox/hooks/music_download_manager.cpp": "235b73544c57df8f518e5bd9ee057c9768a9a6eda16d6ef06379483cadf132f1",
+    "jukebox/jukebox/hooks/music_download_manager.hpp": "0520062276051b1ddf2ed8c6b8476ade62578d3ae5f78be7cfbf889a11ba9bed",
+    "jukebox/jukebox/main.cpp": "dba979c940f69197c398c70b9111dcb07f926e8ed38af19dab3bc16e54d8ee81",
+    "jukebox/jukebox/managers/index_manager.cpp": "827f4098447460c61c9c5509f48d0ff2e355e5f25bafacab3428df4b9fed31c5",
+    "jukebox/jukebox/managers/index_manager.hpp": "dbca91296f71f05d2346921f255350fd9b6d5a432dcfda4d503584c1fdc2e6d7",
+    "jukebox/jukebox/managers/nong_manager.cpp": "e08f135f961e4254654ed067bbb11e2a4124165d48c38a1e8eb44ec643302a1a",
+    "jukebox/jukebox/managers/nong_manager.hpp": "12bfda7e240fe1d32e7aad53de7d1ed2653557840f1e6b53643c3acf52176d43",
+    "jukebox/jukebox/nong/index.hpp": "db3d7a13cf3cc3d4fb6a283917e9235a822b1e572757e5737bcb0d4d17e9b52b",
+    "jukebox/jukebox/nong/index_serialize.hpp": "5158bdc453b13ee1124c075caadcee2179947dcb5f44803769e5d868b9aef580",
+    "jukebox/jukebox/nong/nong.cpp": "e3d0588c50b69882928df810e160599b308cac9b02bab614bf5e28578c2596a9",
+    "jukebox/jukebox/nong/nong.hpp": "9853abeabbfd260d8e46b39c35bb1c7280d680c593bb34733b4756e585b5f526",
+    "jukebox/jukebox/nong/nong_serialize.hpp": "e9f5037376e209bf1436eb867bcb150f4e38b8b482babed8a2660380342b2ca7",
+    "jukebox/jukebox/ui/index_choose_popup.cpp": "be41224d308c83e611e07959ab49e4d7c7b5e36e88369e4aba4928cccf6d3e32",
+    "jukebox/jukebox/ui/index_choose_popup.hpp": "384ae9a2b064e916cbd0abf5feac266a0ed52fb5c9e49a90ac0b73cd8ad8940b",
+    "jukebox/jukebox/ui/indexes_popup.cpp": "91a95994cbacdd18cd3ef7f9f5b52203903101a0bbc6bf88d6af4bfd4325ada3",
+    "jukebox/jukebox/ui/indexes_popup.hpp": "af0e3cf52473eaa379f1e1f679b9d1401d11b6771e7d153023b27eb9bd87c661",
+    "jukebox/jukebox/ui/indexes_setting.cpp": "191bd6ed790c1636f50e412e1ed3eb71ae85b50ce34ba37caf339eab07198708",
+    "jukebox/jukebox/ui/indexes_setting.hpp": "34c56d43e2212c5b88efb0b07292004149a25cb87af83c94963842c1082c805e",
+    "jukebox/jukebox/ui/list/index_cell.cpp": "5ed035e4b142ad88948799219782228b3e7d120438f865c940fd889d083c7763",
+    "jukebox/jukebox/ui/list/index_cell.hpp": "cc48bd2c2f058d7669c2489ddca518431558f0eff659417475ed9db8ce0c6b8f",
+    "jukebox/jukebox/ui/list/nong_cell.cpp": "0bc0d58a25306b299741659a3a35396601e00ba5096714b23b8d148a1796e357",
+    "jukebox/jukebox/ui/list/nong_cell.hpp": "046d9486a9d08259f9d225f54f441ad5d7aa08b4e51e27557d9fcf2b579a961a",
+    "jukebox/jukebox/ui/list/nong_cell_ui.cpp": "e45c824595b9870d2e3d1333de9c065d53d5acaa7e9d19bafee73e32b15543d1",
+    "jukebox/jukebox/ui/list/nong_cell_ui.hpp": "1e752df4b02927b19dfe5af02cd243a167b85decb58be19e0273e6f269f4dc79",
+    "jukebox/jukebox/ui/list/nong_list.cpp": "050d1b9778b408f991229d8afdacf77910f01510cd3996d0144692b002e8e4bc",
+    "jukebox/jukebox/ui/list/nong_list.hpp": "9db49404737c9d5c740ef2f8727053c3c04e248abf063b1f7cf84bb64ccdee9e",
+    "jukebox/jukebox/ui/list/song_cell.cpp": "dfcff4320022e54e5529968a7159f16e7c95c8ef2cd44d8f0ad31a1d16c8d9d0",
+    "jukebox/jukebox/ui/list/song_cell.hpp": "74e9b7483c8dfc84e02011388d3bcdb9ff5e52c55fb0bd46532ea235b192f426",
+    "jukebox/jukebox/ui/nong_add_popup.cpp": "1f34318a6956323594d7696dabb80e188940eac5381c344cd88bd0c68387ed51",
+    "jukebox/jukebox/ui/nong_add_popup.hpp": "d4a8065f11f85b892e3c852d9a1d58f3988c6b255791b09bd1c192b78e3ea8f9",
+    "jukebox/jukebox/ui/nong_dropdown_layer.cpp": "a75ad05590bf05c5fa9986dfad725f842c225673e5309a872539f55e1ca02d2e",
+    "jukebox/jukebox/ui/nong_dropdown_layer.hpp": "fee0dd87a6ab103df85b9fe4fbca25c46f7e55c40a6ef10f97914421a31a8629",
+    "jukebox/jukebox/utils/get_domain_from_url.cpp": "00698b047a01111d944c1657f4b95f0205dd13ea0882b5e122136c253a89ea87",
+    "jukebox/jukebox/utils/get_domain_from_url.hpp": "272e50a5859fc3e7b8c95a0f53eca19965131b60a99e7f75519ec5836b7e25cf",
+    "jukebox/jukebox/utils/random_string.cpp": "213842c829fe8be7edd2ecdf9ed8ca6e983d7e0c988359c6f535755ba1f14b42",
+    "jukebox/jukebox/utils/random_string.hpp": "49e1d1bc8b76c13e41567f81d6ca9b989951f690a54e6282cdb27ec7d8762ec1",
+    "jukebox/jukebox/utils/trim.cpp": "26cc8accfee6a7ec22b5771eaf92805c2cb8fc2ebf75233adcfad25318d0f5e8",
+    "jukebox/jukebox/utils/trim.hpp": "951f5fb3476310a997d15d9321a174e42e1ece12d838082f79e872f8d4aeae8f",
+    "jukebox/jukebox/utils/web.cpp": "624b8a3d75f1a3463553c43e3e97faa10b26347889da4c5b51bf7fee44696073",
+    "jukebox/jukebox/utils/web.hpp": "a82fa011766b381f3e5e53bb1fc1b00a5e429088535435b9bf127d2986f41caa",
+    "logo.png": "3be23acc897c035a80bf976997ddb963820c1281eef325c59047009956e179c5",
+    "resources/JB_Edit.png": "36535575d2ff4ab63f13df78caa21ec30b0993b39aafe64ac89028a157e217d8",
+    "resources/JB_ListLogo.png": "c076b2924f9dce9db80a1e39e3a2dbea8e231bfadf1a82dca961e3698406d834",
+    "resources/JB_PinDisc.png": "69478f9f8f189d9a36f1c1c7684b1a72729ba94f678639c1875cf69a8b97c038",
+    "resources/JB_PinDiscGold.png": "5391890074dcf7e3604511317313282f442350a3c23b2d4c315efe76baa1719a",
+    "resources/JB_PinDiscRays.png": "acf2e75941188eca719f91cf01b776fce9ba3fb0f0c15952eeabd227fa869c58"
+  },
+  "changes": [
+    "mod.json: geode SDK build target only"
+  ],
+  "sourceAndResourcesUnchanged": true,
+  "status": "ORIGINAL_SOURCE_NATIVE_BUILD_VERIFIED",
+  "browserModLoaded": false
+}

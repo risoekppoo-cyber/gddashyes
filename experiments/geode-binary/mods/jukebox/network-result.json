@@ -1,0 +1,63 @@
+{
+  "status": "ORIGINAL_JUKEBOX_BROWSER_NETWORK_PASS",
+  "originalModLoaded": false,
+  "originalUIExecuted": false,
+  "cppWebCallbacksConnected": false,
+  "indexes": [
+    {
+      "url": "https://raw.githubusercontent.com/FlafyDev/auto-nong-indexes/v2/auto-nong-index.min.json",
+      "id": "auto-nong-index",
+      "name": "Auto Nong",
+      "manifest": 1,
+      "bytes": 57319,
+      "hosted": 0,
+      "youtube": 370,
+      "etag": null,
+      "lastModified": null,
+      "conditionalHeadersExposed": false
+    },
+    {
+      "url": "https://raw.githubusercontent.com/FlafyDev/auto-nong-indexes/v2/sfh-index.min.json",
+      "id": "song-file-hub-index",
+      "name": "Song File Hub",
+      "manifest": 1,
+      "bytes": 8885204,
+      "hosted": 36715,
+      "youtube": 0,
+      "etag": null,
+      "lastModified": null,
+      "conditionalHeadersExposed": false
+    }
+  ],
+  "downloads": [
+    {
+      "host": "api.songfilehub.com",
+      "indexID": "song-file-hub-index",
+      "uniqueID": "6ad1c23ecc40bb69f37264f9",
+      "songIDs": [
+        1323633
+      ],
+      "startOffset": 0,
+      "code": 200,
+      "bytes": 3214411,
+      "sha256": "c7d40a2793660afa2b3c4ba8c3697e3a61823c6368e5c66fc020e8422f7f45f8",
+      "duration": 109.40081632653062,
+      "channels": 2,
+      "sampleRate": 44100,
+      "complete": true
+    }
+  ],
+  "sourceCommit": "abb0b3c9f87336acb594278de5b25525d9177dcf",
+  "defaultSources": [
+    {
+      "url": "https://raw.githubusercontent.com/FlafyDev/auto-nong-indexes/v2/auto-nong-index.min.json",
+      "enabled": true,
+      "userAdded": false
+    },
+    {
+      "url": "https://raw.githubusercontent.com/FlafyDev/auto-nong-indexes/v2/sfh-index.min.json",
+      "enabled": true,
+      "userAdded": false
+    }
+  ]
+}
