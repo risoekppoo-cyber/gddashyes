@@ -332,6 +332,14 @@ document.addEventListener("click",function(){try{if(window.parent!==window)windo
   };
 })();
 
+</script><script id="westminster-mod-menu-loader">
+(function(){
+ if(new URLSearchParams(location.search).get('modmenu')==='0')return;
+ var pathname=location.pathname,index=pathname.indexOf('/experiments/');
+ var appRoot=index<0?new URL('.',location.href):new URL(pathname.slice(0,index+1),location.origin);
+ var menu=new URL('mods/menu.js',appRoot);menu.searchParams.set('v','20261108-basic-1');
+ document.write('<script src="'+menu.href+'"><\/script>');
+})();
 </script><script id="westminster-experiment-loader">
 (function () {
   var params = new URLSearchParams(window.location.search);
