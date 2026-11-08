@@ -78,11 +78,12 @@ const assert = require('node:assert/strict');
     await page.locator('#cs-remove-press').click(); await page.locator('#cs-remove-release').click();
     await page.waitForFunction(() => !GDClickSounds.getState().imports.press && !GDClickSounds.getState().imports.release);
     await page.screenshot({path: out + '/import-mobile.png'});
-    await page.reload({waitUntil: 'domcontentloaded'}); await page.waitForFunction(() => window.GDClickSounds?.getState().loaded, {}, {timeout: 240000});
+    await page.reload({waitUntil: 'domcontentloaded'}); await page.waitForFunction(() => window.GDClickSounds?.getState().loaded && window.__gdInputReady, {}, {timeout: 240000});
     report.importsRemoved = await state(); assert.deepEqual(report.importsRemoved.imports, {}); assert.equal(report.importsRemoved.settings.press, '2'); assert.equal(report.importsRemoved.settings.release, 'random');
     const frames = await page.evaluate(() => Module._gd_frames_get()); await page.waitForFunction(n => Module._gd_frames_get() > n + 30, frames); report.framesAfter = await page.evaluate(() => Module._gd_frames_get());
     assert.deepEqual(report.errors, []); report.status = 'CLICK_SOUNDS_DROPDOWN_PASS';
   } catch (e) {report.status = 'FAIL'; report.error = String(e); report.stack = e.stack; report.state = await state().catch(() => null); await page.screenshot({path: out + '/failure.png'}).catch(() => {}); process.exitCode = 1;}
   finally {fs.writeFileSync(out + '/result.json', JSON.stringify(report, null, 2)); console.log(JSON.stringify(report, null, 2)); await browser.close();}
 })();
+
 
