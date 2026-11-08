@@ -21,6 +21,14 @@
   },
   "nextBoundaryKind": "thread-start-request",
   "worker": {
+    "nextCompletionRequest": {
+      "entryCount": 64,
+      "timeoutMs": 0,
+      "alertable": 0,
+      "entriesNonNull": true,
+      "removedNonNull": true,
+      "ownedPort": true
+    },
     "clockDependent": true,
     "entryRva": 5241520,
     "steps": 1709,

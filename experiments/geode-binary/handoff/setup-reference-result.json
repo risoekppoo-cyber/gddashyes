@@ -15,6 +15,14 @@
         "0x40",
         "0x1815cbc"
       ],
+      "completionRequest": {
+        "entryCount": 64,
+        "timeoutMs": 0,
+        "alertable": 0,
+        "entriesNonNull": true,
+        "removedNonNull": true,
+        "ownedPort": true
+      },
       "steps": 1709,
       "entryRva": 5241520
     },
@@ -29,6 +37,14 @@
         "0x40",
         "0x1815cbc"
       ],
+      "completionRequest": {
+        "entryCount": 64,
+        "timeoutMs": 0,
+        "alertable": 0,
+        "entriesNonNull": true,
+        "removedNonNull": true,
+        "ownedPort": true
+      },
       "steps": 1709,
       "entryRva": 5241520
     }
