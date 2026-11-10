@@ -24,6 +24,7 @@ window.__gdProxyTarget=function(u){var k="/__proxy?url=";if(typeof u!=="string")
 window.__gdProxyBuild=function(base,target){if(base.indexOf("corsfix")>=0)return base+target;return base+encodeURIComponent(target);};
 (function(){
 var nativeFetch=window.fetch.bind(window);
+window.__gdJukeboxFetch=nativeFetch;
 var workerCooldowns={};
 function retryable(st){return st===400||st===401||st===403||st===429||st===503;}
 function secret(init){try{var b=init&&init.body;if(!b)return false;var t=typeof b==="string"?b:new TextDecoder().decode(b);return /(^|&)(gjp2?|password)=/.test(t);}catch(e){return false;}}
@@ -337,7 +338,7 @@ document.addEventListener("click",function(){try{if(window.parent!==window)windo
   var path = location.pathname, boundary = path.indexOf('/experiments/');
   var root = boundary < 0 ? new URL('.', location.href) : new URL(path.slice(0, boundary + 1), location.origin);
   var script = new URL('mods/jukebox.js', root);
-  script.searchParams.set('v', '20261108-5');
+  script.searchParams.set('v', '20261110-1');
   var tools = new URL('mods/tools.js', root); tools.searchParams.set('v', '20261108-2');
   document.write('<script src="' + script.href + '"><\/script><script src="' + tools.href + '"><\/script>');
 })();

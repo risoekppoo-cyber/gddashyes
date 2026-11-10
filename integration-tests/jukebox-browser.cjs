@@ -44,6 +44,18 @@ const assert = require('node:assert/strict');
     report.server = await row.innerText();
     // Exercise both the real built-in song path and the usual custom-song-ID path.
     await page.locator('#jb-target').selectOption(report.baseline.filename);
+    // A failed direct download must leave the current song alone and allow retry,
+    // even when the game is configured with a proxy that produces invalid URLs.
+    const priorProxies = await page.evaluate(() => {
+      const previous = window.__gdProxyBases;
+      window.__gdProxyBases = ['https://proxy.invalid'];
+      return previous;
+    });
+    await page.route('https://api.songfilehub.com/song/6ad1c23ecc40bb69f37264f9?*', route => route.abort('failed'), {times: 1});
+    await row.getByRole('button', {name: 'Download & use'}).click();
+    await page.waitForFunction(() => document.querySelector('#jb-status').textContent.includes('Could not reach the song server') && !GDJukebox.getState().busy);
+    assert.equal((await page.evaluate(() => GDJukebox.getState())).active.length, 0);
+    await page.evaluate(proxies => { window.__gdProxyBases = proxies; }, priorProxies);
     await row.getByRole('button', {name: 'Download & use'}).click();
     await page.waitForFunction(() => !GDJukebox.getState().busy && GDJukebox.getState().active.length === 1, {}, {timeout: 120000});
     report.first = await page.evaluate(() => GDJukebox.getState());
@@ -161,5 +173,6 @@ const assert = require('node:assert/strict');
     console.log(JSON.stringify(report, null, 2)); await browser.close();
   }
 })();
+
 
 

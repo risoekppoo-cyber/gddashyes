@@ -4,8 +4,8 @@
   if (window.GDJukebox) return;
   const SOURCE = 'https://raw.githubusercontent.com/FlafyDev/auto-nong-indexes/v2/sfh-index.min.json';
   const MAX_BYTES = 32 * 1024 * 1024;
-  // Captured before the launcher's local-MP3 fetch override is installed.
-  const networkFetch = window.fetch.bind(window);
+  // Catalog and song requests use the browser transport before game networking wraps it.
+  const networkFetch = window.__gdJukeboxFetch;
   let panel, status, results, activeList, target, field, busy = false, catalog, catalogPromise;
   let previewURL, currentSearch = 0;
   const originals = new Map(), active = new Map();
@@ -59,17 +59,31 @@
     }
   }
   async function download(url, label) {
-    if (new URL(url).protocol !== 'https:') throw Error('The song server supplied an unsupported URL.');
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 90000);
+    let source;
+    try { source = new URL(url); }
+    catch (_) { throw Error('The song server supplied an invalid download link.'); }
+    if (source.protocol !== 'https:' || source.username || source.password) {
+      throw Error('The song server supplied an unsupported download link.');
+    }
+    const controller = new AbortController();
+    const deadline = performance.now() + 90000;
+    let timer;
+    function watchProgress() {
+      clearTimeout(timer);
+      timer = setTimeout(() => controller.abort(), Math.min(15000, deadline - performance.now()));
+    }
+    watchProgress();
     try {
-      const response = await networkFetch(url, {mode: 'cors', credentials: 'omit', signal: controller.signal});
+      const response = await networkFetch(source.href, {mode: 'cors', credentials: 'omit', signal: controller.signal});
       if (!response.ok) throw Error('Song server returned HTTP ' + response.status + '.');
+      watchProgress();
       const total = Number(response.headers.get('Content-Length'));
       if (total > MAX_BYTES) throw Error('This download exceeds the 32 MB limit.');
       const reader = response.body.getReader(), chunks = []; let length = 0;
       try {
         while (true) {
           const {done, value} = await reader.read(); if (done) break;
+          watchProgress();
           length += value.length;
           if (length > MAX_BYTES) throw Error('This download exceeds the 32 MB limit.');
           chunks.push(value);
@@ -79,6 +93,10 @@
       const bytes = new Uint8Array(length); let position = 0;
       for (const chunk of chunks) { bytes.set(chunk, position); position += chunk.length; }
       return bytes;
+    } catch (error) {
+      if (controller.signal.aborted) throw Error('The song server stopped responding. Try again.');
+      if (error instanceof TypeError) throw Error('Could not reach the song server. Check your connection and try again.');
+      throw error;
     } finally { clearTimeout(timer); controller.abort(); }
   }
   async function getCatalog() {
@@ -331,4 +349,5 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, {once: true}); else mount();
 })();
+
 
