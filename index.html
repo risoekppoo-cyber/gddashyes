@@ -75,9 +75,65 @@ function publicLevelTarget(input, init, target) {
   }
 }
 function gameFetch(input,init){var u=(typeof input==="string")?input:(input&&input.url);var target=window.__gdProxyTarget(u);if(target===null)return nativeFetch(input,init);var form=typeof u==="string"&&u.indexOf("/__proxy?url=")>=0;if(form){var first=nextProxy(target,-1);return first<0?Promise.reject(new TypeError("no eligible proxy available")):attempt(input,init,target,first);}return attempt(input,init,target,-1);}
+var levelDebug = new URLSearchParams(location.search).has("level-debug");
+var levelTrace;
+function showLevelTrace(message) {
+  if (levelTrace) levelTrace.textContent = message;
+}
+if (levelDebug) document.addEventListener("DOMContentLoaded", function () {
+  var panel = document.createElement("aside");
+  panel.setAttribute("data-west-ui", "level-debug");
+  panel.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:10013;max-width:min(75vw,500px);background:#152037;color:white;border:1px solid #667da8;border-radius:8px;padding:10px;font:14px system-ui";
+  var run = document.createElement("button");
+  run.type = "button";
+  run.textContent = "Test level search";
+  var result = document.createElement("div");
+  result.setAttribute("role", "status");
+  result.textContent = "Tap to test level 128.";
+  levelTrace = document.createElement("div");
+  levelTrace.textContent = "Last game request: none";
+  panel.append(run, result, levelTrace);
+  document.body.append(panel);
+  run.addEventListener("click", async function () {
+    run.disabled = true;
+    result.textContent = "Testing…";
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, 12000);
+    try {
+      var url = "https://www.boomlings.com/database/getGJLevels21.php";
+      var body = new TextEncoder().encode("secret=Wmfd2893gb7&gameVersion=22&binaryVersion=47&str=128&type=0");
+      var response = await nativeFetch(publicLevelProxy + encodeURIComponent(url), {
+        method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: body, credentials: "omit", redirect: "error", signal: controller.signal
+      });
+      var data = await response.text();
+      result.textContent = /^1:128:/.test(data) ? "Test passed: level 128 found." :
+        "Test: HTTP " + response.status + (data.trim() === "-1" ? ", empty result." : ", unexpected response.");
+    } catch (error) {
+      result.textContent = controller.signal.aborted ? "Test timed out." : "Test failed: " + error.message;
+    } finally {
+      clearTimeout(timer);
+      run.disabled = false;
+    }
+  });
+}, {once: true});
 window.fetch = function (input, init) {
   var target = publicLevelTarget(input, init, window.__gdProxyTarget(input));
-  if (!target) return gameFetch(input, init);
+  if (levelDebug && typeof input === "string" && /getGJLevels21\.php|downloadGJLevel22\.php/.test(input)) {
+    var label = input.includes("getGJLevels21.php") ? "Search" : "Download";
+    showLevelTrace(label + ": " + (target ? "secondary proxy" : "default route") + " pending…");
+    var request = target ? preferredLevelFetch(input, init, target) : gameFetch(input, init);
+    return request.then(function (response) {
+      showLevelTrace(label + ": HTTP " + response.status + (response.url ? " via " + new URL(response.url).hostname : ""));
+      return response;
+    }, function (error) {
+      showLevelTrace(label + " failed: " + error.message);
+      throw error;
+    });
+  }
+  return target ? preferredLevelFetch(input, init, target) : gameFetch(input, init);
+};
+function preferredLevelFetch(input, init, target) {
   return nativeFetch(publicLevelProxy + encodeURIComponent(target), {...init, credentials: "omit", redirect: "error"})
     .then(function (response) {
       if (response.ok && !/text\/html/i.test(response.headers.get("Content-Type") || "")) return response;
@@ -86,7 +142,7 @@ window.fetch = function (input, init) {
       if (init.signal?.aborted) throw error;
       return gameFetch(input, init);
     });
-};
+}
 var nativeOpen=XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open=function(method,url){this.__gdProxyWorkerBase=null;if(typeof url==="string"){var target=window.__gdProxyTarget(url);if(target!==null){var base=window.__gdProxyBase||window.__gdProxyBases[0];if(skipped(base,target)){var next=nextProxy(target,-1);if(next<0&&url.indexOf("/__proxy?url=")<0)return nativeOpen.apply(this,arguments);if(next>=0)base=window.__gdProxyBases[next];}if(fallbackWorker(base))this.__gdProxyWorkerBase=base;arguments[1]=window.__gdProxyBuild(base,target);}}return nativeOpen.apply(this,arguments);};
 var nativeSend=XMLHttpRequest.prototype.send;
