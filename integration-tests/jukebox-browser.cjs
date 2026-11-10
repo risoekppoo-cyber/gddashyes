@@ -1,4 +1,4 @@
-// Real game + public SFH index + real MP3. No network mocks or dummy audio.
+// Real game, public SFH index and real MP3. Level routing uses deterministic replies.
 const {chromium} = require('playwright');
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
@@ -26,6 +26,27 @@ const assert = require('node:assert/strict');
     await page.waitForFunction(() => window.__gdRuntimeReady && window.__gdSavesRestored && window.Module?._gd_frames_get?.() > 60 && window.GDJukebox, {}, {timeout: 240000});
     await page.evaluate(() => GDJukebox.ready);
     // Use the same Wasm-to-browser HTTP bridge as the in-game level screen.
+    // Keep worker quotas and runner IP restrictions out of the routing regression.
+    const primaryWorker = 'https://boomlings.ale7208.workers.dev/**';
+    const secondaryWorker = 'https://boomlings.ivan-makarov12341.workers.dev/**';
+    const routedEndpoints = [];
+    await page.route(primaryWorker, route => route.abort('failed'));
+    await page.route(secondaryWorker, async route => {
+      const request = route.request();
+      const upstream = new URL(new URL(request.url()).searchParams.get('url'));
+      assert.equal(request.method(), 'POST');
+      assert.equal(upstream.origin, 'https://www.boomlings.com');
+      const form = new URLSearchParams(request.postData());
+      const download = upstream.pathname.endsWith('/downloadGJLevel22.php');
+      assert.equal(form.get(download ? 'levelID' : 'str'), '128');
+      routedEndpoints.push(upstream.pathname);
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/plain',
+        headers: {'Access-Control-Allow-Origin': '*'},
+        body: download ? '1:128:2:1st level:4:H4sfixture' : '1:128:2:1st level'
+      });
+    });
     report.levelNetwork = await page.evaluate(async () => {
       const encode = new TextEncoder();
       const common = 'secret=Wmfd2893gb7&gameVersion=22&binaryVersion=47';
@@ -57,7 +78,10 @@ const assert = require('node:assert/strict');
         download: await post('/__proxy?url=', 'downloadGJLevel22.php', 'levelID=128')
       };
     });
+    assert.deepEqual(routedEndpoints, ['/database/getGJLevels21.php', '/database/downloadGJLevel22.php']);
     assert(report.levelNetwork.download.hasLevelData);
+    await page.unroute(primaryWorker);
+    await page.unroute(secondaryWorker);
     report.framesBefore = await page.evaluate(() => Module._gd_frames_get());
     report.baseline = await page.evaluate(async () => {
       const hash = async bytes => [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(n => n.toString(16).padStart(2, '0')).join('');
