@@ -25,6 +25,39 @@ const assert = require('node:assert/strict');
     await page.goto('http://127.0.0.1:8765/index.html?quality=low', {waitUntil: 'domcontentloaded', timeout: 60000});
     await page.waitForFunction(() => window.__gdRuntimeReady && window.__gdSavesRestored && window.Module?._gd_frames_get?.() > 60 && window.GDJukebox, {}, {timeout: 240000});
     await page.evaluate(() => GDJukebox.ready);
+    // Use the same Wasm-to-browser HTTP bridge as the in-game level screen.
+    report.levelNetwork = await page.evaluate(async () => {
+      const encode = new TextEncoder();
+      const common = 'secret=Wmfd2893gb7&gameVersion=22&binaryVersion=47';
+      async function post(proxy, endpoint, form) {
+        const url = proxy + encodeURIComponent('https://www.boomlings.com/database/' + endpoint);
+        const urlBytes = encode.encode(url + '\0'), body = encode.encode(common + '&' + form);
+        const urlPointer = Module._malloc(urlBytes.length), bodyPointer = Module._malloc(body.length);
+        let id;
+        try {
+          Module.HEAPU8.set(urlBytes, urlPointer);
+          Module.HEAPU8.set(body, bodyPointer);
+          id = gd_http_start(urlPointer, bodyPointer, body.length, 1);
+        } finally {
+          Module._free(urlPointer);
+          Module._free(bodyPointer);
+        }
+        try {
+          const deadline = performance.now() + 20000;
+          const request = Module.gdHttpById[id];
+          while (!request.done && performance.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50));
+          if (!request.done || request.status !== 200) throw Error(endpoint + ' failed: ' + request.status + ' ' + request.err);
+          const response = new TextDecoder().decode(request.body);
+          if (!response.startsWith('1:128:')) throw Error(endpoint + ' returned no level');
+          return {status: request.status, bytes: request.body.length, hasLevelData: response.includes(':4:H4s')};
+        } finally { gd_http_release(id); }
+      }
+      return {
+        search: await post('https://boomlings.ale7208.workers.dev/?url=', 'getGJLevels21.php', 'str=128&type=0'),
+        download: await post('/__proxy?url=', 'downloadGJLevel22.php', 'levelID=128')
+      };
+    });
+    assert(report.levelNetwork.download.hasLevelData);
     report.framesBefore = await page.evaluate(() => Module._gd_frames_get());
     report.baseline = await page.evaluate(async () => {
       const hash = async bytes => [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(n => n.toString(16).padStart(2, '0')).join('');

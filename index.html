@@ -48,7 +48,45 @@ if(retryable(res.status))return advance(res);
 window.__gdProxyBase=base;return res;
 },function(err){var next=nextProxy(target,idx);if(next>=0)return attempt(input,init,target,next);throw err;});
 }
-window.fetch=function(input,init){var u=(typeof input==="string")?input:(input&&input.url);var target=window.__gdProxyTarget(u);if(target===null)return nativeFetch(input,init);var form=typeof u==="string"&&u.indexOf("/__proxy?url=")>=0;if(form){var first=nextProxy(target,-1);return first<0?Promise.reject(new TypeError("no eligible proxy available")):attempt(input,init,target,first);}return attempt(input,init,target,-1);};
+var publicLevelProxy = "https://boomlings.ivan-makarov12341.workers.dev/?url=";
+function publicLevelTarget(input, init, target) {
+  if (typeof input !== "string" || String(init?.method).toUpperCase() !== "POST" ||
+      new URLSearchParams(location.search).has("proxy") || new Headers(init.headers).has("Authorization")) return null;
+  try {
+    // Some game builds supply the upstream URL already wrapped by the primary worker.
+    if (!target) {
+      var wrapped = new URL(input, location.href);
+      if (wrapped.origin !== "https://boomlings.ale7208.workers.dev" || wrapped.pathname !== "/") return null;
+      target = wrapped.searchParams.get("url");
+    }
+    var url = new URL(target);
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search ||
+        !["boomlings.com", "www.boomlings.com"].includes(url.host) ||
+        !["/database/getGJLevels21.php", "/database/downloadGJLevel22.php"].includes(url.pathname)) return null;
+    var body = init.body;
+    if (body instanceof ArrayBuffer || ArrayBuffer.isView(body)) body = new TextDecoder().decode(body);
+    if (typeof body !== "string" && !(body instanceof URLSearchParams)) return null;
+    for (var [key, value] of new URLSearchParams(body)) {
+      if (value && /^(gjp2?|password|token)$/i.test(key)) return null;
+    }
+    return "https://www.boomlings.com" + url.pathname;
+  } catch (_) {
+    return null;
+  }
+}
+function gameFetch(input,init){var u=(typeof input==="string")?input:(input&&input.url);var target=window.__gdProxyTarget(u);if(target===null)return nativeFetch(input,init);var form=typeof u==="string"&&u.indexOf("/__proxy?url=")>=0;if(form){var first=nextProxy(target,-1);return first<0?Promise.reject(new TypeError("no eligible proxy available")):attempt(input,init,target,first);}return attempt(input,init,target,-1);}
+window.fetch = function (input, init) {
+  var target = publicLevelTarget(input, init, window.__gdProxyTarget(input));
+  if (!target) return gameFetch(input, init);
+  return nativeFetch(publicLevelProxy + encodeURIComponent(target), {...init, credentials: "omit", redirect: "error"})
+    .then(function (response) {
+      if (response.ok && !/text\/html/i.test(response.headers.get("Content-Type") || "")) return response;
+      return gameFetch(input, init);
+    }, function (error) {
+      if (init.signal?.aborted) throw error;
+      return gameFetch(input, init);
+    });
+};
 var nativeOpen=XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open=function(method,url){this.__gdProxyWorkerBase=null;if(typeof url==="string"){var target=window.__gdProxyTarget(url);if(target!==null){var base=window.__gdProxyBase||window.__gdProxyBases[0];if(skipped(base,target)){var next=nextProxy(target,-1);if(next<0&&url.indexOf("/__proxy?url=")<0)return nativeOpen.apply(this,arguments);if(next>=0)base=window.__gdProxyBases[next];}if(fallbackWorker(base))this.__gdProxyWorkerBase=base;arguments[1]=window.__gdProxyBuild(base,target);}}return nativeOpen.apply(this,arguments);};
 var nativeSend=XMLHttpRequest.prototype.send;
